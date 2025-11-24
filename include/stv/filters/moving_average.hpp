@@ -41,10 +41,10 @@
 
 namespace stv {
 
-enum class SimpleMovingAverageErr {
-    kSuccess,
-    kZeroWindowWidth,
-    kMaxWindowWidthLimit,
+struct ZeroWindowWidth {
+};
+
+struct MaxWindowWidthLimitError {
 };
 
 /// @brief Параметры фильтра скользящего среднего.
@@ -98,13 +98,11 @@ struct SimpleMovingAverageSetupParams {
         std::size_t max_window_width) const -> boost::leaf::result<void>
     {
         if(window_width == 0) {
-            return boost::leaf::new_error(
-                SimpleMovingAverageErr::kZeroWindowWidth);
+            return boost::leaf::new_error(stv::ZeroWindowWidth{});
         }
 
         if(window_width > max_window_width) {
-            return boost::leaf::new_error(
-                SimpleMovingAverageErr::kMaxWindowWidthLimit);
+            return boost::leaf::new_error(stv::MaxWindowWidthLimitError{});
         }
 
         return boost::leaf::result<void>{};
