@@ -132,6 +132,49 @@ class ISimpleMovingAverage
     using SetupType = TSetup;
     using ContainerType = gsl::span<ValueType>;
 
+#ifdef UNIT_TEST_ENABLE
+  public:
+#else
+  private:
+#endif
+
+    /// @brief Представление ввода и вывода в память для хранения отсчетов.
+    ///
+    /// @note Это поле сделано защищенным для тестирования защищенных
+    /// операторов перемещения и копирования.
+    ContainerType buffer;
+
+  private:
+    /// @brief Накопленная сумма значений в буфере.
+    ValueType sum_{};
+
+    /// @brief Счетчик, указывающий текущую позицию в буфере.
+    std::uint32_t cnt_{};
+
+    /// @brief Флаг, указывающий, был ли буфер заполнен хотя бы один раз.
+    /// Может быть сброшен в SetBiggerWindowWidth().
+    bool is_buffer_full_{false};
+
+    /// @brief Фактические параметры фильтра скользящего среднего.
+    SetupType setup_actual_;
+
+    /// @brief Параметры по умолчанию фильтра скользящего среднего.
+    ///
+    /// @note Используются невалидные параметры которые вернут ошибку при вызове
+    /// IsValid().
+    SetupType setup_default_;
+
+    /// @brief Обратное значение текущей ширины окна для более быстрых операций
+    /// деления.
+    ///
+    /// @note Если T является целочисленным типом, то используется прямое
+    /// значение вместо обратного.
+    ValueType window_width_inv_{};
+
+    /// @brief Используется для обеспечения атомарности обновления данных в
+    /// многопоточном приложении.
+    mutable MutexType mutex_;
+
   public:
     /// @brief Деструктор.
     ///
@@ -448,49 +491,6 @@ class ISimpleMovingAverage
             return mutex_;
         }
     }
-
-#ifdef UNIT_TEST_ENABLE
-  public:
-#else
-  private:
-#endif
-
-    /// @brief Представление ввода и вывода в память для хранения отсчетов.
-    ///
-    /// @note Это поле сделано защищенным для тестирования защищенных
-    /// операторов перемещения и копирования.
-    ContainerType buffer;
-
-  private:
-    /// @brief Накопленная сумма значений в буфере.
-    ValueType sum_{};
-
-    /// @brief Счетчик, указывающий текущую позицию в буфере.
-    std::uint32_t cnt_{};
-
-    /// @brief Флаг, указывающий, был ли буфер заполнен хотя бы один раз.
-    /// Может быть сброшен в SetBiggerWindowWidth().
-    bool is_buffer_full_{false};
-
-    /// @brief Фактические параметры фильтра скользящего среднего.
-    SetupType setup_actual_;
-
-    /// @brief Параметры по умолчанию фильтра скользящего среднего.
-    ///
-    /// @note Используются невалидные параметры которые вернут ошибку при вызове
-    /// IsValid().
-    SetupType setup_default_;
-
-    /// @brief Обратное значение текущей ширины окна для более быстрых операций
-    /// деления.
-    ///
-    /// @note Если T является целочисленным типом, то используется прямое
-    /// значение вместо обратного.
-    ValueType window_width_inv_{};
-
-    /// @brief Используется для обеспечения атомарности обновления данных в
-    /// многопоточном приложении.
-    mutable MutexType mutex_;
 };
 
 template<stv::Filterable TBase, std::size_t MAX_WINDOW_WIDTH = 20>
