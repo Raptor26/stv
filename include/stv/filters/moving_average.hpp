@@ -24,6 +24,103 @@
 /// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 /// DEALINGS IN THE SOFTWARE.
+///
+/// NAME
+///     moving_average
+///
+/// DESCRIPTION
+///     moving_average provides a simple moving average filter implementation
+///     for signal processing. The library includes configurable window sizes,
+///     thread safety options, and runtime reconfiguration capabilities.
+///
+///     Main components:
+///     - SimpleMovingAverageSetupParams: Configuration structure with window
+///       width and mutex settings
+///     - ISimpleMovingAverage: Base template class implementing core filtering
+///       logic with configurable buffer size
+///     - SizeWrapper: Storage wrapper that combines buffer array with filter
+///       implementation
+///
+///     The filter supports:
+///     - Integer and floating-point value types
+///     - Custom mutex types for thread safety
+///     - External mutex references via MutexExtTag
+///     - Runtime window width changes
+///     - Batch processing of multiple samples
+///
+///     All implementations require proper buffer initialization. Concurrent
+///     access must be synchronized when using non-thread-safe mutex types.
+///
+/// EXAMPLE
+///     Basic usage example:
+///     ```cpp
+///     #include "moving_average.hpp"
+///     #include <iostream>
+///
+///     int main() {
+///         using namespace stv;
+///
+///         // Define setup parameters with window width of 5
+///         using SetupParams = SimpleMovingAverageSetupParams<double>;
+///         using FilterBase = ISimpleMovingAverage<SetupParams>;
+///
+///         // Create filter with maximum buffer size of 20
+///         SimpleMovingAverage<FilterBase, 20> filter{
+///             SetupParams{.window_width = 5U}
+///         };
+///
+///         // Test data with noise
+///         double noisy_data[] = {1.0, 1.1, 0.9, 1.05, 0.95,
+///                                1.02, 0.98, 1.01, 0.99, 1.0};
+///
+///         std::cout << "Original -> Filtered:\n";
+///         for (double sample : noisy_data) {
+///             double filtered = filter.Filtered(sample);
+///             std::cout << sample << " -> " << filtered << "\n";
+///         }
+///
+///         // Check if buffer is full (after 5 samples)
+///         std::cout << "Buffer full: " << filter.IsBufferFull() << "\n";
+///
+///         return 0;
+///     }
+///     ```
+///     Output will show smoothing effect after the buffer fills.
+///
+///     Thread-safe usage with custom mutex:
+///     ```cpp
+///     #include "moving_average.hpp"
+///     #include <mutex>
+///
+///     // Use std::recursive_mutex for thread safety
+///     using ThreadSafeSetup = SimpleMovingAverageSetupParams<float,
+///         std::recursive_mutex>;
+///     using ThreadSafeFilter = ISimpleMovingAverage<ThreadSafeSetup>;
+///
+///     SimpleMovingAverage<ThreadSafeFilter, 10> thread_safe_filter{
+///         ThreadSafeSetup{.window_width = 3U}
+///     };
+///     ```
+///
+///     External mutex usage:
+///     ```cpp
+///     struct CustomMutex {
+///         void lock() { /* implementation */ }
+///         void unlock() { /* implementation */ }
+///     };
+///
+///     CustomMutex custom_mutex;
+///     using ExtMutexSetup = SimpleMovingAverageSetupParams<float,
+///         CustomMutex, MutexExtTag>;
+///     using ExtFilter = ISimpleMovingAverage<ExtMutexSetup>;
+///
+///     SimpleMovingAverage<ExtFilter, 15> ext_filter{
+///         ExtMutexSetup{.window_width = 4U, .mutex = &custom_mutex}
+///     };
+///     ```
+///
+///     See test cases in the test suite for comprehensive usage examples and
+///     validation tests.
 
 #ifndef STVF_MOVING_AVERAGE_HPP
 #define STVF_MOVING_AVERAGE_HPP
