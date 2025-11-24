@@ -535,7 +535,8 @@ class ISimpleMovingAverage
         }
 
         // Установить все элементы за пределами new_width в 0.
-        std::fill(buffer.begin() + new_width, buffer.end(), 0);
+        std::fill(buffer.begin() + new_width, buffer.end(),
+                  static_cast<ValueType>(0));
 
         // Обновить счетчик и проверить, что он не становится отрицательным.
         if(cnt_ < size_decrement) {

@@ -101,6 +101,9 @@
         "xutility": "cpp",
         "csetjmp": "cpp",
         "forward_list": "cpp",
-        "xtree": "cpp"
+        "xtree": "cpp",
+        "cfenv": "cpp",
+        "complex": "cpp",
+        "csignal": "cpp"
     }
 }

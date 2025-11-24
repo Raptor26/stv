@@ -24,6 +24,7 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
+#include "fpm/fixed.hpp"
 #include "moving_average.hpp"
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -366,7 +367,9 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
 TEMPLATE_PRODUCT_TEST_CASE_SIG(
     "Moving Average", "[stv]",
     ((typename TData, typename TMutex), TData, TMutex),
-    (stv::SimpleMovingAverageSetupParams), ((double, std::recursive_mutex)))
+    (stv::SimpleMovingAverageSetupParams),
+    ((double, std::recursive_mutex), (float, stv::MutexEmpty),
+     (int, std::recursive_mutex), (fpm::fixed_16_16, stv::MutexEmpty)))
 {
     using namespace stv;
     using namespace boost;
@@ -429,12 +432,15 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
     {
         SimpleMovingAverage<TBase> average(attr);
 
-        const std::array<TData, 8> samples{1, 2, 3, 4, 5, 6, 7, 8};
+        const std::array<TData, 8> samples{
+            static_cast<TData>(1), static_cast<TData>(2), static_cast<TData>(3),
+            static_cast<TData>(4), static_cast<TData>(5), static_cast<TData>(6),
+            static_cast<TData>(7), static_cast<TData>(8)};
 
-        constexpr double           eps{0.01};
+        constexpr double eps{0.01};
         for(const auto &new_sample: samples) {
             // Without setup Filtered() must return <new_sample>.
-            REQUIRE_THAT(average.Filtered(new_sample),
+            REQUIRE_THAT(static_cast<double>(average.Filtered(new_sample)),
                          Catch::Matchers::WithinRel(
                              static_cast<double>(new_sample), eps));
         }
@@ -446,8 +452,15 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         //
         REQUIRE(average.Setup(TSetup{.window_width = 3}));
 
-        const std::array<TData, 8> samples{1, 2, 3, 4, 5, 6, 7, 8};
-        std::array<TData, 8>       expected{1, 2, 2, 3, 4, 5, 6, 7};
+        const std::array<TData, 8> samples{
+            static_cast<TData>(1), static_cast<TData>(2), static_cast<TData>(3),
+            static_cast<TData>(4), static_cast<TData>(5), static_cast<TData>(6),
+            static_cast<TData>(7), static_cast<TData>(8)};
+
+        const std::array<TData, 8> expected{
+            static_cast<TData>(1), static_cast<TData>(2), static_cast<TData>(2),
+            static_cast<TData>(3), static_cast<TData>(4), static_cast<TData>(5),
+            static_cast<TData>(6), static_cast<TData>(7)};
 
         CHECK(samples.size() == expected.size());
 
@@ -455,7 +468,8 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         SECTION("With cycle")
         {
             for(std::size_t i = 0; i < samples.size(); ++i) {
-                const auto filtered = average.Filtered(samples.at(i));
+                const auto filtered =
+                    static_cast<double>(average.Filtered(samples.at(i)));
                 REQUIRE_THAT(filtered,
                              Catch::Matchers::WithinRel(
                                  static_cast<double>(expected.at(i)), eps));
@@ -464,9 +478,9 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
 
         SECTION("With arg pack")
         {
-            const auto filtered = average.Filtered(
+            const auto filtered = static_cast<double>(average.Filtered(
                 samples.at(0), samples.at(1), samples.at(2), samples.at(3),
-                samples.at(4), samples.at(5), samples.at(6), samples.at(7));
+                samples.at(4), samples.at(5), samples.at(6), samples.at(7)));
 
             REQUIRE_THAT(filtered,
                          Catch::Matchers::WithinRel(
@@ -475,8 +489,8 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
 
         SECTION("With iterators")
         {
-            const auto filtered =
-                average.Filtered(samples.cbegin(), samples.cend());
+            const auto filtered = static_cast<double>(
+                average.Filtered(samples.cbegin(), samples.cend()));
 
             REQUIRE_THAT(filtered,
                          Catch::Matchers::WithinRel(
@@ -495,14 +509,22 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         setup_params.window_width = window_width_init;
         REQUIRE(average.Setup(setup_params));
 
-        const std::array<TData, 10> samples{10,  200, 30,  100, -20,
-                                            500, 400, -20, 300, 20};
+        const std::array<TData, 10> samples{
+            static_cast<TData>(10),  static_cast<TData>(200),
+            static_cast<TData>(30),  static_cast<TData>(100),
+            static_cast<TData>(-20), static_cast<TData>(500),
+            static_cast<TData>(400), static_cast<TData>(-20),
+            static_cast<TData>(300), static_cast<TData>(20)};
 
         // Index of sample values from which lower window width begins.
         constexpr std::size_t       width_lower_first_idx = 6;
 
-        const std::array<TData, 10> expected{10,  200, 30,  100, 64,
-                                             162, 293, 293, 227, 100};
+        const std::array<TData, 10> expected{
+            static_cast<TData>(10),  static_cast<TData>(200),
+            static_cast<TData>(30),  static_cast<TData>(100),
+            static_cast<TData>(64),  static_cast<TData>(162),
+            static_cast<TData>(293), static_cast<TData>(293),
+            static_cast<TData>(227), static_cast<TData>(100)};
 
         CHECK(samples.size() == expected.size());
 
@@ -514,7 +536,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
                 REQUIRE(average.Setup(setup_params));
             }
 
-            REQUIRE_THAT(average.Filtered(samples.at(i)),
+            REQUIRE_THAT(static_cast<double>(average.Filtered(samples.at(i))),
                          Catch::Matchers::WithinRel(
                              static_cast<double>(expected.at(i)), eps));
         }
@@ -531,14 +553,22 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         setup_params.window_width = window_width_init;
         REQUIRE(average.Setup(setup_params));
 
-        const std::array<TData, 10> samples{10,  200, 30,  100, -20,
-                                            500, 400, -20, 300, 20};
+        const std::array<TData, 10> samples{
+            static_cast<TData>(10),  static_cast<TData>(200),
+            static_cast<TData>(30),  static_cast<TData>(100),
+            static_cast<TData>(-20), static_cast<TData>(500),
+            static_cast<TData>(400), static_cast<TData>(-20),
+            static_cast<TData>(300), static_cast<TData>(20)};
 
         // Index of sample values from which greater window width begins.
         constexpr std::size_t       width_greater_first_idx = 6;
 
-        const std::array<TData, 10> expected{10,  200, 80,  110, 37,
-                                             193, 400, 192, 232, 240};
+        const std::array<TData, 10> expected{
+            static_cast<TData>(10),  static_cast<TData>(200),
+            static_cast<TData>(80),  static_cast<TData>(110),
+            static_cast<TData>(37),  static_cast<TData>(193),
+            static_cast<TData>(400), static_cast<TData>(192),
+            static_cast<TData>(232), static_cast<TData>(240)};
 
         CHECK(samples.size() == expected.size());
 
@@ -550,7 +580,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
                 REQUIRE(average.Setup(setup_params));
             }
 
-            REQUIRE_THAT(average.Filtered(samples.at(i)),
+            REQUIRE_THAT(static_cast<double>(average.Filtered(samples.at(i))),
                          Catch::Matchers::WithinAbs(
                              static_cast<double>(expected.at(i)), eps));
         }
@@ -566,9 +596,12 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         setup_params.window_width = window_width;
         REQUIRE(average.Setup(setup_params));
 
-        const std::array<TData, 8> samples{1, 2, 3, 4, 5, 6, 7, 8};
+        const std::array<TData, 8> samples{
+            static_cast<TData>(1), static_cast<TData>(2), static_cast<TData>(3),
+            static_cast<TData>(4), static_cast<TData>(5), static_cast<TData>(6),
+            static_cast<TData>(7), static_cast<TData>(8)};
 
-        constexpr double           eps{0.01};
+        constexpr double eps{0.01};
 
         for(const auto &new_sample: samples) {
             const auto filtered = average.Filtered(new_sample);
@@ -579,7 +612,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         average.Reset();
 
         for(const auto &new_sample: samples) {
-            REQUIRE_THAT(average.Filtered(new_sample),
+            REQUIRE_THAT(static_cast<double>(average.Filtered(new_sample)),
                          Catch::Matchers::WithinRel(
                              static_cast<double>(new_sample), eps));
         }
