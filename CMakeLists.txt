@@ -7,9 +7,9 @@ project(
 
 include(property.cmake)
 
-add_subdirectory(third_parity/GSL SYSTEM)
-add_subdirectory(third_parity/leaf SYSTEM)
-add_subdirectory(third_parity/etl SYSTEM)
+add_subdirectory(third_party/GSL SYSTEM)
+add_subdirectory(third_party/leaf SYSTEM)
+add_subdirectory(third_party/etl SYSTEM)
 
 add_library(${PROJECT_NAME} INTERFACE)
 add_library(stv::stv ALIAS ${PROJECT_NAME})
