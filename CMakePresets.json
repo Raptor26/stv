@@ -1,0 +1,52 @@
+{
+    "version": 10,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 23,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "gcc_compiler",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++"
+            }
+        },
+        {
+            "name": "clang_compiler",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++"
+            }
+        },
+        {
+            "name": "pc_unit_tests",
+            "displayName": "Build unit tests on PC host",
+            "description": "Unit tests on PC host",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++",
+                "UTEST": true
+            }
+        },
+        {
+            "name": "pc_unit_tests_and_clang_tidy",
+            "displayName": "Build unit tests on PC host with clang tidy",
+            "description": "Unit tests on PC host with clang tidy",
+            "inherits": "pc_unit_tests",
+            "cacheVariables": {
+                "CLANG_TIDY_ENABLE": true
+            }
+        }
+    ]
+}

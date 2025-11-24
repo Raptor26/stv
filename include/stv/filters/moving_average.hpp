@@ -1,0 +1,500 @@
+/// @file moving_average.hpp
+///
+/// @author Mickle Isaev (mrraptor26@gmail.com)
+/// @author Matvey Simakov <simakov.matvey@mail.ru>
+///
+/// @copyright (c) 2025 "The Boys"
+///
+/// MIT License:
+///
+/// Permission is hereby granted, free of charge, to any person obtaining a
+/// copy of this software and associated documentation files (the 'Software'),
+/// to deal in the Software without restriction, including without limitation
+/// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+/// and/or sell copies of the Software, and to permit persons to whom the
+/// Software is furnished to do so, subject to the following conditions:
+///
+/// The above copyright notice and this permission notice shall be included in
+/// all copies or substantial portions of the Software.
+///
+/// THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+/// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+/// DEALINGS IN THE SOFTWARE.
+
+#ifndef STVF_MOVING_AVERAGE_HPP
+#define STVF_MOVING_AVERAGE_HPP
+
+#include "GSL/gsl"
+#include "boost/leaf.hpp"
+#include "etl/mutex.h"
+#include "filters_concepts.hpp"
+#include "mutex_empty.hpp"
+#include "wrappers.hpp"
+#include <array>
+#include <concepts>
+#include <cstdint>
+#include <variant>
+
+namespace stv {
+
+enum class SimpleMovingAverageErr {
+    kSuccess,
+    kZeroWindowWidth,
+    kMaxWindowWidthLimit,
+};
+
+/// @brief Параметры фильтра скользящего среднего.
+template<typename T, typename TMutex = stv::MutexEmpty,
+         typename TMutexTag = stv::MutexIntTag>
+struct SimpleMovingAverageSetupParams {
+    using ValueType          = T;
+    using MutexTag           = TMutexTag;
+    using MutexType          = TMutex;
+    using MutexConditionType = stv::mutex_type_setup_v<TMutex, TMutexTag>;
+
+    static constexpr std::uint16_t kDefaultWindowWidth{1};
+
+    /// @brief Ширина окна фильтра.
+    ///
+    /// @note Значение должно быть положительным и не превышать максимальную
+    /// ширину окна.
+    std::uint16_t window_width{kDefaultWindowWidth};
+
+    /// @brief Если указан внешний мьютекс, то mutex будет указателем на тип
+    /// TMutex, в противном случае тип будет пустым.
+    MutexConditionType mutex{};
+
+    /// @brief Оператор сравнения на равенство.
+    /// @param[in] other: Другой объект параметров.
+    /// @return true, если параметры равны, иначе false.
+    auto operator==(
+        const SimpleMovingAverageSetupParams &other) const -> bool
+    {
+        return (this->window_width == other.window_width);
+    }
+
+    /// @brief Оператор сравнения на неравенство.
+    /// @param[in] other: Другой объект параметров.
+    /// @return true, если параметры не равны, иначе false.
+    auto operator!=(
+        const SimpleMovingAverageSetupParams &other) const -> bool
+    {
+        return !(*this == other);
+    }
+
+    /// @brief Возвращает true если window_width находится в допустимом
+    /// диапазоне.
+    ///
+    /// @param max_window_width: Максимально допустима ширина окна, которую
+    /// задает вызывающий код.
+    ///
+    /// @return true если window_width находится в допустимом диапазоне, false
+    /// в противном случае.
+    auto IsValid(
+        std::size_t max_window_width) const -> boost::leaf::result<void>
+    {
+        if(window_width == 0) {
+            return boost::leaf::new_error(
+                SimpleMovingAverageErr::kZeroWindowWidth);
+        }
+
+        if(window_width > max_window_width) {
+            return boost::leaf::new_error(
+                SimpleMovingAverageErr::kMaxWindowWidthLimit);
+        }
+
+        return boost::leaf::result<void>{};
+    }
+};
+
+/// @brief Структура, содержащая атрибуты фильтра скользящего среднего.
+///
+/// @note Наследуется от SimpleMovingAverageSetupParams для включения ширины
+/// окна.
+template<typename T, typename TMutex = stv::MutexEmpty>
+using SimpleMovingAverageFilterAttr = SimpleMovingAverageSetupParams<T, TMutex>;
+
+/// @brief Базовый класс, представляющий интерфейсы для фильтрации значений с
+/// помощью скользящего среднего без указания максимальной ширины окна в списке
+/// параметров шаблона. В качестве дополнительной функции ISimpleMovingAverage
+/// предлагает изменение фактической ширины окна во время выполнения.
+template<typename TSetup>
+class ISimpleMovingAverage
+{
+  public:
+    using ValueType = typename TSetup::ValueType;
+    using MutexTag  = typename TSetup::MutexTag;
+    using MutexType = stv::mutex_type_v<typename TSetup::MutexType, MutexTag>;
+    using SetupType = TSetup;
+    using ContainerType = gsl::span<ValueType>;
+
+  public:
+    /// @brief Деструктор.
+    ///
+    /// @note Этот деструктор виртуальный, чтобы обеспечить правильную очистку
+    /// объектов производного класса при удалении через указатель базового
+    /// класса.
+    virtual ~ISimpleMovingAverage() = default;
+
+    /// @brief Защищенный конструктор перемещения по умолчанию.
+    /// @note Член "правила 5" в С++.
+    ISimpleMovingAverage(ISimpleMovingAverage &&other) = default;
+
+    /// @brief Защищенный оператор присваивания перемещения по умолчанию.
+    /// @note Член "правила 5" в С++.
+    auto operator=(ISimpleMovingAverage &&other)
+        -> ISimpleMovingAverage & = default;
+
+    /// @brief Защищенный оператор присваивания копирования по умолчанию.
+    /// @note Член "правила 5" в С++.
+    auto operator=(const ISimpleMovingAverage &other)
+        -> ISimpleMovingAverage & = default;
+
+    /// @brief Защищенный конструктор копирования по умолчанию.
+    /// @note Член "правила 5" в С++.
+    ISimpleMovingAverage(const ISimpleMovingAverage &other) = default;
+
+    operator boost::leaf::result<void>() const noexcept
+    {
+        BOOST_LEAF_CHECK(setup_default_.IsValid(buffer.size()));
+        BOOST_LEAF_CHECK(setup_actual_.IsValid(buffer.size()));
+        return boost::leaf::result<void>{};
+    }
+
+    operator bool() const noexcept
+    {
+        auto is_mutex_ptr_valid{true};
+        if constexpr(std::is_pointer_v<decltype(mutex_)>) {
+            if(!mutex_) {
+                is_mutex_ptr_valid = false;
+            }
+        }
+        return static_cast<bool>(static_cast<boost::leaf::result<void>>(*this))
+               && is_mutex_ptr_valid;
+    }
+
+    /// @brief Установить параметры фильтра скользящего среднего во время
+    /// выполнения.
+    ///
+    /// @note Корректирует внутренний буфер и сумму на основе новой ширины
+    /// окна.
+    ///
+    /// @param[in] params: Параметры фильтра.
+    template<typename U>
+    auto Setup(
+        U &&params)
+        noexcept(
+            noexcept(params.IsValid(buffer.size()))
+            && noexcept(ChangeWindowWidthAndUpdateCounter(params.window_width))
+            && noexcept(UpdateWindowWithInverse())) -> boost::leaf::result<void>
+    {
+        BOOST_LEAF_CHECK(params.IsValid(buffer.size()));
+
+        stv::lock_guard critical{GetMutexRef()};
+
+        ChangeWindowWidthAndUpdateCounter(params.window_width);
+
+        setup_actual_ = std::move(params);
+
+        // Обновить обратную ширину окна для оптимизации времени
+        // вычислений.
+        UpdateWindowWithInverse();
+
+        return boost::leaf::result<void>{};
+    }
+
+    /// @brief Получить конфигурацию фильтра по умолчанию.
+    ///
+    /// @return Значения по умолчанию для параметров фильтра.
+    [[nodiscard]] auto GetDefaultParams() const noexcept -> SetupType
+    {
+        return setup_default_;
+    }
+
+    /// @brief Получить фактические параметры настройки фильтра.
+    [[nodiscard]] auto GetSetup() const
+    {
+        stv::lock_guard critical{GetMutexRef()};
+        return setup_actual_;
+    }
+
+    /// @brief Сбросить коэффициенты фильтра в значения "по умолчанию".
+    void Reset()
+    {
+        stv::lock_guard critical{GetMutexRef()};
+
+        // Строка ниже гарантировано завершиться успешно т.к. setup_default_
+        // устанавливается в конструкторе и содержит достоверные значения.
+        const auto error = Setup(setup_default_);
+        (void)error;
+    }
+
+    /// @brief Возвращает статус буфера.
+    /// @return true - если буфер заполен и Filtered() возвращает среднее
+    /// арифметическое значение, false - если буфер еще не заполнен и
+    /// Filtered() возвращает исходное значение.
+    [[nodiscard]] auto IsBufferFull() const noexcept
+    {
+        stv::lock_guard critical{GetMutexRef()};
+        return is_buffer_full_;
+    }
+
+    /// @brief Очищает все значения буфера скользящего среднего.
+    void Clear() noexcept(
+        noexcept(Setup()))
+    {
+        stv::lock_guard critical{GetMutexRef()};
+        cnt_            = 0;
+        is_buffer_full_ = false;
+    }
+
+    /// @brief Получить арифметическое среднее из буфера.
+    ///
+    /// @param[in] new_sample: Новый отсчет для добавления в буфер.
+    ///
+    /// @note Если буфер содержит меньше значений, чем было задано при вызове
+    /// Setup(), Filtered() вернет new_sample.
+    ///
+    /// @return Среднее значение, если в буфере достаточно элементов.
+    [[nodiscard]] auto Filtered(
+        ValueType new_sample)
+        noexcept(
+            noexcept(IsBufferFull()))
+    {
+        stv::lock_guard critical{GetMutexRef()};
+
+        sum_          += new_sample - buffer[cnt_];
+        buffer[cnt_]   = new_sample;
+        auto filtered  = new_sample;
+
+        if(!IsBufferFull()) {
+            if((cnt_ + 1) == setup_actual_.window_width) {
+                is_buffer_full_ = true;
+            }
+        }
+
+        if(IsBufferFull()) {
+            // ... вычислить среднее.
+            if constexpr(std::is_integral_v<ValueType>) {
+                filtered = sum_ / window_width_inv_;
+            } else {
+                filtered = sum_ * window_width_inv_;
+            }
+        }
+
+        cnt_ = (cnt_ + 1) % setup_actual_.window_width;
+
+        return filtered;
+    }
+
+    template<typename... TSamples>
+    auto Filtered(
+        TSamples... samples)
+    {
+        ValueType filtered;
+
+        ((filtered = Filtered(std::forward<TSamples>(samples))), ...);
+
+        return filtered;
+    }
+
+    template<typename TInputIt>
+    auto Filtered(
+        TInputIt cbegin, TInputIt cend)
+    {
+        ValueType filtered;
+        while(cbegin != cend) {
+            filtered = Filtered(*cbegin);
+            ++cbegin;
+        }
+
+        return filtered;
+    }
+
+  protected:
+    /// @brief Защищенный конструктор для предотвращения прямого создания
+    /// экземпляра.
+    ///
+    /// @param[in] attr: Атрибуты конфигурации фильтра.
+    ///
+    /// @param[in] buffer_span: Span, просматривающий предварительно выделенный
+    /// массив для хранения отсчетов.
+    ISimpleMovingAverage(
+        const SetupType &attr, ContainerType buffer_span):
+        buffer{buffer_span},
+        setup_actual_(static_cast<bool>(attr.IsValid(buffer.size()))
+                          ? attr
+                          : SetupType{.window_width = 0U}),
+        setup_default_{setup_actual_}
+    {
+        UpdateWindowWithInverse();
+
+        if constexpr(std::is_same_v<MutexTag, stv::MutexExtTag>) {
+            mutex_ = attr.mutex;
+        }
+    }
+
+  private:
+    /// @brief Изменить ширину окна и обновить счетчик, если новая ширина
+    /// отличается от ширины из setup_actual.
+    ///
+    /// @param[in] new_width: Новая ширина окна.
+    void ChangeWindowWidthAndUpdateCounter(
+        std::size_t new_width)
+        noexcept(
+            noexcept(SetSmallerWindowWidth(new_width))
+            && noexcept(SetBiggerWindowWidth(new_width)))
+    {
+        if(new_width < setup_actual_.window_width) {
+            SetSmallerWindowWidth(new_width);
+        } else if(new_width > setup_actual_.window_width) {
+            SetBiggerWindowWidth(new_width);
+        }
+    }
+
+    /// @brief Уменьшить ширину окна и удалить старейшие элементы из текущего
+    /// <cnt_>.
+    ///
+    /// @param[in] new_width: Новая меньшая ширина окна фильтра.
+    ///
+    /// @note Этот метод
+    void SetSmallerWindowWidth(
+        std::size_t new_width) noexcept
+    {
+        auto old_width      = setup_actual_.window_width;
+        auto size_decrement = old_width - new_width;
+
+        // Уменьшить накопленную сумму.
+        for(std::size_t i = 0; i < size_decrement; ++i) {
+            // Вычислить индекс элемента, который должен быть удален из
+            // суммы.
+            auto idx  = (cnt_ + i) % old_width;
+            sum_     -= buffer[idx];
+        }
+
+        // Обновить буфер, оставляя только последние элементы.
+
+        // Вычислить максимальный индекс элемента старого буфера. Индекс должен
+        // быть больше нуля
+        auto old_max_element_idx = old_width - 1;
+
+        // Добавить old_width к текущему счетчику, чтобы иметь возможность
+        // итерироваться справа налево. Счетчик должен быть больше нуля.
+        auto last_element_idx = cnt_ + old_max_element_idx;
+
+        for(std::size_t i = 0, new_max_element_idx = new_width - 1;
+            i < new_width; ++i) {
+            // Вычислить индекс элемента, который должен остаться в буфере.
+            // Начать с последнего элемента, который должен остаться.
+            auto idx = ((last_element_idx - i) % old_width);
+
+            // Обновить буфер
+            buffer[new_max_element_idx - i] = buffer[idx];
+        }
+
+        // Установить все элементы за пределами new_width в 0.
+        std::fill(buffer.begin() + new_width, buffer.end(), 0);
+
+        // Обновить счетчик и проверить, что он не становится отрицательным.
+        if(cnt_ < size_decrement) {
+            cnt_ = 0;
+        } else {
+            cnt_ -= size_decrement;
+        }
+    }
+
+    /// @brief Увеличить ширину окна и обновить счетчик соответствующим
+    /// образом.
+    ///
+    /// @note Счетчик обновляется только если буфер уже полон.
+    ///
+    /// @param[in] new_width: Новая большая ширина окна фильтра.
+    void SetBiggerWindowWidth(
+        std::size_t new_width) noexcept
+    {
+        if(is_buffer_full_) {
+            cnt_ = (cnt_ + (new_width - setup_actual_.window_width) + 1)
+                   % new_width;
+
+            is_buffer_full_ = false;
+        }
+    }
+
+    /// @brief Обновить обратное значение ширины окна. Это значение
+    /// используется для более быстрого вычисления в Filtered().
+    auto UpdateWindowWithInverse() noexcept -> void
+    {
+        if(setup_actual_.window_width > 0) {
+            if constexpr(std::is_integral_v<ValueType>) {
+                window_width_inv_ = setup_actual_.window_width;
+            } else {
+                window_width_inv_ =
+                    static_cast<ValueType>(1)
+                    / static_cast<ValueType>(setup_actual_.window_width);
+            }
+        }
+    }
+
+    auto GetMutexRef() const -> std::remove_pointer_t<MutexType> &
+    {
+        if constexpr(std::is_same_v<MutexTag, stv::MutexExtTag>) {
+            assert(mutex_ != nullptr);
+            return *mutex_;
+        } else {
+            return mutex_;
+        }
+    }
+
+#ifdef UNIT_TEST_ENABLE
+  public:
+#else
+  private:
+#endif
+
+    /// @brief Представление ввода и вывода в память для хранения отсчетов.
+    ///
+    /// @note Это поле сделано защищенным для тестирования защищенных
+    /// операторов перемещения и копирования.
+    ContainerType buffer;
+
+  private:
+    /// @brief Накопленная сумма значений в буфере.
+    ValueType sum_{};
+
+    /// @brief Счетчик, указывающий текущую позицию в буфере.
+    std::uint32_t cnt_{};
+
+    /// @brief Флаг, указывающий, был ли буфер заполнен хотя бы один раз.
+    /// Может быть сброшен в SetBiggerWindowWidth().
+    bool is_buffer_full_{false};
+
+    /// @brief Фактические параметры фильтра скользящего среднего.
+    SetupType setup_actual_;
+
+    /// @brief Параметры по умолчанию фильтра скользящего среднего.
+    ///
+    /// @note Используются невалидные параметры которые вернут ошибку при вызове
+    /// IsValid().
+    SetupType setup_default_;
+
+    /// @brief Обратное значение текущей ширины окна для более быстрых операций
+    /// деления.
+    ///
+    /// @note Если T является целочисленным типом, то используется прямое
+    /// значение вместо обратного.
+    ValueType window_width_inv_{};
+
+    /// @brief Используется для обеспечения атомарности обновления данных в
+    /// многопоточном приложении.
+    mutable MutexType mutex_;
+};
+
+template<stv::Filterable TBase, std::size_t MAX_WINDOW_WIDTH = 20>
+using SimpleMovingAverage = stv::SizeWrapper<TBase, MAX_WINDOW_WIDTH>;
+
+} // namespace stv
+#endif /* STVF_MOVING_AVERAGE_HPP */

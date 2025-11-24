@@ -1,0 +1,174 @@
+﻿---
+
+BasedOnStyle: LLVM
+IndentWidth: 4
+
+Language: Cpp
+# Force pointers to the type for C++.
+DerivePointerAlignment: false
+PointerAlignment: Right
+
+AlignArrayOfStructures: None
+AlignConsecutiveAssignments:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+  AlignCompound: true
+  PadOperators: true
+
+AlignConsecutiveBitFields:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+
+AlignConsecutiveDeclarations:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: false
+  AlignFunctionDeclarations: true
+  AlignFunctionPointers: true
+
+AlignConsecutiveMacros:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: false
+
+AlignConsecutiveShortCaseStatements:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: true
+  AlignCaseColons: false
+
+AlignEscapedNewlines: LeftWithLastLine 
+
+AlignOperands:  Align 
+
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 2
+
+# AlignPPAndNotPP: true
+
+AllowAllArgumentsOnNextLine: true
+AllowBreakBeforeNoexceptSpecifier: OnlyWithParen
+AllowShortBlocksOnASingleLine: Always
+AllowShortCompoundRequirementOnASingleLine: true
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: All
+AllowShortNamespacesOnASingleLine: false
+BreakAfterReturnType: ExceptShortType
+BreakArrays: true
+BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeBraces: Custom
+
+BreakBeforeTemplateCloser: false
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: AfterColon
+BreakFunctionDefinitionParameters: true
+BreakInheritanceList: AfterColon
+BreakStringLiterals: true
+BreakTemplateDeclarations: Yes
+CompactNamespaces: true
+ContinuationIndentWidth: 4
+Cpp11BracedListStyle: true
+EmptyLineAfterAccessModifier: Never
+EmptyLineBeforeAccessModifier: LogicalBlock
+
+IncludeCategories:
+  - Regex:           '^"(llvm|llvm-c|clang|clang-c)/'
+    Priority:        2
+    SortPriority:    2
+    CaseSensitive:   true
+  - Regex:           '^((<|")(gtest|gmock|isl|json)/)'
+    Priority:        3
+  - Regex:           '<[[:alnum:].]+>'
+    Priority:        4
+  - Regex:           '.*'
+    Priority:        1
+    SortPriority:    0
+
+IndentCaseBlocks: false
+IndentCaseLabels: true
+IndentExportBlock: true
+IndentExternBlock: NoIndent
+IndentPPDirectives: BeforeHash
+IndentRequiresClause: true
+InsertBraces: true
+InsertNewlineAtEOF: true
+
+KeepEmptyLines:
+  AtEndOfFile: false
+  AtStartOfBlock: false
+  AtStartOfFile: false
+
+MaxEmptyLinesToKeep: 1
+NamespaceIndentation: None
+
+# Wait clang-format 22
+# NumericLiteralCase:
+#   ExponentLetter: Upper
+#   HexDigit: Upper
+#   Prefix: Lower
+#   Suffix: Upper
+
+PPIndentWidth: 4
+PackConstructorInitializers: Never
+QualifierAlignment: Custom
+QualifierOrder: [inline, const, static, type]
+ReferenceAlignment: Right
+ReflowComments: Always
+RemoveEmptyLinesInUnwrappedLines: true
+RequiresClausePosition: OwnLine
+SeparateDefinitionBlocks: Always
+SortIncludes:
+  Enabled: true
+SpaceAfterCStyleCast: false
+SpaceAfterLogicalNot: false
+SpaceAfterOperatorKeyword: false
+SpaceAfterTemplateKeyword: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCaseColon: false
+SpaceBeforeCtorInitializerColon: false
+SpaceBeforeInheritanceColon: false
+SpaceBeforeJsonColon: false
+SpaceBeforeParens: Custom
+
+SpaceBeforeParensOptions:
+  AfterControlStatements: false
+  AfterFunctionDefinitionName: false
+
+SpaceBeforeRangeBasedForLoopColon: false
+SpaceBeforeSquareBrackets: false
+
+# Wait clang-format 22
+# SpaceInEmptyBraces: Never
+
+SpacesInParens: Custom
+SpacesInParensOptions:
+  ExceptDoubleParentheses: false
+  InConditionalStatements: false
+  InEmptyParentheses: false
+
+WrapNamespaceBodyWithEmptyLines: Always
+
+BraceWrapping:
+  AfterClass: true
+  AfterFunction: true
+  AfterCaseLabel: false
+  AfterControlStatement: false
+  AfterEnum: false
+  AfterNamespace: false
+  AfterStruct: false
+  AfterUnion: false
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+  AfterExternBlock: true     # Keeps the contents un-indented.
+
+BinPackArguments: true
+BinPackLongBracedList: false
