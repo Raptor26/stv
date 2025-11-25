@@ -24,6 +24,103 @@
 /// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 /// DEALINGS IN THE SOFTWARE.
+///
+/// NAME
+///     moving_average
+///
+/// DESCRIPTION
+///     moving_average provides a simple moving average filter implementation
+///     for signal processing. The library includes configurable window sizes,
+///     thread safety options, and runtime reconfiguration capabilities.
+///
+///     Main components:
+///     - SimpleMovingAverageSetupParams: Configuration structure with window
+///       width and mutex settings
+///     - ISimpleMovingAverage: Base template class implementing core filtering
+///       logic with configurable buffer size
+///     - SizeWrapper: Storage wrapper that combines buffer array with filter
+///       implementation
+///
+///     The filter supports:
+///     - Integer and floating-point value types
+///     - Custom mutex types for thread safety
+///     - External mutex references via MutexExtTag
+///     - Runtime window width changes
+///     - Batch processing of multiple samples
+///
+///     All implementations require proper buffer initialization. Concurrent
+///     access must be synchronized when using non-thread-safe mutex types.
+///
+/// EXAMPLE
+///     Basic usage example:
+///     ```cpp
+///     #include "moving_average.hpp"
+///     #include <iostream>
+///
+///     int main() {
+///         using namespace stv;
+///
+///         // Define setup parameters with window width of 5
+///         using SetupParams = SimpleMovingAverageSetupParams<double>;
+///         using FilterBase = ISimpleMovingAverage<SetupParams>;
+///
+///         // Create filter with maximum buffer size of 20
+///         SimpleMovingAverage<FilterBase, 20> filter{
+///             SetupParams{.window_width = 5U}
+///         };
+///
+///         // Test data with noise
+///         double noisy_data[] = {1.0, 1.1, 0.9, 1.05, 0.95,
+///                                1.02, 0.98, 1.01, 0.99, 1.0};
+///
+///         std::cout << "Original -> Filtered:\n";
+///         for (double sample : noisy_data) {
+///             double filtered = filter.Filtered(sample);
+///             std::cout << sample << " -> " << filtered << "\n";
+///         }
+///
+///         // Check if buffer is full (after 5 samples)
+///         std::cout << "Buffer full: " << filter.IsBufferFull() << "\n";
+///
+///         return 0;
+///     }
+///     ```
+///     Output will show smoothing effect after the buffer fills.
+///
+///     Thread-safe usage with custom mutex:
+///     ```cpp
+///     #include "moving_average.hpp"
+///     #include <mutex>
+///
+///     // Use std::recursive_mutex for thread safety
+///     using ThreadSafeSetup = SimpleMovingAverageSetupParams<float,
+///         std::recursive_mutex>;
+///     using ThreadSafeFilter = ISimpleMovingAverage<ThreadSafeSetup>;
+///
+///     SimpleMovingAverage<ThreadSafeFilter, 10> thread_safe_filter{
+///         ThreadSafeSetup{.window_width = 3U}
+///     };
+///     ```
+///
+///     External mutex usage:
+///     ```cpp
+///     struct CustomMutex {
+///         void lock() { /* implementation */ }
+///         void unlock() { /* implementation */ }
+///     };
+///
+///     CustomMutex custom_mutex;
+///     using ExtMutexSetup = SimpleMovingAverageSetupParams<float,
+///         CustomMutex, MutexExtTag>;
+///     using ExtFilter = ISimpleMovingAverage<ExtMutexSetup>;
+///
+///     SimpleMovingAverage<ExtFilter, 15> ext_filter{
+///         ExtMutexSetup{.window_width = 4U, .mutex = &custom_mutex}
+///     };
+///     ```
+///
+///     See test cases in the test suite for comprehensive usage examples and
+///     validation tests.
 
 #ifndef STVF_MOVING_AVERAGE_HPP
 #define STVF_MOVING_AVERAGE_HPP
@@ -31,9 +128,10 @@
 #include "GSL/gsl"
 #include "boost/leaf.hpp"
 #include "etl/mutex.h"
-#include "filters_concepts.hpp"
-#include "mutex_empty.hpp"
-#include "wrappers.hpp"
+#include "stv/concepts.hpp"
+#include "stv/mutex_guard.hpp"
+#include "stv/wrappers.hpp"
+#include <algorithm>
 #include <array>
 #include <concepts>
 #include <cstdint>
@@ -41,14 +139,14 @@
 
 namespace stv {
 
-enum class SimpleMovingAverageErr {
-    kSuccess,
-    kZeroWindowWidth,
-    kMaxWindowWidthLimit,
+struct ZeroWindowWidth {
+};
+
+struct MaxWindowWidthLimitError {
 };
 
 /// @brief Параметры фильтра скользящего среднего.
-template<typename T, typename TMutex = stv::MutexEmpty,
+template<typename T, typename TMutex = stv::EmptyMutex,
          typename TMutexTag = stv::MutexIntTag>
 struct SimpleMovingAverageSetupParams {
     using ValueType          = T;
@@ -56,13 +154,13 @@ struct SimpleMovingAverageSetupParams {
     using MutexType          = TMutex;
     using MutexConditionType = stv::mutex_type_setup_v<TMutex, TMutexTag>;
 
-    static constexpr std::uint16_t kDefaultWindowWidth{1};
+    static constexpr std::uint16_t DEFAULT_WINDOW_WIDTH{1};
 
     /// @brief Ширина окна фильтра.
     ///
     /// @note Значение должно быть положительным и не превышать максимальную
     /// ширину окна.
-    std::uint16_t window_width{kDefaultWindowWidth};
+    std::uint16_t window_width{DEFAULT_WINDOW_WIDTH};
 
     /// @brief Если указан внешний мьютекс, то mutex будет указателем на тип
     /// TMutex, в противном случае тип будет пустым.
@@ -98,13 +196,11 @@ struct SimpleMovingAverageSetupParams {
         std::size_t max_window_width) const -> boost::leaf::result<void>
     {
         if(window_width == 0) {
-            return boost::leaf::new_error(
-                SimpleMovingAverageErr::kZeroWindowWidth);
+            return boost::leaf::new_error(stv::ZeroWindowWidth{});
         }
 
         if(window_width > max_window_width) {
-            return boost::leaf::new_error(
-                SimpleMovingAverageErr::kMaxWindowWidthLimit);
+            return boost::leaf::new_error(stv::MaxWindowWidthLimitError{});
         }
 
         return boost::leaf::result<void>{};
@@ -115,7 +211,7 @@ struct SimpleMovingAverageSetupParams {
 ///
 /// @note Наследуется от SimpleMovingAverageSetupParams для включения ширины
 /// окна.
-template<typename T, typename TMutex = stv::MutexEmpty>
+template<typename T, typename TMutex = stv::EmptyMutex>
 using SimpleMovingAverageFilterAttr = SimpleMovingAverageSetupParams<T, TMutex>;
 
 /// @brief Базовый класс, представляющий интерфейсы для фильтрации значений с
@@ -131,6 +227,49 @@ class ISimpleMovingAverage
     using MutexType = stv::mutex_type_v<typename TSetup::MutexType, MutexTag>;
     using SetupType = TSetup;
     using ContainerType = gsl::span<ValueType>;
+
+#ifdef UNIT_TEST_ENABLE
+  public:
+#else
+  private:
+#endif
+
+    /// @brief Представление ввода и вывода в память для хранения отсчетов.
+    ///
+    /// @note Это поле сделано защищенным для тестирования защищенных
+    /// операторов перемещения и копирования.
+    ContainerType buffer;
+
+  private:
+    /// @brief Накопленная сумма значений в буфере.
+    ValueType sum_{};
+
+    /// @brief Счетчик, указывающий текущую позицию в буфере.
+    std::uint32_t cnt_{};
+
+    /// @brief Флаг, указывающий, был ли буфер заполнен хотя бы один раз.
+    /// Может быть сброшен в SetBiggerWindowWidth().
+    bool is_buffer_full_{false};
+
+    /// @brief Фактические параметры фильтра скользящего среднего.
+    SetupType setup_actual_;
+
+    /// @brief Параметры по умолчанию фильтра скользящего среднего.
+    ///
+    /// @note Используются невалидные параметры которые вернут ошибку при вызове
+    /// IsValid().
+    SetupType setup_default_;
+
+    /// @brief Обратное значение текущей ширины окна для более быстрых операций
+    /// деления.
+    ///
+    /// @note Если T является целочисленным типом, то используется прямое
+    /// значение вместо обратного.
+    ValueType window_width_inv_{};
+
+    /// @brief Используется для обеспечения атомарности обновления данных в
+    /// многопоточном приложении.
+    mutable MutexType mutex_;
 
   public:
     /// @brief Деструктор.
@@ -158,14 +297,16 @@ class ISimpleMovingAverage
     /// @note Член "правила 5" в С++.
     ISimpleMovingAverage(const ISimpleMovingAverage &other) = default;
 
-    operator boost::leaf::result<void>() const noexcept
+    explicit operator boost::leaf::result<void>() const noexcept(
+        noexcept(setup_default_.IsValid(buffer.size()))
+        && noexcept(setup_actual_.IsValid(buffer.size())))
     {
         BOOST_LEAF_CHECK(setup_default_.IsValid(buffer.size()));
         BOOST_LEAF_CHECK(setup_actual_.IsValid(buffer.size()));
         return boost::leaf::result<void>{};
     }
 
-    operator bool() const noexcept
+    explicit operator bool() const noexcept
     {
         auto is_mutex_ptr_valid{true};
         if constexpr(std::is_pointer_v<decltype(mutex_)>) {
@@ -186,7 +327,7 @@ class ISimpleMovingAverage
     /// @param[in] params: Параметры фильтра.
     template<typename U>
     auto Setup(
-        U &&params)
+        U &&params, bool is_isr = false)
         noexcept(
             noexcept(params.IsValid(buffer.size()))
             && noexcept(ChangeWindowWidthAndUpdateCounter(params.window_width))
@@ -194,11 +335,11 @@ class ISimpleMovingAverage
     {
         BOOST_LEAF_CHECK(params.IsValid(buffer.size()));
 
-        stv::lock_guard critical{GetMutexRef()};
+        const stv::lock_guard critical{GetMutexRef(), is_isr};
 
         ChangeWindowWidthAndUpdateCounter(params.window_width);
 
-        setup_actual_ = std::move(params);
+        setup_actual_ = std::forward<U>(params);
 
         // Обновить обратную ширину окна для оптимизации времени
         // вычислений.
@@ -216,16 +357,18 @@ class ISimpleMovingAverage
     }
 
     /// @brief Получить фактические параметры настройки фильтра.
-    [[nodiscard]] auto GetSetup() const
+    [[nodiscard]] auto GetSetup(
+        bool is_isr = false) const
     {
-        stv::lock_guard critical{GetMutexRef()};
+        const stv::lock_guard critical{GetMutexRef(), is_isr};
         return setup_actual_;
     }
 
     /// @brief Сбросить коэффициенты фильтра в значения "по умолчанию".
-    void Reset()
+    void Reset(
+        bool is_isr = false)
     {
-        stv::lock_guard critical{GetMutexRef()};
+        const stv::lock_guard critical{GetMutexRef(), is_isr};
 
         // Строка ниже гарантировано завершиться успешно т.к. setup_default_
         // устанавливается в конструкторе и содержит достоверные значения.
@@ -237,17 +380,20 @@ class ISimpleMovingAverage
     /// @return true - если буфер заполен и Filtered() возвращает среднее
     /// арифметическое значение, false - если буфер еще не заполнен и
     /// Filtered() возвращает исходное значение.
-    [[nodiscard]] auto IsBufferFull() const noexcept
+    [[nodiscard]] auto IsBufferFull(
+        bool is_isr = false) const noexcept
     {
-        stv::lock_guard critical{GetMutexRef()};
+        const stv::lock_guard critical{GetMutexRef(), is_isr};
         return is_buffer_full_;
     }
 
     /// @brief Очищает все значения буфера скользящего среднего.
-    void Clear() noexcept(
-        noexcept(Setup()))
+    void Clear(
+        bool is_isr = false)
+        noexcept(
+            noexcept(Setup()))
     {
-        stv::lock_guard critical{GetMutexRef()};
+        const stv::lock_guard critical{GetMutexRef(), is_isr};
         cnt_            = 0;
         is_buffer_full_ = false;
     }
@@ -261,23 +407,23 @@ class ISimpleMovingAverage
     ///
     /// @return Среднее значение, если в буфере достаточно элементов.
     [[nodiscard]] auto Filtered(
-        ValueType new_sample)
+        ValueType new_sample, bool is_isr = false)
         noexcept(
             noexcept(IsBufferFull()))
     {
-        stv::lock_guard critical{GetMutexRef()};
+        const stv::lock_guard critical{GetMutexRef(), is_isr};
 
         sum_          += new_sample - buffer[cnt_];
         buffer[cnt_]   = new_sample;
         auto filtered  = new_sample;
 
-        if(!IsBufferFull()) {
+        if(!IsBufferFull(is_isr)) {
             if((cnt_ + 1) == setup_actual_.window_width) {
                 is_buffer_full_ = true;
             }
         }
 
-        if(IsBufferFull()) {
+        if(IsBufferFull(is_isr)) {
             // ... вычислить среднее.
             if constexpr(std::is_integral_v<ValueType>) {
                 filtered = sum_ / window_width_inv_;
@@ -304,14 +450,12 @@ class ISimpleMovingAverage
 
     template<typename TInputIt>
     auto Filtered(
-        TInputIt cbegin, TInputIt cend)
+        TInputIt cbegin, TInputIt cend, bool is_isr = false)
     {
         ValueType filtered;
-        while(cbegin != cend) {
-            filtered = Filtered(*cbegin);
-            ++cbegin;
-        }
-
+        std::for_each(cbegin, cend, [&](const auto &item) {
+            filtered = Filtered(item, is_isr);
+        });
         return filtered;
     }
 
@@ -397,7 +541,8 @@ class ISimpleMovingAverage
         }
 
         // Установить все элементы за пределами new_width в 0.
-        std::fill(buffer.begin() + new_width, buffer.end(), 0);
+        std::fill(buffer.begin() + new_width, buffer.end(),
+                  static_cast<ValueType>(0));
 
         // Обновить счетчик и проверить, что он не становится отрицательным.
         if(cnt_ < size_decrement) {
@@ -416,7 +561,7 @@ class ISimpleMovingAverage
     void SetBiggerWindowWidth(
         std::size_t new_width) noexcept
     {
-        if(is_buffer_full_) {
+        if(IsBufferFull()) {
             cnt_ = (cnt_ + (new_width - setup_actual_.window_width) + 1)
                    % new_width;
 
@@ -448,52 +593,9 @@ class ISimpleMovingAverage
             return mutex_;
         }
     }
-
-#ifdef UNIT_TEST_ENABLE
-  public:
-#else
-  private:
-#endif
-
-    /// @brief Представление ввода и вывода в память для хранения отсчетов.
-    ///
-    /// @note Это поле сделано защищенным для тестирования защищенных
-    /// операторов перемещения и копирования.
-    ContainerType buffer;
-
-  private:
-    /// @brief Накопленная сумма значений в буфере.
-    ValueType sum_{};
-
-    /// @brief Счетчик, указывающий текущую позицию в буфере.
-    std::uint32_t cnt_{};
-
-    /// @brief Флаг, указывающий, был ли буфер заполнен хотя бы один раз.
-    /// Может быть сброшен в SetBiggerWindowWidth().
-    bool is_buffer_full_{false};
-
-    /// @brief Фактические параметры фильтра скользящего среднего.
-    SetupType setup_actual_;
-
-    /// @brief Параметры по умолчанию фильтра скользящего среднего.
-    ///
-    /// @note Используются невалидные параметры которые вернут ошибку при вызове
-    /// IsValid().
-    SetupType setup_default_;
-
-    /// @brief Обратное значение текущей ширины окна для более быстрых операций
-    /// деления.
-    ///
-    /// @note Если T является целочисленным типом, то используется прямое
-    /// значение вместо обратного.
-    ValueType window_width_inv_{};
-
-    /// @brief Используется для обеспечения атомарности обновления данных в
-    /// многопоточном приложении.
-    mutable MutexType mutex_;
 };
 
-template<stv::Filterable TBase, std::size_t MAX_WINDOW_WIDTH = 20>
+template<stv::FilterableConcept TBase, std::size_t MAX_WINDOW_WIDTH = 20>
 using SimpleMovingAverage = stv::SizeWrapper<TBase, MAX_WINDOW_WIDTH>;
 
 } // namespace stv

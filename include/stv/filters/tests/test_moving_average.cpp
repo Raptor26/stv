@@ -24,28 +24,34 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
-#include "moving_average.hpp"
+#include "fpm/fixed.hpp"
+#include "stv/filters/moving_average.hpp"
+#include <array>
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include <array>
 #include <iostream>
 #include <memory>
 #include <mutex>
+
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
+// readability-function-cognitive-,
+// cppcoreguidelines-avoid-non-const-global-variables)
 
 TEST_CASE(
     "Usage example (no multithread)", "[stv][moving_average]")
 {
     // Объявление псевдонима структуры инициализации.
     using TMovingAverageSetup =
-        stv::SimpleMovingAverageSetupParams<float, stv::MutexEmpty>;
+        stv::SimpleMovingAverageSetupParams<float, stv::EmptyMutex>;
 
     // Объявление псевдонима базового класса, который обеспечивает необходимый
     // функционал/
     using TIMovingAverage = stv::ISimpleMovingAverage<TMovingAverageSetup>;
 
     // Инициализация класса фильтра скользящего среднего.
+    // NOLINTNEXTLINE(misc-const-correctness)
     stv::SimpleMovingAverage<TIMovingAverage, 20> moving_average{
         TMovingAverageSetup{.window_width = 10U}};
     assert(moving_average);
@@ -68,6 +74,7 @@ TEST_CASE(
     using TIMovingAverage = stv::ISimpleMovingAverage<TMovingAverageSetup>;
 
     // Инициализация класса фильтра скользящего среднего.
+    // NOLINTNEXTLINE(misc-const-correctness)
     stv::SimpleMovingAverage<TIMovingAverage, 20> moving_average{
         TMovingAverageSetup{.window_width = 10U}};
     assert(moving_average);
@@ -93,6 +100,7 @@ TEST_CASE(
     using TIMovingAverage = stv::ISimpleMovingAverage<TMovingAverageSetup>;
 
     // Инициализация класса фильтра скользящего среднего.
+    // NOLINTNEXTLINE(misc-const-correctness)
     stv::SimpleMovingAverage<TIMovingAverage, 20> moving_average{
         TMovingAverageSetup{.window_width = 10U}};
     assert(moving_average);
@@ -105,11 +113,14 @@ TEST_CASE(
     "[stv][moving_average]")
 {
     struct ICustomGuard {
-        virtual void lock()   = 0;
-        virtual void unlock() = 0;
+        virtual ~ICustomGuard() = default;
+        virtual void lock()     = 0;
+        virtual void unlock()   = 0;
     };
 
-    struct CustomGuard: public ICustomGuard {
+    struct CustomGuard final: public ICustomGuard {
+        ~CustomGuard() override = default;
+
         void lock() override {}
 
         void unlock() override {}
@@ -127,6 +138,7 @@ TEST_CASE(
     using TIMovingAverage = stv::ISimpleMovingAverage<TMovingAverageSetup>;
 
     // Инициализация класса фильтра скользящего среднего.
+    // NOLINTNEXTLINE(misc-const-correctness)
     stv::SimpleMovingAverage<TIMovingAverage, 20> moving_average{
         TMovingAverageSetup{.window_width = 10U, .mutex = &custom_guard}};
     assert(moving_average);
@@ -143,7 +155,8 @@ TEST_CASE(
         void unlock() override {}
     };
 
-    CustomGuardV2                                 custom_guard_v2;
+    CustomGuardV2 custom_guard_v2;
+    // NOLINTNEXTLINE(misc-const-correctness)
     stv::SimpleMovingAverage<TIMovingAverage, 20> moving_average_v2{
         TMovingAverageSetup{.window_width = 10U, .mutex = &custom_guard_v2}};
     assert(moving_average_v2);
@@ -155,7 +168,7 @@ TEST_CASE(
 {
     // Объявление псевдонима структуры инициализации.
     using TMovingAverageSetup =
-        stv::SimpleMovingAverageSetupParams<float, stv::MutexEmpty>;
+        stv::SimpleMovingAverageSetupParams<float, stv::EmptyMutex>;
 
     // Объявление псевдонима базового класса, который обеспечивает необходимый
     // функционал/
@@ -180,15 +193,15 @@ TEST_CASE(
     using namespace boost;
 
     using TValue = float;
-    using TSetup = SimpleMovingAverageSetupParams<TValue, stv::MutexEmpty>;
+    using TSetup = SimpleMovingAverageSetupParams<TValue, stv::EmptyMutex>;
 
     SECTION("Default")
     {
         const TSetup init;
 
-        REQUIRE(init.window_width == TSetup::kDefaultWindowWidth);
+        REQUIRE(init.window_width == TSetup::DEFAULT_WINDOW_WIDTH);
         REQUIRE_FALSE(init.IsValid(0));
-        REQUIRE(init.IsValid(TSetup::kDefaultWindowWidth));
+        REQUIRE(init.IsValid(TSetup::DEFAULT_WINDOW_WIDTH));
         REQUIRE(init.IsValid(10));
     }
 
@@ -205,20 +218,20 @@ TEST_CASE(
 
     SECTION("Normal window width")
     {
-        constexpr decltype(std::declval<TSetup>().window_width) kWindowWidth{
+        constexpr decltype(std::declval<TSetup>().window_width) window_width{
             10};
-        const TSetup init{.window_width = kWindowWidth};
-        REQUIRE(init.window_width == kWindowWidth);
+        const TSetup init{.window_width = window_width};
+        REQUIRE(init.window_width == window_width);
 
         REQUIRE_FALSE(init.IsValid(0));
         REQUIRE_FALSE(init.IsValid(1));
-        REQUIRE(init.IsValid(kWindowWidth));
+        REQUIRE(init.IsValid(window_width));
         REQUIRE(init.IsValid(
-            kWindowWidth
-            + static_cast<std::decay_t<decltype(kWindowWidth)>>(1)));
+            window_width
+            + static_cast<std::decay_t<decltype(window_width)>>(1)));
     }
 
-    TSetup init{.window_width = 12};
+    const TSetup init{.window_width = 12};
 
     REQUIRE_FALSE(init.IsValid(10));
 }
@@ -228,8 +241,8 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
     ((typename TData, typename TMutex), TData, TMutex),
     (stv::SimpleMovingAverageSetupParams),
     ((double, std::recursive_mutex, stv::MutexExtTag),
-     (float, stv::MutexEmpty, stv::MutexExtTag),
-     (float, stv::MutexEmpty, stv::MutexIntTag)))
+     (float, stv::EmptyMutex, stv::MutexExtTag),
+     (float, stv::EmptyMutex, stv::MutexIntTag)))
 {
     using namespace stv;
 
@@ -244,7 +257,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         std::recursive_mutex std_mutex{};
         (void)std_mutex;
 
-        stv::MutexEmpty empty_mutex;
+        stv::EmptyMutex empty_mutex;
         (void)empty_mutex;
 
         TSetup attr;
@@ -256,14 +269,14 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
 
         if constexpr(std::is_same_v<typename TSetup::MutexTag, stv::MutexExtTag>
                      && std::is_same_v<typename TSetup::MutexType,
-                                       stv::MutexEmpty>) {
+                                       stv::EmptyMutex>) {
             attr.mutex = &empty_mutex;
         }
 
-        constexpr int                            kWindowWidth = 5;
-        SimpleMovingAverage<TBase, kWindowWidth> src_average{attr};
+        constexpr int                            window_width = 5;
+        SimpleMovingAverage<TBase, window_width> src_average{attr};
         REQUIRE(src_average);
-        constexpr std::array<TData, kWindowWidth> samples{1, 1, 1, 1, 1};
+        constexpr std::array<TData, window_width> samples{1, 1, 1, 1, 1};
 
         // Buffer is filled with some values for further checking.
         for(const auto &sample: samples) {
@@ -273,7 +286,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
 
         WHEN("User copies source object to destination one")
         {
-            SimpleMovingAverage<TBase, kWindowWidth> dst_average{attr};
+            SimpleMovingAverage<TBase, window_width> dst_average{attr};
             REQUIRE(dst_average);
             dst_average = src_average;
             REQUIRE(dst_average);
@@ -293,7 +306,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
 
         WHEN("User copy assign source object to destination one")
         {
-            SimpleMovingAverage<TBase, kWindowWidth> dst_average{src_average};
+            SimpleMovingAverage<TBase, window_width> dst_average{src_average};
 
             THEN("<buffer> from <dst_average> should point to new memory "
                  "address")
@@ -313,7 +326,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
             auto *src_average_buffer_address = &src_average.buffer;
             auto  src_buffer_span            = src_average.buffer;
 
-            SimpleMovingAverage<TBase, kWindowWidth> dst_average{
+            SimpleMovingAverage<TBase, window_width> dst_average{
                 std::move(src_average)};
 
             THEN("<buffer> from <dst_average> should point to new memory "
@@ -333,7 +346,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         {
             // Create another object because <src_average> was moved in previous
             // section.
-            SimpleMovingAverage<TBase, kWindowWidth> src{attr};
+            SimpleMovingAverage<TBase, window_width> src{attr};
 
             // Buffer is filled with some values for further checking.
             for(const auto &sample: samples) {
@@ -344,7 +357,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
             auto *src_average_buffer_address = &src.buffer;
             auto  src_buffer_span            = src.buffer;
 
-            SimpleMovingAverage<TBase, kWindowWidth> dst_average{attr};
+            SimpleMovingAverage<TBase, window_width> dst_average{attr};
 
             dst_average = std::move(src);
 
@@ -366,21 +379,23 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
 TEMPLATE_PRODUCT_TEST_CASE_SIG(
     "Moving Average", "[stv]",
     ((typename TData, typename TMutex), TData, TMutex),
-    (stv::SimpleMovingAverageSetupParams), ((double, std::recursive_mutex)))
+    (stv::SimpleMovingAverageSetupParams),
+    ((double, std::recursive_mutex), (float, stv::EmptyMutex),
+     (int, std::recursive_mutex), (fpm::fixed_16_16, stv::EmptyMutex)))
 {
     using namespace stv;
     using namespace boost;
     using TData  = TestType::ValueType;
     using TSetup = TestType;
     using TBase  = ISimpleMovingAverage<TSetup>;
-    constexpr decltype(std::declval<TSetup>().window_width) kWindowWidth{15};
+    constexpr decltype(std::declval<TSetup>().window_width) window_width{15};
     TSetup                                                  attr;
 
     SECTION("Create invalid object")
     {
-        attr.window_width = kWindowWidth;
+        attr.window_width = window_width;
 
-        SimpleMovingAverage<TBase, kWindowWidth - 1> average(attr);
+        SimpleMovingAverage<TBase, window_width - 1> average(attr);
         REQUIRE_FALSE(average);
     }
 
@@ -429,12 +444,15 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
     {
         SimpleMovingAverage<TBase> average(attr);
 
-        const std::array<TData, 8> samples{1, 2, 3, 4, 5, 6, 7, 8};
+        const std::array<TData, 8> samples{
+            static_cast<TData>(1), static_cast<TData>(2), static_cast<TData>(3),
+            static_cast<TData>(4), static_cast<TData>(5), static_cast<TData>(6),
+            static_cast<TData>(7), static_cast<TData>(8)};
 
-        constexpr double           eps{0.01};
+        constexpr double eps{0.01};
         for(const auto &new_sample: samples) {
             // Without setup Filtered() must return <new_sample>.
-            REQUIRE_THAT(average.Filtered(new_sample),
+            REQUIRE_THAT(static_cast<double>(average.Filtered(new_sample)),
                          Catch::Matchers::WithinRel(
                              static_cast<double>(new_sample), eps));
         }
@@ -442,12 +460,19 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
 
     SECTION("Filtered with setup")
     {
-        SimpleMovingAverage<TBase, kWindowWidth> average(attr);
+        SimpleMovingAverage<TBase, window_width> average(attr);
         //
         REQUIRE(average.Setup(TSetup{.window_width = 3}));
 
-        const std::array<TData, 8> samples{1, 2, 3, 4, 5, 6, 7, 8};
-        std::array<TData, 8>       expected{1, 2, 2, 3, 4, 5, 6, 7};
+        const std::array<TData, 8> samples{
+            static_cast<TData>(1), static_cast<TData>(2), static_cast<TData>(3),
+            static_cast<TData>(4), static_cast<TData>(5), static_cast<TData>(6),
+            static_cast<TData>(7), static_cast<TData>(8)};
+
+        const std::array<TData, 8> expected{
+            static_cast<TData>(1), static_cast<TData>(2), static_cast<TData>(2),
+            static_cast<TData>(3), static_cast<TData>(4), static_cast<TData>(5),
+            static_cast<TData>(6), static_cast<TData>(7)};
 
         CHECK(samples.size() == expected.size());
 
@@ -455,7 +480,8 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         SECTION("With cycle")
         {
             for(std::size_t i = 0; i < samples.size(); ++i) {
-                const auto filtered = average.Filtered(samples.at(i));
+                const auto filtered =
+                    static_cast<double>(average.Filtered(samples.at(i)));
                 REQUIRE_THAT(filtered,
                              Catch::Matchers::WithinRel(
                                  static_cast<double>(expected.at(i)), eps));
@@ -464,9 +490,9 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
 
         SECTION("With arg pack")
         {
-            const auto filtered = average.Filtered(
+            const auto filtered = static_cast<double>(average.Filtered(
                 samples.at(0), samples.at(1), samples.at(2), samples.at(3),
-                samples.at(4), samples.at(5), samples.at(6), samples.at(7));
+                samples.at(4), samples.at(5), samples.at(6), samples.at(7)));
 
             REQUIRE_THAT(filtered,
                          Catch::Matchers::WithinRel(
@@ -475,8 +501,8 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
 
         SECTION("With iterators")
         {
-            const auto filtered =
-                average.Filtered(samples.cbegin(), samples.cend());
+            const auto filtered = static_cast<double>(
+                average.Filtered(samples.cbegin(), samples.cend()));
 
             REQUIRE_THAT(filtered,
                          Catch::Matchers::WithinRel(
@@ -489,20 +515,28 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         constexpr std::size_t                    window_width_init  = 5;
         constexpr std::size_t                    window_width_lower = 3;
 
-        SimpleMovingAverage<TBase, kWindowWidth> average(attr);
+        SimpleMovingAverage<TBase, window_width> average(attr);
 
         TSetup                                   setup_params;
         setup_params.window_width = window_width_init;
         REQUIRE(average.Setup(setup_params));
 
-        const std::array<TData, 10> samples{10,  200, 30,  100, -20,
-                                            500, 400, -20, 300, 20};
+        const std::array<TData, 10> samples{
+            static_cast<TData>(10),  static_cast<TData>(200),
+            static_cast<TData>(30),  static_cast<TData>(100),
+            static_cast<TData>(-20), static_cast<TData>(500),
+            static_cast<TData>(400), static_cast<TData>(-20),
+            static_cast<TData>(300), static_cast<TData>(20)};
 
         // Index of sample values from which lower window width begins.
         constexpr std::size_t       width_lower_first_idx = 6;
 
-        const std::array<TData, 10> expected{10,  200, 30,  100, 64,
-                                             162, 293, 293, 227, 100};
+        const std::array<TData, 10> expected{
+            static_cast<TData>(10),  static_cast<TData>(200),
+            static_cast<TData>(30),  static_cast<TData>(100),
+            static_cast<TData>(64),  static_cast<TData>(162),
+            static_cast<TData>(293), static_cast<TData>(293),
+            static_cast<TData>(227), static_cast<TData>(100)};
 
         CHECK(samples.size() == expected.size());
 
@@ -514,7 +548,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
                 REQUIRE(average.Setup(setup_params));
             }
 
-            REQUIRE_THAT(average.Filtered(samples.at(i)),
+            REQUIRE_THAT(static_cast<double>(average.Filtered(samples.at(i))),
                          Catch::Matchers::WithinRel(
                              static_cast<double>(expected.at(i)), eps));
         }
@@ -525,20 +559,28 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         constexpr std::size_t                    window_width_init    = 3;
         constexpr std::size_t                    window_width_greater = 5;
 
-        SimpleMovingAverage<TBase, kWindowWidth> average(attr);
+        SimpleMovingAverage<TBase, window_width> average(attr);
 
         TSetup                                   setup_params;
         setup_params.window_width = window_width_init;
         REQUIRE(average.Setup(setup_params));
 
-        const std::array<TData, 10> samples{10,  200, 30,  100, -20,
-                                            500, 400, -20, 300, 20};
+        const std::array<TData, 10> samples{
+            static_cast<TData>(10),  static_cast<TData>(200),
+            static_cast<TData>(30),  static_cast<TData>(100),
+            static_cast<TData>(-20), static_cast<TData>(500),
+            static_cast<TData>(400), static_cast<TData>(-20),
+            static_cast<TData>(300), static_cast<TData>(20)};
 
         // Index of sample values from which greater window width begins.
         constexpr std::size_t       width_greater_first_idx = 6;
 
-        const std::array<TData, 10> expected{10,  200, 80,  110, 37,
-                                             193, 400, 192, 232, 240};
+        const std::array<TData, 10> expected{
+            static_cast<TData>(10),  static_cast<TData>(200),
+            static_cast<TData>(80),  static_cast<TData>(110),
+            static_cast<TData>(37),  static_cast<TData>(193),
+            static_cast<TData>(400), static_cast<TData>(192),
+            static_cast<TData>(232), static_cast<TData>(240)};
 
         CHECK(samples.size() == expected.size());
 
@@ -550,7 +592,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
                 REQUIRE(average.Setup(setup_params));
             }
 
-            REQUIRE_THAT(average.Filtered(samples.at(i)),
+            REQUIRE_THAT(static_cast<double>(average.Filtered(samples.at(i))),
                          Catch::Matchers::WithinAbs(
                              static_cast<double>(expected.at(i)), eps));
         }
@@ -558,17 +600,18 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
 
     SECTION("Reset To Default")
     {
-        constexpr std::size_t                    window_width = 3;
-
-        SimpleMovingAverage<TBase, kWindowWidth> average(attr);
+        SimpleMovingAverage<TBase, window_width> average(attr);
 
         TSetup                                   setup_params;
         setup_params.window_width = window_width;
         REQUIRE(average.Setup(setup_params));
 
-        const std::array<TData, 8> samples{1, 2, 3, 4, 5, 6, 7, 8};
+        const std::array<TData, 8> samples{
+            static_cast<TData>(1), static_cast<TData>(2), static_cast<TData>(3),
+            static_cast<TData>(4), static_cast<TData>(5), static_cast<TData>(6),
+            static_cast<TData>(7), static_cast<TData>(8)};
 
-        constexpr double           eps{0.01};
+        constexpr double eps{0.01};
 
         for(const auto &new_sample: samples) {
             const auto filtered = average.Filtered(new_sample);
@@ -579,9 +622,13 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         average.Reset();
 
         for(const auto &new_sample: samples) {
-            REQUIRE_THAT(average.Filtered(new_sample),
+            REQUIRE_THAT(static_cast<double>(average.Filtered(new_sample)),
                          Catch::Matchers::WithinRel(
                              static_cast<double>(new_sample), eps));
         }
     }
 }
+
+// NOLINTEND(*-magic-numbers, google-build-using-namespace,
+// readability-function-cognitive-complexity,
+// cppcoreguidelines-avoid-non-const-global-variables)
