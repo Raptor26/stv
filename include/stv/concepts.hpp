@@ -23,6 +23,16 @@ concept FilterableConcept =
         { base.GetDefaultParams() };
     };
 
+/// @brief TBase должен предоставлять псевдоним TBase::ContainerType для того
+/// чтобы в базовый класс TBase передать указатели на выделенную область памяти.
+///
+/// @tparam TBase
+template<typename TBase>
+concept SizeableContainerConcept =
+    requires(TBase base, typename TBase::SetupType setup) {
+        typename TBase::ContainerType;
+    };
+
 /// @brief
 ///
 /// @tparam TMutex
