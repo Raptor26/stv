@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.23)
 
-project(test_stv_filters)
+project(test_stv)
 
 find_package(Catch2 REQUIRED)
 include(Catch)
 
-add_executable(${PROJECT_NAME} test_moving_average.cpp)
+add_executable(${PROJECT_NAME} test_mutex.cpp)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Catch2::Catch2WithMain stv::stv)
 catch_discover_tests(${PROJECT_NAME})

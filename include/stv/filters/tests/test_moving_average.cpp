@@ -25,28 +25,33 @@
 /// IN THE SOFTWARE.
 
 #include "fpm/fixed.hpp"
-#include "moving_average.hpp"
+#include "stv/filters/moving_average.hpp"
+#include <array>
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include <array>
 #include <iostream>
 #include <memory>
 #include <mutex>
+
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
+// readability-function-cognitive-,
+// cppcoreguidelines-avoid-non-const-global-variables)
 
 TEST_CASE(
     "Usage example (no multithread)", "[stv][moving_average]")
 {
     // Объявление псевдонима структуры инициализации.
     using TMovingAverageSetup =
-        stv::SimpleMovingAverageSetupParams<float, stv::MutexEmpty>;
+        stv::SimpleMovingAverageSetupParams<float, stv::EmptyMutex>;
 
     // Объявление псевдонима базового класса, который обеспечивает необходимый
     // функционал/
     using TIMovingAverage = stv::ISimpleMovingAverage<TMovingAverageSetup>;
 
     // Инициализация класса фильтра скользящего среднего.
+    // NOLINTNEXTLINE(misc-const-correctness)
     stv::SimpleMovingAverage<TIMovingAverage, 20> moving_average{
         TMovingAverageSetup{.window_width = 10U}};
     assert(moving_average);
@@ -69,6 +74,7 @@ TEST_CASE(
     using TIMovingAverage = stv::ISimpleMovingAverage<TMovingAverageSetup>;
 
     // Инициализация класса фильтра скользящего среднего.
+    // NOLINTNEXTLINE(misc-const-correctness)
     stv::SimpleMovingAverage<TIMovingAverage, 20> moving_average{
         TMovingAverageSetup{.window_width = 10U}};
     assert(moving_average);
@@ -94,6 +100,7 @@ TEST_CASE(
     using TIMovingAverage = stv::ISimpleMovingAverage<TMovingAverageSetup>;
 
     // Инициализация класса фильтра скользящего среднего.
+    // NOLINTNEXTLINE(misc-const-correctness)
     stv::SimpleMovingAverage<TIMovingAverage, 20> moving_average{
         TMovingAverageSetup{.window_width = 10U}};
     assert(moving_average);
@@ -106,11 +113,14 @@ TEST_CASE(
     "[stv][moving_average]")
 {
     struct ICustomGuard {
-        virtual void lock()   = 0;
-        virtual void unlock() = 0;
+        virtual ~ICustomGuard() = default;
+        virtual void lock()     = 0;
+        virtual void unlock()   = 0;
     };
 
-    struct CustomGuard: public ICustomGuard {
+    struct CustomGuard final: public ICustomGuard {
+        ~CustomGuard() override = default;
+
         void lock() override {}
 
         void unlock() override {}
@@ -128,6 +138,7 @@ TEST_CASE(
     using TIMovingAverage = stv::ISimpleMovingAverage<TMovingAverageSetup>;
 
     // Инициализация класса фильтра скользящего среднего.
+    // NOLINTNEXTLINE(misc-const-correctness)
     stv::SimpleMovingAverage<TIMovingAverage, 20> moving_average{
         TMovingAverageSetup{.window_width = 10U, .mutex = &custom_guard}};
     assert(moving_average);
@@ -144,7 +155,8 @@ TEST_CASE(
         void unlock() override {}
     };
 
-    CustomGuardV2                                 custom_guard_v2;
+    CustomGuardV2 custom_guard_v2;
+    // NOLINTNEXTLINE(misc-const-correctness)
     stv::SimpleMovingAverage<TIMovingAverage, 20> moving_average_v2{
         TMovingAverageSetup{.window_width = 10U, .mutex = &custom_guard_v2}};
     assert(moving_average_v2);
@@ -156,7 +168,7 @@ TEST_CASE(
 {
     // Объявление псевдонима структуры инициализации.
     using TMovingAverageSetup =
-        stv::SimpleMovingAverageSetupParams<float, stv::MutexEmpty>;
+        stv::SimpleMovingAverageSetupParams<float, stv::EmptyMutex>;
 
     // Объявление псевдонима базового класса, который обеспечивает необходимый
     // функционал/
@@ -181,15 +193,15 @@ TEST_CASE(
     using namespace boost;
 
     using TValue = float;
-    using TSetup = SimpleMovingAverageSetupParams<TValue, stv::MutexEmpty>;
+    using TSetup = SimpleMovingAverageSetupParams<TValue, stv::EmptyMutex>;
 
     SECTION("Default")
     {
         const TSetup init;
 
-        REQUIRE(init.window_width == TSetup::kDefaultWindowWidth);
+        REQUIRE(init.window_width == TSetup::DEFAULT_WINDOW_WIDTH);
         REQUIRE_FALSE(init.IsValid(0));
-        REQUIRE(init.IsValid(TSetup::kDefaultWindowWidth));
+        REQUIRE(init.IsValid(TSetup::DEFAULT_WINDOW_WIDTH));
         REQUIRE(init.IsValid(10));
     }
 
@@ -206,20 +218,20 @@ TEST_CASE(
 
     SECTION("Normal window width")
     {
-        constexpr decltype(std::declval<TSetup>().window_width) kWindowWidth{
+        constexpr decltype(std::declval<TSetup>().window_width) window_width{
             10};
-        const TSetup init{.window_width = kWindowWidth};
-        REQUIRE(init.window_width == kWindowWidth);
+        const TSetup init{.window_width = window_width};
+        REQUIRE(init.window_width == window_width);
 
         REQUIRE_FALSE(init.IsValid(0));
         REQUIRE_FALSE(init.IsValid(1));
-        REQUIRE(init.IsValid(kWindowWidth));
+        REQUIRE(init.IsValid(window_width));
         REQUIRE(init.IsValid(
-            kWindowWidth
-            + static_cast<std::decay_t<decltype(kWindowWidth)>>(1)));
+            window_width
+            + static_cast<std::decay_t<decltype(window_width)>>(1)));
     }
 
-    TSetup init{.window_width = 12};
+    const TSetup init{.window_width = 12};
 
     REQUIRE_FALSE(init.IsValid(10));
 }
@@ -229,8 +241,8 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
     ((typename TData, typename TMutex), TData, TMutex),
     (stv::SimpleMovingAverageSetupParams),
     ((double, std::recursive_mutex, stv::MutexExtTag),
-     (float, stv::MutexEmpty, stv::MutexExtTag),
-     (float, stv::MutexEmpty, stv::MutexIntTag)))
+     (float, stv::EmptyMutex, stv::MutexExtTag),
+     (float, stv::EmptyMutex, stv::MutexIntTag)))
 {
     using namespace stv;
 
@@ -245,7 +257,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         std::recursive_mutex std_mutex{};
         (void)std_mutex;
 
-        stv::MutexEmpty empty_mutex;
+        stv::EmptyMutex empty_mutex;
         (void)empty_mutex;
 
         TSetup attr;
@@ -257,14 +269,14 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
 
         if constexpr(std::is_same_v<typename TSetup::MutexTag, stv::MutexExtTag>
                      && std::is_same_v<typename TSetup::MutexType,
-                                       stv::MutexEmpty>) {
+                                       stv::EmptyMutex>) {
             attr.mutex = &empty_mutex;
         }
 
-        constexpr int                            kWindowWidth = 5;
-        SimpleMovingAverage<TBase, kWindowWidth> src_average{attr};
+        constexpr int                            window_width = 5;
+        SimpleMovingAverage<TBase, window_width> src_average{attr};
         REQUIRE(src_average);
-        constexpr std::array<TData, kWindowWidth> samples{1, 1, 1, 1, 1};
+        constexpr std::array<TData, window_width> samples{1, 1, 1, 1, 1};
 
         // Buffer is filled with some values for further checking.
         for(const auto &sample: samples) {
@@ -274,7 +286,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
 
         WHEN("User copies source object to destination one")
         {
-            SimpleMovingAverage<TBase, kWindowWidth> dst_average{attr};
+            SimpleMovingAverage<TBase, window_width> dst_average{attr};
             REQUIRE(dst_average);
             dst_average = src_average;
             REQUIRE(dst_average);
@@ -294,7 +306,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
 
         WHEN("User copy assign source object to destination one")
         {
-            SimpleMovingAverage<TBase, kWindowWidth> dst_average{src_average};
+            SimpleMovingAverage<TBase, window_width> dst_average{src_average};
 
             THEN("<buffer> from <dst_average> should point to new memory "
                  "address")
@@ -314,7 +326,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
             auto *src_average_buffer_address = &src_average.buffer;
             auto  src_buffer_span            = src_average.buffer;
 
-            SimpleMovingAverage<TBase, kWindowWidth> dst_average{
+            SimpleMovingAverage<TBase, window_width> dst_average{
                 std::move(src_average)};
 
             THEN("<buffer> from <dst_average> should point to new memory "
@@ -334,7 +346,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         {
             // Create another object because <src_average> was moved in previous
             // section.
-            SimpleMovingAverage<TBase, kWindowWidth> src{attr};
+            SimpleMovingAverage<TBase, window_width> src{attr};
 
             // Buffer is filled with some values for further checking.
             for(const auto &sample: samples) {
@@ -345,7 +357,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
             auto *src_average_buffer_address = &src.buffer;
             auto  src_buffer_span            = src.buffer;
 
-            SimpleMovingAverage<TBase, kWindowWidth> dst_average{attr};
+            SimpleMovingAverage<TBase, window_width> dst_average{attr};
 
             dst_average = std::move(src);
 
@@ -368,22 +380,22 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
     "Moving Average", "[stv]",
     ((typename TData, typename TMutex), TData, TMutex),
     (stv::SimpleMovingAverageSetupParams),
-    ((double, std::recursive_mutex), (float, stv::MutexEmpty),
-     (int, std::recursive_mutex), (fpm::fixed_16_16, stv::MutexEmpty)))
+    ((double, std::recursive_mutex), (float, stv::EmptyMutex),
+     (int, std::recursive_mutex), (fpm::fixed_16_16, stv::EmptyMutex)))
 {
     using namespace stv;
     using namespace boost;
     using TData  = TestType::ValueType;
     using TSetup = TestType;
     using TBase  = ISimpleMovingAverage<TSetup>;
-    constexpr decltype(std::declval<TSetup>().window_width) kWindowWidth{15};
+    constexpr decltype(std::declval<TSetup>().window_width) window_width{15};
     TSetup                                                  attr;
 
     SECTION("Create invalid object")
     {
-        attr.window_width = kWindowWidth;
+        attr.window_width = window_width;
 
-        SimpleMovingAverage<TBase, kWindowWidth - 1> average(attr);
+        SimpleMovingAverage<TBase, window_width - 1> average(attr);
         REQUIRE_FALSE(average);
     }
 
@@ -448,7 +460,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
 
     SECTION("Filtered with setup")
     {
-        SimpleMovingAverage<TBase, kWindowWidth> average(attr);
+        SimpleMovingAverage<TBase, window_width> average(attr);
         //
         REQUIRE(average.Setup(TSetup{.window_width = 3}));
 
@@ -503,7 +515,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         constexpr std::size_t                    window_width_init  = 5;
         constexpr std::size_t                    window_width_lower = 3;
 
-        SimpleMovingAverage<TBase, kWindowWidth> average(attr);
+        SimpleMovingAverage<TBase, window_width> average(attr);
 
         TSetup                                   setup_params;
         setup_params.window_width = window_width_init;
@@ -547,7 +559,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         constexpr std::size_t                    window_width_init    = 3;
         constexpr std::size_t                    window_width_greater = 5;
 
-        SimpleMovingAverage<TBase, kWindowWidth> average(attr);
+        SimpleMovingAverage<TBase, window_width> average(attr);
 
         TSetup                                   setup_params;
         setup_params.window_width = window_width_init;
@@ -588,9 +600,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
 
     SECTION("Reset To Default")
     {
-        constexpr std::size_t                    window_width = 3;
-
-        SimpleMovingAverage<TBase, kWindowWidth> average(attr);
+        SimpleMovingAverage<TBase, window_width> average(attr);
 
         TSetup                                   setup_params;
         setup_params.window_width = window_width;
@@ -618,3 +628,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         }
     }
 }
+
+// NOLINTEND(*-magic-numbers, google-build-using-namespace,
+// readability-function-cognitive-complexity,
+// cppcoreguidelines-avoid-non-const-global-variables)

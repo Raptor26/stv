@@ -1,7 +1,7 @@
 #ifndef WRAPPERS_HPP
 #define WRAPPERS_HPP
 
-#include "filters_concepts.hpp"
+#include "stv/concepts.hpp"
 
 namespace stv {
 
@@ -11,11 +11,12 @@ namespace stv {
 /// 1. TBase::SetupType по ссылке;
 /// 2. gsl::span<TBase::ValueType>
 ///
-/// @note Полный набор требований к TBase вы можете найти в stv::Filterable.
+/// @note Полный набор требований к TBase вы можете найти в
+/// stv::FilterableConcept.
 ///
 /// @tparam TBase
 /// @tparam SIZE
-template<stv::Filterable TBase, std::size_t SIZE = 20>
+template<stv::FilterableConcept TBase, std::size_t SIZE = 20>
 class SizeWrapper:
     private std::array<typename TBase::ValueType, SIZE>,
     public TBase
@@ -28,7 +29,7 @@ class SizeWrapper:
   public:
     template<typename U>
         requires std::same_as<std::remove_cvref_t<U>, SetupType>
-    SizeWrapper(
+    explicit SizeWrapper(
         U &&attr):
         std::array<ValueType, SIZE>{},
         TBase{std::forward<U>(attr), ContainerType{this->begin(), this->end()}}
@@ -65,7 +66,10 @@ class SizeWrapper:
         requires std::is_copy_assignable_v<TBase>
     = default;
 
-    operator bool() const { return static_cast<bool>(TBase::operator bool()); }
+    explicit operator bool() const
+    {
+        return static_cast<bool>(TBase::operator bool());
+    }
 };
 
 } // namespace stv

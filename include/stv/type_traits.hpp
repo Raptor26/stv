@@ -1,4 +1,4 @@
-/// @file mutex_.hpp
+/// @file type_traits.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
 ///
 /// @copyright (c) 2025 "The Boys"
@@ -23,29 +23,33 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
-#ifndef MUTEX_HPP
-#define MUTEX_HPP
+#ifndef TYPE_TRAITS_HPP
+#define TYPE_TRAITS_HPP
 
 #include <type_traits>
 
 namespace stv {
 
+// #############################################################################
+// Mutex
+// #############################################################################
+
+/// @brief Тэг используется в том случае, если объект использует указатель на
+/// мьютекс.
 struct MutexExtTag {
 };
 
+/// @brief Тэк используется в том случае, если объект использует собственный
+/// экземпляр мьютекса.
+///
+/// @note Обычно, именно этот тэг вы захотите использовать в большинстве
+/// случаев.
 struct MutexIntTag {
-};
-
-class MutexEmpty
-{
-  public:
-    auto lock() noexcept -> void {}
-
-    auto unlock() noexcept -> void {}
 };
 
 /// @brief Вычисляет тип мьютекса на основе тега. Если тег "MutexIntTag", то
 /// создается пустой тип, в противном случае выводится указатель на тип TMutex.
+///
 /// @note Предназначен для использования в структуре инициализации.
 template<typename TMutex, typename TMutexTag>
 using mutex_type_setup_v =
@@ -54,37 +58,14 @@ using mutex_type_setup_v =
 
 /// @brief Вычисляет тип мьютекса на основе тега. Если тег "MutexIntTag", то
 /// выводится тип TMutex, в противном случае выводится указатель на тип TMutex.
+///
 /// @note Предназначен для использования в классе.
 template<typename TMutex, typename TMutexTag>
 using mutex_type_v =
     std::conditional_t<std::is_same_v<TMutexTag, stv::MutexExtTag>, TMutex *,
                        TMutex>;
-
-template<typename TMutex>
-class lock_guard
-{
-  public:
-    typedef TMutex mutex_type;
-
-    explicit lock_guard(
-        mutex_type &m_, bool is_isr = false):
-        m(m_),
-        is_isr_{is_isr}
-    {
-        m.lock();
-    }
-
-    ~lock_guard() { m.unlock(); }
-
-  private:
-    // Deleted.
-    lock_guard(const lock_guard &) ETL_DELETE;
-
-    mutex_type &m;
-
-    const bool  is_isr_;
-};
+// -----------------------------------------------------------------------------
 
 } // namespace stv
 
-#endif /* MUTEX_HPP */
+#endif /* TYPE_TRAITS_HPP */

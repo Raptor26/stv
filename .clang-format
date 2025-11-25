@@ -76,19 +76,6 @@ Cpp11BracedListStyle: true
 EmptyLineAfterAccessModifier: Never
 EmptyLineBeforeAccessModifier: LogicalBlock
 
-IncludeCategories:
-  - Regex:           '^"(llvm|llvm-c|clang|clang-c)/'
-    Priority:        2
-    SortPriority:    2
-    CaseSensitive:   true
-  - Regex:           '^((<|")(gtest|gmock|isl|json)/)'
-    Priority:        3
-  - Regex:           '<[[:alnum:].]+>'
-    Priority:        4
-  - Regex:           '.*'
-    Priority:        1
-    SortPriority:    0
-
 IndentCaseBlocks: false
 IndentCaseLabels: true
 IndentExportBlock: true
@@ -122,8 +109,6 @@ ReflowComments: Always
 RemoveEmptyLinesInUnwrappedLines: true
 RequiresClausePosition: OwnLine
 SeparateDefinitionBlocks: Always
-SortIncludes:
-  Enabled: true
 SpaceAfterCStyleCast: false
 SpaceAfterLogicalNot: false
 SpaceAfterOperatorKeyword: false

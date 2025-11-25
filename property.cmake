@@ -12,9 +12,9 @@
 
   Пример:
     add_executable(my_app main.cpp)
-    stfv_add_pedantic_compile_options_and_features(my_app)
+    stf_add_pedantic_compile_options_and_features(my_app)
 ]]
-function(stfv_add_pedantic_compile_options_and_features TARGET_NAME)
+function(stf_add_pedantic_compile_options_and_features TARGET_NAME)
   # Проверка существования цели
   if(NOT TARGET ${TARGET_NAME})
     message(FATAL_ERROR "Target '${TARGET_NAME}' does not exist")
