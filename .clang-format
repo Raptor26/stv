@@ -157,3 +157,5 @@ BraceWrapping:
 
 BinPackArguments: true
 BinPackLongBracedList: false
+
+CommentPragmas: '^///'
