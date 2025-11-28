@@ -12,25 +12,25 @@ namespace stv {
 ///
 template<typename TBase>
 concept FilterableConcept =
-    requires(TBase base, typename TBase::SetupType setup) {
-        typename TBase::ValueType;
-        typename TBase::SetupType;
-        typename TBase::ContainerType;
+    requires(TBase base, typename TBase::setup_type setup) {
+        typename TBase::value_type;
+        typename TBase::setup_type;
+        typename TBase::container_type;
 
-        { base.Setup(setup) };
-        { base.Reset() };
-        { base.GetSetup() };
-        { base.GetDefaultParams() };
+        { base.setup(setup) };
+        { base.reset() };
+        { base.get_setup() };
+        { base.get_default_setup() };
     };
 
-/// @brief TBase должен предоставлять псевдоним TBase::ContainerType для того
+/// @brief TBase должен предоставлять псевдоним TBase::container_type для того
 /// чтобы в базовый класс TBase передать указатели на выделенную область памяти.
 ///
 /// @tparam TBase
 template<typename TBase>
 concept SizeableContainerConcept =
-    requires(TBase base, typename TBase::SetupType setup) {
-        typename TBase::ContainerType;
+    requires(TBase base, typename TBase::setup_type setup) {
+        typename TBase::container_type;
     };
 
 /// @brief
