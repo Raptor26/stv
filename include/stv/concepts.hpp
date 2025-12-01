@@ -2,6 +2,7 @@
 #define CONCEPTS_HPP
 
 #include "boost/leaf.hpp"
+#include <chrono>
 #include <concepts>
 #include <ranges>
 
@@ -58,6 +59,9 @@ template<typename T>
 concept contiguous_trivial_container_concept =
     std::ranges::contiguous_range<T>
     && std::is_trivial_v<std::ranges::range_value_t<T>>;
+
+template<typename T>
+inline constexpr bool is_duration_v = std::chrono::__is_duration_v<T>;
 
 } // namespace stv
 
