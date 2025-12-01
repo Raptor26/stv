@@ -3,6 +3,7 @@
 
 #include "boost/leaf.hpp"
 #include <concepts>
+#include <ranges>
 
 namespace stv {
 
@@ -52,6 +53,11 @@ concept IsMutexConcept = requires(TMutex &mutex) {
     mutex.lock();
     mutex.unlock();
 } && !IsMutexWithIsrConcept<TMutex>;
+
+template<typename T>
+concept contiguous_trivial_container_concept =
+    std::ranges::contiguous_range<T>
+    && std::is_trivial_v<std::ranges::range_value_t<T>>;
 
 } // namespace stv
 

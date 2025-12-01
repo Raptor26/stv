@@ -104,6 +104,10 @@
         "xtree": "cpp",
         "cfenv": "cpp",
         "complex": "cpp",
-        "csignal": "cpp"
+        "csignal": "cpp",
+        "*.inc": "cpp",
+        "byte": "cpp",
+        "span_ext": "cpp",
+        "util": "cpp"
     }
 }
