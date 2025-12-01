@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/MaJerle/lwrb.git
+	branch = develop
+	commit = f48ecd62214cbcd244c6c7ac91d2aef55bb87de4
+	parent = f283ea569821e3c9403423529c557a83314065f5
+	method = merge
+	cmdver = 0.4.9
