@@ -393,7 +393,7 @@ class serial_message
 };
 
 template<typename TQueue, typename... Decorators>
-class serial_message_buffer: private stv::NonCopyable, private stv::NonMovable
+class serial_message_buffer: private stv::non_copyable, private stv::non_movable
 {
     using queue_type = TQueue;
 

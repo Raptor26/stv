@@ -3,30 +3,30 @@
 
 namespace stv {
 
-class NonCopyable
+class non_copyable
 {
   public:
-    NonCopyable()          = default;
-    virtual ~NonCopyable() = default;
+    non_copyable()          = default;
+    virtual ~non_copyable() = default;
 
-    NonCopyable(const NonCopyable &)            = delete;
-    NonCopyable &operator=(const NonCopyable &) = delete;
+    non_copyable(const non_copyable &)            = delete;
+    non_copyable &operator=(const non_copyable &) = delete;
 
-    NonCopyable(NonCopyable &&)            = default;
-    NonCopyable &operator=(NonCopyable &&) = default;
+    non_copyable(non_copyable &&)            = default;
+    non_copyable &operator=(non_copyable &&) = default;
 };
 
-class NonMovable
+class non_movable
 {
   public:
-    NonMovable()          = default;
-    virtual ~NonMovable() = default;
+    non_movable()          = default;
+    virtual ~non_movable() = default;
 
-    NonMovable(const NonMovable &)            = default;
-    NonMovable &operator=(const NonMovable &) = default;
+    non_movable(const non_movable &)            = default;
+    non_movable &operator=(const non_movable &) = default;
 
-    NonMovable(NonMovable &&)            = delete;
-    NonMovable &operator=(NonMovable &&) = delete;
+    non_movable(non_movable &&)            = delete;
+    non_movable &operator=(non_movable &&) = delete;
 };
 
 /// ----------------------------------------------------------------------------

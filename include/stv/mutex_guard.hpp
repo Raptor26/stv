@@ -78,8 +78,8 @@ class lock_guard<TMutex> final: public etl::lock_guard<TMutex>
 /// @tparam Тип передаваемого в конструктор мьютекса.
 template<stv::IsMutexWithIsrConcept TMutex>
 class lock_guard<TMutex> final:
-    private stv::NonCopyable,
-    private stv::NonMovable
+    private stv::non_copyable,
+    private stv::non_movable
 {
     TMutex    &mutex_;
     const bool is_isr_;
