@@ -1,7 +1,6 @@
 #ifndef CONCEPTS_HPP
 #define CONCEPTS_HPP
 
-#include "boost/leaf.hpp"
 #include <chrono>
 #include <concepts>
 #include <ranges>
