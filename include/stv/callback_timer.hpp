@@ -28,6 +28,7 @@
 
 #include "etl/callback_timer_atomic.h"
 #include "stv/concepts.hpp"
+#include "stv/utils.hpp"
 #include <atomic>
 #include <chrono>
 
@@ -127,6 +128,75 @@ class callback_timer:
         }
 
         return false;
+    }
+};
+
+template<typename TCallbackTimer>
+struct callback_timer_context_init {
+    using callback_timer_type =
+        etl::icallback_timer_atomic<std::atomic_uint32_t>;
+
+    using count_type = typename TCallbackTimer::count_type;
+
+    callback_timer_type *callback_timer{nullptr};
+
+    count_type           period{0};
+
+    /// @brief Указывает, является ли операция непрерывной.
+    bool is_continuous{true};
+};
+
+template<typename TDelegateInit, typename TBase>
+class callback_timer_context:
+    private stv::non_copyable,
+    private stv::non_movable,
+    public TBase
+{
+    using delegate_init_type = TDelegateInit;
+    using base_type          = TBase;
+    using callback_timer_type =
+        typename delegate_init_type::callback_timer_type;
+    using count_type = typename delegate_init_type::count_type;
+
+    callback_timer_type *callback_timer_{nullptr};
+
+    /// @brief Период выполнения в микросекундах.
+    count_type period_{};
+
+    /// @brief Указывает, является ли операция непрерывной.
+    bool is_continuous_{true};
+
+    /// @brief Делегат функции для выполнения операции.
+    typename callback_timer_type::callback_type delegate_{
+        callback_timer_type::callback_type::template create<base_type,
+                                                            &base_type::run>(
+            *this)};
+
+    /// @brief Идентификатор таймера.
+    etl::timer::id::type id_{etl::timer::id::NO_TIMER};
+
+  public:
+    template<typename... TArgs>
+    callback_timer_context(
+        const delegate_init_type &delegate, TArgs &&...args):
+        base_type{std::forward<TArgs>(args)...},
+        callback_timer_{delegate.callback_timer},
+        period_{delegate.period},
+        is_continuous_{delegate.is_continuous}
+    {
+        if(callback_timer_) {
+            id_ = callback_timer_->register_timer(delegate_, period_.count(),
+                                                  is_continuous_);
+            assert(id_ != etl::timer::id::NO_TIMER);
+            callback_timer_->start(id_, false);
+        }
+    }
+
+    virtual ~callback_timer_context()
+    {
+        if(callback_timer_->unregister_timer(id_)) {
+            id_ = etl::timer::id::NO_TIMER;
+        }
     }
 };
 
