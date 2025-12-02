@@ -142,13 +142,13 @@ BraceWrapping:
   AfterClass: true
   AfterFunction: true
   AfterCaseLabel: false
-  AfterControlStatement: false
+  AfterControlStatement: true
   AfterEnum: false
   AfterNamespace: false
   AfterStruct: false
   AfterUnion: false
   BeforeCatch: false
-  BeforeElse: false
+  BeforeElse: true
   IndentBraces: false
   SplitEmptyFunction: true
   SplitEmptyRecord: true

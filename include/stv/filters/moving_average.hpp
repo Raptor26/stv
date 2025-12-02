@@ -38,7 +38,8 @@
 ///       width and mutex settings
 ///     - moving_average_base: Base template class implementing core filtering
 ///       logic with configurable buffer size
-///     - container_size_wrapper: Storage wrapper that combines buffer array with filter
+///     - container_size_wrapper: Storage wrapper that combines buffer array
+///     with filter
 ///       implementation
 ///
 ///     The filter supports:
@@ -195,11 +196,13 @@ struct moving_average_setup {
     auto is_valid(
         std::size_t max_window_width) const -> boost::leaf::result<void>
     {
-        if(window_width == 0) {
+        if(window_width == 0)
+        {
             return boost::leaf::new_error(stv::ZeroWindowWidth{});
         }
 
-        if(window_width > max_window_width) {
+        if(window_width > max_window_width)
+        {
             return boost::leaf::new_error(stv::MaxWindowWidthLimitError{});
         }
 
@@ -303,8 +306,10 @@ class moving_average_base
     explicit operator bool() const noexcept
     {
         auto is_mutex_ptr_valid{true};
-        if constexpr(std::is_pointer_v<decltype(mutex_)>) {
-            if(!mutex_) {
+        if constexpr(std::is_pointer_v<decltype(mutex_)>)
+        {
+            if(!mutex_)
+            {
                 is_mutex_ptr_valid = false;
             }
         }
@@ -412,17 +417,22 @@ class moving_average_base
         buffer[cnt_]   = new_sample;
         auto filtered  = new_sample;
 
-        if(!full(is_isr)) {
-            if((cnt_ + 1) == setup_actual_.window_width) {
+        if(!full(is_isr))
+        {
+            if((cnt_ + 1) == setup_actual_.window_width)
+            {
                 is_buffer_full_ = true;
             }
         }
 
-        if(full(is_isr)) {
+        if(full(is_isr))
+        {
             // ... вычислить среднее.
-            if constexpr(std::is_integral_v<value_type>) {
+            if constexpr(std::is_integral_v<value_type>)
+            {
                 filtered = sum_ / window_width_inv_;
-            } else {
+            } else
+            {
                 filtered = sum_ * window_width_inv_;
             }
         }
@@ -471,7 +481,8 @@ class moving_average_base
     {
         UpdateWindowWithInverse();
 
-        if constexpr(std::is_same_v<mutex_tag, stv::MutexExtTag>) {
+        if constexpr(std::is_same_v<mutex_tag, stv::MutexExtTag>)
+        {
             mutex_ = attr.mutex;
         }
     }
@@ -487,9 +498,11 @@ class moving_average_base
             noexcept(set_smaller_window_width(new_width))
             && noexcept(set_bigger_window_width(new_width)))
     {
-        if(new_width < setup_actual_.window_width) {
+        if(new_width < setup_actual_.window_width)
+        {
             set_smaller_window_width(new_width);
-        } else if(new_width > setup_actual_.window_width) {
+        } else if(new_width > setup_actual_.window_width)
+        {
             set_bigger_window_width(new_width);
         }
     }
@@ -507,7 +520,8 @@ class moving_average_base
         auto size_decrement = old_width - new_width;
 
         // Уменьшить накопленную сумму.
-        for(std::size_t i = 0; i < size_decrement; ++i) {
+        for(std::size_t i = 0; i < size_decrement; ++i)
+        {
             // Вычислить индекс элемента, который должен быть удален из
             // суммы.
             auto idx  = (cnt_ + i) % old_width;
@@ -525,7 +539,8 @@ class moving_average_base
         auto last_element_idx = cnt_ + old_max_element_idx;
 
         for(std::size_t i = 0, new_max_element_idx = new_width - 1;
-            i < new_width; ++i) {
+            i < new_width; ++i)
+        {
             // Вычислить индекс элемента, который должен остаться в буфере.
             // Начать с последнего элемента, который должен остаться.
             auto idx = ((last_element_idx - i) % old_width);
@@ -539,9 +554,11 @@ class moving_average_base
                   static_cast<value_type>(0));
 
         // Обновить счетчик и проверить, что он не становится отрицательным.
-        if(cnt_ < size_decrement) {
+        if(cnt_ < size_decrement)
+        {
             cnt_ = 0;
-        } else {
+        } else
+        {
             cnt_ -= size_decrement;
         }
     }
@@ -555,7 +572,8 @@ class moving_average_base
     void set_bigger_window_width(
         std::size_t new_width) noexcept
     {
-        if(full()) {
+        if(full())
+        {
             cnt_ = (cnt_ + (new_width - setup_actual_.window_width) + 1)
                    % new_width;
 
@@ -567,10 +585,13 @@ class moving_average_base
     /// используется для более быстрого вычисления в filt().
     auto UpdateWindowWithInverse() noexcept -> void
     {
-        if(setup_actual_.window_width > 0) {
-            if constexpr(std::is_integral_v<value_type>) {
+        if(setup_actual_.window_width > 0)
+        {
+            if constexpr(std::is_integral_v<value_type>)
+            {
                 window_width_inv_ = setup_actual_.window_width;
-            } else {
+            } else
+            {
                 window_width_inv_ =
                     static_cast<value_type>(1)
                     / static_cast<value_type>(setup_actual_.window_width);
@@ -580,17 +601,20 @@ class moving_average_base
 
     auto get_mutex_ref() const -> std::remove_pointer_t<mutex_type> &
     {
-        if constexpr(std::is_same_v<mutex_tag, stv::MutexExtTag>) {
+        if constexpr(std::is_same_v<mutex_tag, stv::MutexExtTag>)
+        {
             assert(mutex_ != nullptr);
             return *mutex_;
-        } else {
+        } else
+        {
             return mutex_;
         }
     }
 };
 
 template<stv::FilterableConcept TBase, std::size_t MAX_WINDOW_WIDTH = 20>
-using SimpleMovingAverage = stv::container_size_wrapper<TBase, MAX_WINDOW_WIDTH>;
+using SimpleMovingAverage =
+    stv::container_size_wrapper<TBase, MAX_WINDOW_WIDTH>;
 
 } // namespace stv
 #endif /* STVF_MOVING_AVERAGE_HPP */

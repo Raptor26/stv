@@ -92,8 +92,7 @@ TEST_CASE(
     };
 
     // Объявление псевдонима структуры инициализации.
-    using TMovingAverageSetup =
-        stv::moving_average_setup<float, CustomGuard>;
+    using TMovingAverageSetup = stv::moving_average_setup<float, CustomGuard>;
 
     // Объявление псевдонима базового класса, который обеспечивает необходимый
     // функционал/
@@ -130,8 +129,7 @@ TEST_CASE(
 
     // Объявление псевдонима структуры инициализации.
     using TMovingAverageSetup =
-        stv::moving_average_setup<float, ICustomGuard,
-                                            stv::MutexExtTag>;
+        stv::moving_average_setup<float, ICustomGuard, stv::MutexExtTag>;
 
     // Объявление псевдонима базового класса, который обеспечивает необходимый
     // функционал/
@@ -261,15 +259,19 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         (void)empty_mutex;
 
         TSetup attr;
-        if constexpr(std::is_same_v<typename TSetup::mutex_tag, stv::MutexExtTag>
+        if constexpr(std::is_same_v<typename TSetup::mutex_tag,
+                                    stv::MutexExtTag>
                      && std::is_same_v<typename TSetup::mutex_type,
-                                       std::recursive_mutex>) {
+                                       std::recursive_mutex>)
+        {
             attr.mutex = &std_mutex;
         }
 
-        if constexpr(std::is_same_v<typename TSetup::mutex_tag, stv::MutexExtTag>
+        if constexpr(std::is_same_v<typename TSetup::mutex_tag,
+                                    stv::MutexExtTag>
                      && std::is_same_v<typename TSetup::mutex_type,
-                                       stv::EmptyMutex>) {
+                                       stv::EmptyMutex>)
+        {
             attr.mutex = &empty_mutex;
         }
 
@@ -279,7 +281,8 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         constexpr std::array<TData, window_width> samples{1, 1, 1, 1, 1};
 
         // Buffer is filled with some values for further checking.
-        for(const auto &sample: samples) {
+        for(const auto &sample: samples)
+        {
             const auto filtered = src_average.filt(sample);
             (void)filtered;
         }
@@ -349,7 +352,8 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
             SimpleMovingAverage<TBase, window_width> src{attr};
 
             // Buffer is filled with some values for further checking.
-            for(const auto &sample: samples) {
+            for(const auto &sample: samples)
+            {
                 const auto filtered = src.filt(sample);
                 (void)filtered;
             }
@@ -450,7 +454,8 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
             static_cast<TData>(7), static_cast<TData>(8)};
 
         constexpr double eps{0.01};
-        for(const auto &new_sample: samples) {
+        for(const auto &new_sample: samples)
+        {
             // Without setup filt() must return <new_sample>.
             REQUIRE_THAT(static_cast<double>(average.filt(new_sample)),
                          Catch::Matchers::WithinRel(
@@ -479,7 +484,8 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         constexpr double eps{0.01};
         SECTION("With cycle")
         {
-            for(std::size_t i = 0; i < samples.size(); ++i) {
+            for(std::size_t i = 0; i < samples.size(); ++i)
+            {
                 const auto filtered =
                     static_cast<double>(average.filt(samples.at(i)));
                 REQUIRE_THAT(filtered,
@@ -542,8 +548,10 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
 
         constexpr double eps{0.01};
 
-        for(std::size_t i = 0; i < expected.size(); ++i) {
-            if(i == width_lower_first_idx) {
+        for(std::size_t i = 0; i < expected.size(); ++i)
+        {
+            if(i == width_lower_first_idx)
+            {
                 setup_params.window_width = window_width_lower;
                 REQUIRE(average.setup(setup_params));
             }
@@ -586,8 +594,10 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
 
         constexpr double eps{1};
 
-        for(std::size_t i = 0; i < expected.size(); ++i) {
-            if(i == width_greater_first_idx) {
+        for(std::size_t i = 0; i < expected.size(); ++i)
+        {
+            if(i == width_greater_first_idx)
+            {
                 setup_params.window_width = window_width_greater;
                 REQUIRE(average.setup(setup_params));
             }
@@ -613,7 +623,8 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
 
         constexpr double eps{0.01};
 
-        for(const auto &new_sample: samples) {
+        for(const auto &new_sample: samples)
+        {
             const auto filtered = average.filt(new_sample);
             (void)filtered;
         }
@@ -621,7 +632,8 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         // After reset filt() must return input <samples>.
         average.reset();
 
-        for(const auto &new_sample: samples) {
+        for(const auto &new_sample: samples)
+        {
             REQUIRE_THAT(static_cast<double>(average.filt(new_sample)),
                          Catch::Matchers::WithinRel(
                              static_cast<double>(new_sample), eps));

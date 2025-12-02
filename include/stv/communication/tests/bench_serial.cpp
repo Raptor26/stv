@@ -49,7 +49,8 @@ static void request(
     auto serial_message_buffer = make_serial_message_buffer<queue_type>(
         stv::start_frame_and_crc_16{}, stv::head_route{});
 
-    for(auto unused: state) {
+    for(auto unused: state)
+    {
         auto msg = serial_message_buffer.request<UserData>();
 
         msg->i = 1;

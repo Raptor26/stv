@@ -83,7 +83,8 @@ class sim_buff
         size_in_bytes_{other.size_in_bytes_},
         data_ptr_{safe_allocate(size_in_bytes_)}
     {
-        if(data_ptr_ != nullptr) {
+        if(data_ptr_ != nullptr)
+        {
             // After memory allocated, need copy bytes in allocated memory area
             // from other memory area.
             memcpy(data_ptr_, other.data_ptr_, size_in_bytes_);
@@ -103,7 +104,8 @@ class sim_buff
     auto operator=(
         sim_buff &&other) noexcept -> sim_buff &
     {
-        if(&other != this) {
+        if(&other != this)
+        {
             this->safe_deallocate();
 
             this->data_ptr_ = other.data_ptr_;
@@ -152,7 +154,8 @@ class sim_buff
     {
         bool is_ready{false};
 
-        if(data_ptr_ != nullptr) {
+        if(data_ptr_ != nullptr)
+        {
             is_ready = true;
         }
 
@@ -188,7 +191,8 @@ class sim_buff
     [[nodiscard]] auto safe_allocate(
         std::size_t size_in_bytes) noexcept -> pointer
     {
-        if(size_in_bytes > 0U) {
+        if(size_in_bytes > 0U)
+        {
             return alloc_traits::allocate(allocator_, size_in_bytes);
         }
 
@@ -199,7 +203,8 @@ class sim_buff
 
     void safe_deallocate()
     {
-        if(data_ptr_ != nullptr) {
+        if(data_ptr_ != nullptr)
+        {
             alloc_traits::deallocate(allocator_, data_ptr_, size_in_bytes_);
             data_ptr_ = nullptr;
         }

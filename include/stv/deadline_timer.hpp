@@ -92,7 +92,8 @@ class DeadlineTimer
     explicit operator bool() const
     {
         auto is_true{true};
-        if(!runtime_ptr_) {
+        if(!runtime_ptr_)
+        {
             is_true = false;
         }
         return is_true;
@@ -110,7 +111,8 @@ class DeadlineTimer
         TCounter timeout_ms) -> bool
     {
         auto is_timeout_set{false};
-        if(timeout_ms >= min_timeout_ms_) {
+        if(timeout_ms >= min_timeout_ms_)
+        {
             SetCurrentTimeInMs();
 
             deadline_ms_   = GiveCurrentTimeInMs() + timeout_ms;
@@ -130,7 +132,8 @@ class DeadlineTimer
     /// SetTimeoutInMs().
     KRASLIBS_VIRTUAL auto IsDeadlineElapsed() -> bool
     {
-        if(deadline_ms_ == 0U) {
+        if(deadline_ms_ == 0U)
+        {
             return false;
         }
 
@@ -143,7 +146,8 @@ class DeadlineTimer
         const TCounter elapsed_time = current_time - current_time_;
 
         auto           is_timeout_elapsed{false};
-        if(elapsed_time >= timeout_ms_) {
+        if(elapsed_time >= timeout_ms_)
+        {
             is_timeout_elapsed       = true;
             time_before_deadline_ms_ = 0U;
         }

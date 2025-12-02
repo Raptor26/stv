@@ -64,7 +64,8 @@ class callback_timer:
     {
         auto is_ready_to_run{true};
 
-        if(!is_period_valid()) {
+        if(!is_period_valid())
+        {
             is_ready_to_run = false;
         }
 
@@ -77,16 +78,19 @@ class callback_timer:
     /// @note Рекомендуется данный метод вызывать из main().
     void run()
     {
-        if(is_notify_given_ && is_period_valid()) {
+        if(is_notify_given_ && is_period_valid())
+        {
             // Сброс флага, следующая обработка будет выполнена только после
             // повторного вызова GiveNotify(). Данный флаг сбрасывается до
             // начала обработки делегатов. Это позволяет в случае длительной
             // обработки, не пропустить нового вызова GiveNotify().
             is_notify_given_ = false;
 
-            if(this->tick(nticks_)) {
+            if(this->tick(nticks_))
+            {
                 nticks_ = period_.count();
-            } else {
+            } else
+            {
                 nticks_ += period_.count();
             }
         }
@@ -106,7 +110,8 @@ class callback_timer:
     {
         auto is_period_valid{false};
 
-        if(period.count() > 0) {
+        if(period.count() > 0)
+        {
             is_period_valid = true;
 
             period_ = std::chrono::duration_cast<count_type>(period);
@@ -123,7 +128,8 @@ class callback_timer:
   private:
     auto is_period_valid()
     {
-        if(period_ > count_type{0U}) {
+        if(period_ > count_type{0U})
+        {
             return true;
         }
 
@@ -184,7 +190,8 @@ class callback_timer_context:
         period_{delegate.period},
         is_continuous_{delegate.is_continuous}
     {
-        if(callback_timer_) {
+        if(callback_timer_)
+        {
             id_ = callback_timer_->register_timer(delegate_, period_.count(),
                                                   is_continuous_);
             assert(id_ != etl::timer::id::NO_TIMER);
@@ -194,7 +201,8 @@ class callback_timer_context:
 
     virtual ~callback_timer_context()
     {
-        if(callback_timer_->unregister_timer(id_)) {
+        if(callback_timer_->unregister_timer(id_))
+        {
             id_ = etl::timer::id::NO_TIMER;
         }
     }

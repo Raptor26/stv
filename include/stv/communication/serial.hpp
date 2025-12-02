@@ -151,12 +151,16 @@ class start_frame_and_crc_16
     {
         // Простая реализация Crc для примера
         uint16_t crc = 0xFFFF;
-        for(size_t i = 0; i < length; ++i) {
+        for(size_t i = 0; i < length; ++i)
+        {
             crc ^= static_cast<std::uint8_t>(data[i]);
-            for(int j = 0; j < 8; ++j) {
-                if(crc & 0x0001) {
+            for(int j = 0; j < 8; ++j)
+            {
+                if(crc & 0x0001)
+                {
                     crc = (crc >> 1) ^ 0xA001;
-                } else {
+                } else
+                {
                     crc >>= 1;
                 }
             }
@@ -267,7 +271,8 @@ class composite_serial_message
         queue_{queue},
         memory_(total_size_)
     {
-        if(pload.data()) {
+        if(pload.data())
+        {
             memcpy(memory_.begin() + header_size_, pload.data(),
                    pload.size_bytes());
         }
@@ -323,7 +328,8 @@ class composite_serial_message
     void setup_single_header(
         Decorator &decorator, size_t &offset) const
     {
-        if constexpr(Decorator::header_size() > 0) {
+        if constexpr(Decorator::header_size() > 0)
+        {
             decorator.setup_header(
                 memory_.begin() + offset,
                 std::span<const std::byte>(memory_.begin(), memory_.size()),
@@ -353,7 +359,8 @@ class composite_serial_message
         Decorator &decorator, std::byte *dst, size_t &offset,
         const std::byte *full_message, size_t full_message_size)
     {
-        if constexpr(Decorator::trailer_size() > 0) {
+        if constexpr(Decorator::trailer_size() > 0)
+        {
             decorator.setup_trailer(dst + offset,
                                     span_type(full_message, full_message_size));
             offset += Decorator::trailer_size();
@@ -516,7 +523,8 @@ class serial_message_buffer: private stv::non_copyable, private stv::non_movable
     void apply_to_single_decorator(
         Decorator &decorator, const Param &param)
     {
-        if constexpr(std::is_constructible_v<Decorator, Param>) {
+        if constexpr(std::is_constructible_v<Decorator, Param>)
+        {
             decorator = Decorator(param);
         }
     }

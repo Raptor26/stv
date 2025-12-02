@@ -110,7 +110,8 @@ class status_led: public status_led_api
         callback_timer_{init.callback_timer},
         led_{init.led}
     {
-        if(*this) {
+        if(*this)
+        {
             set_mode(status_led_states::kNormal);
         }
     }
@@ -132,11 +133,13 @@ class status_led: public status_led_api
     {
         auto is_object_valid{true};
 
-        if(!callback_timer_) {
+        if(!callback_timer_)
+        {
             is_object_valid = false;
         }
 
-        if(!led_) {
+        if(!led_)
+        {
             is_object_valid = false;
         }
 
@@ -161,7 +164,8 @@ class status_led: public status_led_api
 
 #if 1
         if((new_blink_mode < status_led_states::kMaxNumber)
-           && (new_blink_mode != current_blink_mode_)) {
+           && (new_blink_mode != current_blink_mode_))
+        {
             current_blink_mode_shadow_ = new_blink_mode;
 
             // Отключение световой индикации.
@@ -170,7 +174,8 @@ class status_led: public status_led_api
             // Обнуление счетчика индикаций.
             low_bat_to_normal_cnt_ = 0U;
 
-            if(callback_timer_->unregister_timer(id_)) {
+            if(callback_timer_->unregister_timer(id_))
+            {
                 id_ = etl::timer::id::NO_TIMER;
             }
             const auto index = static_cast<std::size_t>(new_blink_mode);
