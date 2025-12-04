@@ -89,7 +89,8 @@ class callback_timer:
             if(this->tick(nticks_))
             {
                 nticks_ = period_.count();
-            } else
+            }
+            else
             {
                 nticks_ += period_.count();
             }
