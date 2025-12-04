@@ -154,8 +154,8 @@ struct callback_timer_context_init {
 
 template<typename TDelegateInit, typename TBase>
 class callback_timer_context:
-    private stv::non_copyable,
-    private stv::non_movable,
+    virtual private stv::non_copyable,
+    virtual private stv::non_movable,
     public TBase
 {
     using delegate_init_type = TDelegateInit;
