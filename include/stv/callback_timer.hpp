@@ -22,6 +22,92 @@
 /// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
+///
+
+/*
+/// ############################################################################
+/// ПРИМЕР:
+/// ############################################################################
+
+#include "callback_timer.hpp" // Предполагаем, что заголовочный файл доступен
+#include <iostream>
+#include <chrono>
+#include <thread>
+#include <atomic>
+
+namespace my_app {
+
+// 1. Определяем наш класс задачи
+class MyTask {
+public:
+    // Метод run() будет вызываться таймером
+    void run() {
+        std::cout << "MyTask::run() executed at " <<
+std::chrono::steady_clock::now().time_since_epoch().count() << std::endl;
+        counter_++;
+        if (counter_ >= 5) {
+             std::cout << "MyTask finished its job." << std::endl;
+             // Для примера с однократным таймером, можно как-то остановить его
+выполнение извне.
+             // Здесь просто выводим сообщение.
+        }
+    }
+
+private:
+    int counter_ = 0;
+};
+
+// 2. Создаем глобальные/статические переменные для таймера
+// (Обычно это делается в отдельном модуле инициализации)
+using MyCallbackTimer = stv::callback_timer<5>; // Максимум 5 таймеров
+MyCallbackTimer my_system_timer{std::chrono::microseconds(1000)}; // Установим
+внутренний период 1 мс (для примера)
+
+// 3. Определяем тип singleton'а для нашего таймерного контекста
+using MyTaskContext =
+stv::callback_timer_context<stv::callback_timer_context_init<MyCallbackTimer>,
+MyTask>; using MyTaskSingleton = etl::singleton<MyTaskContext>;
+
+// 4. Функция инициализации
+void init_my_task() {
+    stv::callback_timer_context_init<MyCallbackTimer> init;
+    init.callback_timer = &my_system_timer; // Передаем ссылку на наш таймер
+    init.period         = std::chrono::milliseconds(4000); // Период выполнения
+задачи - 4 секунды init.is_continuous  = true; // Повторяющийся таймер
+
+    MyTaskSingleton::create(init); // Создаем singleton с привязкой к таймеру
+}
+
+// 5. Функция для симуляции ISR или внешнего источника тиков
+void simulate_timer_isr() {
+    // Эта функция должна вызываться каждую 1 мс (или как часто задан period у
+my_system_timer) my_system_timer.give_notify(); // Сообщаем таймеру, что прошла
+1 мс
+}
+
+} // namespace my_app
+
+int main() {
+    std::cout << "Initializing task..." << std::endl;
+    my_app::init_my_task();
+
+    std::cout << "Starting main loop..." << std::endl;
+    auto start_time = std::chrono::steady_clock::now();
+    while (std::chrono::steady_clock::now() - start_time <
+std::chrono::seconds(25)) { // Работаем 25 секунд
+        // Основной цикл программы
+        my_app::my_system_timer.run(); // Обрабатываем делегаты, если нужно
+        std::this_thread::sleep_for(std::chrono::microseconds(100)); //
+Симулируем полезную работу my_app::simulate_timer_isr(); // Симулируем внешнее
+прерывание таймера (раз в 1 мс)
+    }
+
+    std::cout << "Main loop ended." << std::endl;
+
+    // Singleton будет уничтожен автоматически при выходе из main,
+    // что вызовет деструктор MyTaskContext и отмену регистрации таймера.
+    return 0;
+} */
 
 #ifndef CALLBACK_TIMER_HPP
 #define CALLBACK_TIMER_HPP
@@ -138,6 +224,12 @@ class callback_timer:
     }
 };
 
+/// @brief Структура данных для инициализации callback_timer_context.
+///
+/// Содержит параметры, необходимые для создания экземпляра
+/// callback_timer_context.
+///
+/// @tparam TCallbackTimer Тип используемого callback_timer.
 template<typename TCallbackTimer>
 struct callback_timer_context_init {
     using callback_timer_type =
@@ -153,6 +245,16 @@ struct callback_timer_context_init {
     bool is_continuous{true};
 };
 
+/// @brief Класс для привязки объекта с методом run() к callback_timer.
+///
+/// Этот класс автоматически регистрирует метод run() объекта типа TBase
+/// как делегат в указанном callback_timer. При достижении заданного периода
+/// метод run() будет вызываться автоматически.
+///
+/// @tparam TDelegateInit Тип структуры инициализации (обычно
+/// callback_timer_context_init).
+/// @tparam TBase Тип класса, объект которого нужно привязать к таймеру. Должен
+/// иметь метод run().
 template<typename TDelegateInit, typename TBase>
 class callback_timer_context:
     virtual private stv::non_copyable,
@@ -171,7 +273,7 @@ class callback_timer_context:
     count_type period_{};
 
     /// @brief Указывает, является ли операция непрерывной.
-    bool is_continuous_{true};
+    const bool is_continuous_{true};
 
     /// @brief Делегат функции для выполнения операции.
     typename callback_timer_type::callback_type delegate_{
