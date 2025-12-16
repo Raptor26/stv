@@ -27,6 +27,7 @@
 #define SERIAL_HPP
 
 #include "stv/containers/simbuff.hpp"
+#include <cassert>
 #include <concepts>
 #include <iterator>
 #include <limits>
@@ -159,7 +160,8 @@ class start_frame_and_crc_16
                 if(crc & 0x0001)
                 {
                     crc = (crc >> 1) ^ 0xA001;
-                } else
+                }
+                else
                 {
                     crc >>= 1;
                 }

@@ -98,7 +98,7 @@ class lock_guard<TMutex> final:
         mutex_.lock(is_isr_);
     }
 
-    ~lock_guard() override { mutex_.unlock(is_isr_); }
+    ~lock_guard() { mutex_.unlock(is_isr_); }
 };
 
 template<typename TMutex>
