@@ -612,7 +612,7 @@ class moving_average_base
     }
 };
 
-template<stv::FilterableConcept TBase, std::size_t MAX_WINDOW_WIDTH = 20>
+template<stv::filterable_concept TBase, std::size_t MAX_WINDOW_WIDTH = 20>
 using SimpleMovingAverage =
     stv::container_size_wrapper<TBase, MAX_WINDOW_WIDTH>;
 

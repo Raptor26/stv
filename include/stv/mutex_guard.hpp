@@ -55,7 +55,7 @@ class lock_guard;
 /// std::mutex/std::recursive_mutex.
 ///
 /// @tparam Тип передаваемого в конструктор мьютекса.
-template<stv::IsMutexConcept TMutex>
+template<stv::is_mutex_concept TMutex>
 class lock_guard<TMutex> final: public etl::lock_guard<TMutex>
 {
   public:
@@ -76,7 +76,7 @@ class lock_guard<TMutex> final: public etl::lock_guard<TMutex>
 /// которые поддерживают вызов из контекста прерывания.
 ///
 /// @tparam Тип передаваемого в конструктор мьютекса.
-template<stv::IsMutexWithIsrConcept TMutex>
+template<stv::is_mutex_with_isr_concept TMutex>
 class lock_guard<TMutex> final:
     private stv::non_copyable,
     private stv::non_movable

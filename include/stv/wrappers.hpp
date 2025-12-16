@@ -12,11 +12,11 @@ namespace stv {
 /// 2. gsl::span<TBase::value_type>
 ///
 /// @note Полный набор требований к TBase вы можете найти в
-/// stv::SizeableContainerConcept.
+/// stv::sizeable_container_concept.
 ///
 /// @tparam TBase
 /// @tparam SIZE
-template<stv::SizeableContainerConcept TBase, std::size_t SIZE = 20>
+template<stv::sizeable_container_concept TBase, std::size_t SIZE = 20>
 class container_size_wrapper:
     private std::array<typename TBase::value_type, SIZE>,
     public TBase

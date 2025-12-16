@@ -12,7 +12,7 @@ namespace stv {
 /// @tparam TBase
 ///
 template<typename TBase>
-concept FilterableConcept =
+concept filterable_concept =
     requires(TBase base, typename TBase::setup_type setup) {
         typename TBase::value_type;
         typename TBase::setup_type;
@@ -29,7 +29,7 @@ concept FilterableConcept =
 ///
 /// @tparam TBase
 template<typename TBase>
-concept SizeableContainerConcept =
+concept sizeable_container_concept =
     requires(TBase base, typename TBase::setup_type setup) {
         typename TBase::container_type;
     };
@@ -39,7 +39,7 @@ concept SizeableContainerConcept =
 /// @tparam TMutex
 ///
 template<typename TMutex>
-concept IsMutexWithIsrConcept = requires(TMutex &mutex) {
+concept is_mutex_with_isr_concept = requires(TMutex &mutex) {
     mutex.lock(bool{});
     mutex.unlock(bool{});
 };
@@ -49,10 +49,10 @@ concept IsMutexWithIsrConcept = requires(TMutex &mutex) {
 /// @tparam TMutex
 ///
 template<typename TMutex>
-concept IsMutexConcept = requires(TMutex &mutex) {
+concept is_mutex_concept = requires(TMutex &mutex) {
     mutex.lock();
     mutex.unlock();
-} && !IsMutexWithIsrConcept<TMutex>;
+} && !is_mutex_with_isr_concept<TMutex>;
 
 template<typename T>
 concept contiguous_trivial_container_concept =
