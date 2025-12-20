@@ -44,7 +44,7 @@ TEST_CASE(
 {
     // Объявление псевдонима структуры инициализации.
     using TMovingAverageSetup =
-        stv::moving_average_setup<float, stv::EmptyMutex>;
+        stv::moving_average_setup<float, stv::empty_mutex>;
 
     // Объявление псевдонима базового класса, который обеспечивает необходимый
     // функционал/
@@ -129,7 +129,7 @@ TEST_CASE(
 
     // Объявление псевдонима структуры инициализации.
     using TMovingAverageSetup =
-        stv::moving_average_setup<float, ICustomGuard, stv::MutexExtTag>;
+        stv::moving_average_setup<float, ICustomGuard, stv::mutex_ext_tag>;
 
     // Объявление псевдонима базового класса, который обеспечивает необходимый
     // функционал/
@@ -166,7 +166,7 @@ TEST_CASE(
 {
     // Объявление псевдонима структуры инициализации.
     using TMovingAverageSetup =
-        stv::moving_average_setup<float, stv::EmptyMutex>;
+        stv::moving_average_setup<float, stv::empty_mutex>;
 
     // Объявление псевдонима базового класса, который обеспечивает необходимый
     // функционал/
@@ -191,7 +191,7 @@ TEST_CASE(
     using namespace boost;
 
     using TValue = float;
-    using TSetup = moving_average_setup<TValue, stv::EmptyMutex>;
+    using TSetup = moving_average_setup<TValue, stv::empty_mutex>;
 
     SECTION("Default")
     {
@@ -238,9 +238,9 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
     "Test copy operators and move operator", "[stv]",
     ((typename TData, typename TMutex), TData, TMutex),
     (stv::moving_average_setup),
-    ((double, std::recursive_mutex, stv::MutexExtTag),
-     (float, stv::EmptyMutex, stv::MutexExtTag),
-     (float, stv::EmptyMutex, stv::MutexIntTag)))
+    ((double, std::recursive_mutex, stv::mutex_ext_tag),
+     (float, stv::empty_mutex, stv::mutex_ext_tag),
+     (float, stv::empty_mutex, stv::mutex_int_tag)))
 {
     using namespace stv;
 
@@ -255,12 +255,12 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         std::recursive_mutex std_mutex{};
         (void)std_mutex;
 
-        stv::EmptyMutex empty_mutex;
+        stv::empty_mutex empty_mutex;
         (void)empty_mutex;
 
         TSetup attr;
         if constexpr(std::is_same_v<typename TSetup::mutex_tag,
-                                    stv::MutexExtTag>
+                                    stv::mutex_ext_tag>
                      && std::is_same_v<typename TSetup::mutex_type,
                                        std::recursive_mutex>)
         {
@@ -268,9 +268,9 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         }
 
         if constexpr(std::is_same_v<typename TSetup::mutex_tag,
-                                    stv::MutexExtTag>
+                                    stv::mutex_ext_tag>
                      && std::is_same_v<typename TSetup::mutex_type,
-                                       stv::EmptyMutex>)
+                                       stv::empty_mutex>)
         {
             attr.mutex = &empty_mutex;
         }
@@ -384,8 +384,8 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
     "Moving Average", "[stv]",
     ((typename TData, typename TMutex), TData, TMutex),
     (stv::moving_average_setup),
-    ((double, std::recursive_mutex), (float, stv::EmptyMutex),
-     (int, std::recursive_mutex), (fpm::fixed_16_16, stv::EmptyMutex)))
+    ((double, std::recursive_mutex), (float, stv::empty_mutex),
+     (int, std::recursive_mutex), (fpm::fixed_16_16, stv::empty_mutex)))
 {
     using namespace stv;
     using namespace boost;

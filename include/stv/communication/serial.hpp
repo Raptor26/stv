@@ -266,8 +266,10 @@ class composite_serial_message
         queue_type &queue, const span_type &pload, Decorators &&...decorators):
         decorators_{std::forward<Decorators>(decorators)...},
         payload_size_{static_cast<decltype(payload_size_)>(pload.size_bytes())},
-        header_size_{compute_header_size()},
-        trailer_size_{compute_trailer_size()},
+        header_size_{
+            static_cast<decltype(header_size_)>(compute_header_size())},
+        trailer_size_{
+            static_cast<decltype(trailer_size_)>(compute_trailer_size())},
         total_size_{static_cast<decltype(total_size_)>(
             header_size_ + payload_size_ + trailer_size_)},
         queue_{queue},
@@ -515,6 +517,7 @@ class serial_message_buffer: private stv::non_copyable, private stv::non_movable
     {
         std::apply(
             [&param, this](auto &...decorators) {
+                (void)this;
                 (apply_to_single_decorator(decorators, param), ...);
             },
             tuple_of_decorators);

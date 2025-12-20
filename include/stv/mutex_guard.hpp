@@ -35,7 +35,7 @@ namespace stv {
 
 /// @brief Класс пустого мьютекса. Используется в качестве заглушки когда нет
 /// необходимости избегать состояния гонки данных.
-class EmptyMutex
+class empty_mutex
 {
   public:
     auto lock() noexcept -> void {}

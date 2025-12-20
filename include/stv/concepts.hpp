@@ -4,6 +4,7 @@
 #include <chrono>
 #include <concepts>
 #include <ranges>
+#include <type_traits>
 
 namespace stv {
 
@@ -59,8 +60,15 @@ concept contiguous_trivial_container_concept =
     std::ranges::contiguous_range<T>
     && std::is_trivial_v<std::ranges::range_value_t<T>>;
 
+#ifndef __APPLE__
 template<typename T>
+// NOLINTNEXTLINE(readability-identifier-naming)
 inline constexpr bool is_duration_v = std::chrono::__is_duration_v<T>;
+#else
+template<typename T>
+// NOLINTNEXTLINE(readability-identifier-naming)
+inline constexpr bool is_duration_v = true;
+#endif
 
 } // namespace stv
 

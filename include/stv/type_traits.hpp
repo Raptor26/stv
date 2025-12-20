@@ -36,7 +36,7 @@ namespace stv {
 
 /// @brief Тег используется в том случае, если объект использует указатель на
 /// мьютекс.
-struct MutexExtTag {
+struct mutex_ext_tag {
 };
 
 /// @brief Тег используется в том случае, если объект использует собственный
@@ -44,25 +44,25 @@ struct MutexExtTag {
 ///
 /// @note Обычно, именно этот тег вы захотите использовать в большинстве
 /// случаев.
-struct MutexIntTag {
+struct mutex_int_tag {
 };
 
-/// @brief Вычисляет тип мьютекса на основе тега. Если тег "MutexIntTag", то
+/// @brief Вычисляет тип мьютекса на основе тега. Если тег "mutex_int_tag", то
 /// создается пустой тип, в противном случае выводится указатель на тип TMutex.
 ///
 /// @note Предназначен для использования в структуре инициализации.
 template<typename TMutex, typename TMutexTag>
 using mutex_type_setup_v =
-    std::conditional_t<std::is_same_v<TMutexTag, stv::MutexExtTag>, TMutex *,
+    std::conditional_t<std::is_same_v<TMutexTag, stv::mutex_ext_tag>, TMutex *,
                        std::monostate>;
 
-/// @brief Вычисляет тип мьютекса на основе тега. Если тег "MutexIntTag", то
+/// @brief Вычисляет тип мьютекса на основе тега. Если тег "mutex_int_tag", то
 /// выводится тип TMutex, в противном случае выводится указатель на тип TMutex.
 ///
 /// @note Предназначен для использования в классе.
 template<typename TMutex, typename TMutexTag>
 using mutex_type_v =
-    std::conditional_t<std::is_same_v<TMutexTag, stv::MutexExtTag>, TMutex *,
+    std::conditional_t<std::is_same_v<TMutexTag, stv::mutex_ext_tag>, TMutex *,
                        TMutex>;
 // -----------------------------------------------------------------------------
 

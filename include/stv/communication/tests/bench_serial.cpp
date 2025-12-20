@@ -36,7 +36,7 @@ static void request(
 {
     using namespace stv;
 
-    using SimBuffType = stv::sim_buff<stv::EmptyMutex>;
+    using SimBuffType = stv::sim_buff<stv::empty_mutex>;
     using queue_type  = std::queue<SimBuffType>;
 
     struct UserData {

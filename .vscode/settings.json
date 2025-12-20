@@ -108,6 +108,7 @@
         "*.inc": "cpp",
         "byte": "cpp",
         "span_ext": "cpp",
-        "util": "cpp"
+        "util": "cpp",
+        "__config": "cpp"
     }
 }

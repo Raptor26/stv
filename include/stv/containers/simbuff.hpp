@@ -33,7 +33,7 @@ namespace stv {
 
 /// @brief SimBuff container. Manage memory, requested from ALLOCATOR.
 /// @tparam ALLOCATOR - Allocator for request memory.
-template<typename TMutex    = stv::EmptyMutex,
+template<typename TMutex    = stv::empty_mutex,
          typename ALLOCATOR = std::allocator<std::byte>>
 class sim_buff
 {

@@ -78,7 +78,7 @@ SCENARIO(
     using namespace stv;
 
     using custom_allocator = CustomAllocator<std::byte>;
-    using sim_buffer_type  = stv::sim_buff<stv::EmptyMutex, custom_allocator>;
+    using sim_buffer_type  = stv::sim_buff<stv::empty_mutex, custom_allocator>;
     using queue_type       = etl::queue<sim_buffer_type, 10>;
 
     STV_NO_PADDING_NO_OPTIMIZE_BEGIN
@@ -246,27 +246,6 @@ SCENARIO(
                                * sizeof(decltype(container_pload)::value_type));
             }
 
-#if 0
-            THEN("vector")
-            {
-                const std::vector<std::uint8_t> container_pload{11, 22, 33};
-                {
-                    auto msg = serial_message_buffer.request(container_pload,
-                                                             route_setup);
-                }
-
-                std::memcmp(container_pload.data(), pload_addr,
-                            container_pload.size());
-
-                const auto *route = reinterpret_cast<
-                    stv::head_route::head_route_setup_with_pload_t *>(
-                    route_addr);
-                REQUIRE(route->pload_size
-                        == container_pload.size()
-                               * sizeof(decltype(container_pload)::value_type));
-            }
-#endif
-
             const auto *route = reinterpret_cast<
                 stv::head_route::head_route_setup_with_pload_t *>(route_addr);
             REQUIRE(route->dst_id == 111);
@@ -374,7 +353,7 @@ TEST_CASE(
     using namespace stv;
 
     using sim_buffer_type =
-        stv::sim_buff<stv::EmptyMutex, CustomAllocator<std::byte>>;
+        stv::sim_buff<stv::empty_mutex, CustomAllocator<std::byte>>;
     using queue_type = etl::queue<sim_buffer_type, 10>;
 
     struct user_data_t {

@@ -22,3 +22,7 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(stv INTERFACE Microsoft.GSL::GSL Boost::leaf etl::etl fpm
                                     lwrb_ex)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(${PROJECT_NAME} INTERFACE -Wno-gnu-statement-expression-from-macro-expansion)
+endif()

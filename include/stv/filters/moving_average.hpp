@@ -45,7 +45,7 @@
 ///     The filter supports:
 ///     - Integer and floating-point value types
 ///     - Custom mutex types for thread safety
-///     - External mutex references via MutexExtTag
+///     - External mutex references via mutex_ext_tag
 ///     - Runtime window width changes
 ///     - Batch processing of multiple samples
 ///
@@ -112,7 +112,7 @@
 ///
 ///     CustomMutex custom_mutex;
 ///     using ExtMutexSetup = moving_average_setup<float,
-///         CustomMutex, MutexExtTag>;
+///         CustomMutex, mutex_ext_tag>;
 ///     using ExtFilter = moving_average_base<ExtMutexSetup>;
 ///
 ///     SimpleMovingAverage<ExtFilter, 15> ext_filter{
@@ -140,15 +140,15 @@
 
 namespace stv {
 
-struct ZeroWindowWidth {
+struct zero_window_width {
 };
 
-struct MaxWindowWidthLimitError {
+struct max_window_width_limit_error {
 };
 
 /// @brief Параметры фильтра скользящего среднего.
-template<typename T, typename TMutex = stv::EmptyMutex,
-         typename TMutexTag = stv::MutexIntTag>
+template<typename T, typename TMutex = stv::empty_mutex,
+         typename TMutexTag = stv::mutex_int_tag>
 struct moving_average_setup {
     using value_type           = T;
     using mutex_tag            = TMutexTag;
@@ -198,12 +198,12 @@ struct moving_average_setup {
     {
         if(window_width == 0)
         {
-            return boost::leaf::new_error(stv::ZeroWindowWidth{});
+            return boost::leaf::new_error(stv::zero_window_width{});
         }
 
         if(window_width > max_window_width)
         {
-            return boost::leaf::new_error(stv::MaxWindowWidthLimitError{});
+            return boost::leaf::new_error(stv::max_window_width_limit_error{});
         }
 
         return boost::leaf::result<void>{};
@@ -431,7 +431,8 @@ class moving_average_base
             if constexpr(std::is_integral_v<value_type>)
             {
                 filtered = sum_ / window_width_inv_;
-            } else
+            }
+            else
             {
                 filtered = sum_ * window_width_inv_;
             }
@@ -481,7 +482,7 @@ class moving_average_base
     {
         UpdateWindowWithInverse();
 
-        if constexpr(std::is_same_v<mutex_tag, stv::MutexExtTag>)
+        if constexpr(std::is_same_v<mutex_tag, stv::mutex_ext_tag>)
         {
             mutex_ = attr.mutex;
         }
@@ -501,7 +502,8 @@ class moving_average_base
         if(new_width < setup_actual_.window_width)
         {
             set_smaller_window_width(new_width);
-        } else if(new_width > setup_actual_.window_width)
+        }
+        else if(new_width > setup_actual_.window_width)
         {
             set_bigger_window_width(new_width);
         }
@@ -557,7 +559,8 @@ class moving_average_base
         if(cnt_ < size_decrement)
         {
             cnt_ = 0;
-        } else
+        }
+        else
         {
             cnt_ -= size_decrement;
         }
@@ -590,7 +593,8 @@ class moving_average_base
             if constexpr(std::is_integral_v<value_type>)
             {
                 window_width_inv_ = setup_actual_.window_width;
-            } else
+            }
+            else
             {
                 window_width_inv_ =
                     static_cast<value_type>(1)
@@ -601,11 +605,12 @@ class moving_average_base
 
     auto get_mutex_ref() const -> std::remove_pointer_t<mutex_type> &
     {
-        if constexpr(std::is_same_v<mutex_tag, stv::MutexExtTag>)
+        if constexpr(std::is_same_v<mutex_tag, stv::mutex_ext_tag>)
         {
             assert(mutex_ != nullptr);
             return *mutex_;
-        } else
+        }
+        else
         {
             return mutex_;
         }
