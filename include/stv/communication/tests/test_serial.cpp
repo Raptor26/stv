@@ -42,16 +42,16 @@ std::array<std::byte, 64> memory;
 static int                alloc_cnt;
 
 template<typename T>
-class CustomAllocator
+class custom_allocator
 {
   public:
     using value_type = T;
 
-    CustomAllocator() {}
+    custom_allocator() {}
 
     template<typename U>
-    CustomAllocator(
-        const CustomAllocator<U> &)
+    custom_allocator(
+        const custom_allocator<U> &)
     {
     }
 
@@ -73,7 +73,7 @@ class CustomAllocator
 
     static auto           get_allocator_cnt() { return alloc_cnt; }
 
-    static constexpr auto GetMemoryPtr() { return memory.data(); }
+    static constexpr auto get_mem_ptr() { return memory.data(); }
 };
 
 SCENARIO(
@@ -81,7 +81,7 @@ SCENARIO(
 {
     using namespace stv;
 
-    using custom_allocator = CustomAllocator<std::byte>;
+    using custom_allocator = custom_allocator<std::byte>;
     using sim_buffer_type  = stv::sim_buff<stv::empty_mutex, custom_allocator>;
     using queue_type       = etl::queue<sim_buffer_type, 10>;
 
@@ -113,7 +113,7 @@ SCENARIO(
                         auto msg = serial_message_buffer.request(pload);
                     }
 
-                    std::memcmp(pload.data(), custom_allocator::GetMemoryPtr(),
+                    std::memcmp(pload.data(), custom_allocator::get_mem_ptr(),
                                 pload.size());
                 }
             }
@@ -126,7 +126,7 @@ SCENARIO(
                         auto msg = serial_message_buffer.request(pload);
                     }
 
-                    std::memcmp(pload.data(), custom_allocator::GetMemoryPtr(),
+                    std::memcmp(pload.data(), custom_allocator::get_mem_ptr(),
                                 pload.size());
                 }
             }
@@ -144,7 +144,7 @@ SCENARIO(
                 }
 
                 REQUIRE(std::strcmp(reinterpret_cast<char *>(
-                                        custom_allocator::GetMemoryPtr()),
+                                        custom_allocator::get_mem_ptr()),
                                     pload)
                         == 0);
             }
@@ -156,7 +156,7 @@ SCENARIO(
                     auto msg = serial_message_buffer.request(pload);
                 }
                 REQUIRE(std::strcmp(reinterpret_cast<char *>(
-                                        custom_allocator::GetMemoryPtr()),
+                                        custom_allocator::get_mem_ptr()),
                                     pload.c_str())
                         == 0);
             }
@@ -168,7 +168,7 @@ SCENARIO(
                 }
 
                 REQUIRE(std::strcmp(reinterpret_cast<char *>(
-                                        custom_allocator::GetMemoryPtr()),
+                                        custom_allocator::get_mem_ptr()),
                                     "raw string")
                         == 0);
             }
@@ -191,10 +191,10 @@ SCENARIO(
         constexpr std::size_t pload_offset{stv::head_route::header_size()};
         constexpr std::size_t route_offset{0};
 
-        constexpr std::byte  *pload_addr{custom_allocator::GetMemoryPtr()
+        constexpr std::byte  *pload_addr{custom_allocator::get_mem_ptr()
                                         + pload_offset};
 
-        constexpr std::byte  *route_addr{custom_allocator::GetMemoryPtr()
+        constexpr std::byte  *route_addr{custom_allocator::get_mem_ptr()
                                         + route_offset};
 
         WHEN("Check strings")
@@ -312,7 +312,7 @@ SCENARIO(
         const auto *route =
             // NOLINTNEXTLINE(*-reinterpret-cast)
             reinterpret_cast<stv::head_route::head_route_setup_with_pload_t *>(
-                custom_allocator::GetMemoryPtr()
+                custom_allocator::get_mem_ptr()
                 + start_frame_and_crc_16::header_size());
 
         REQUIRE(route->dst_id == 111);
@@ -322,7 +322,7 @@ SCENARIO(
         // Проверка полезной нагрузки.
         // -----------------------------------------
         auto *pload = reinterpret_cast<user_data_t *>(
-            custom_allocator::GetMemoryPtr()
+            custom_allocator::get_mem_ptr()
             + start_frame_and_crc_16::header_size()
             + stv::head_route::header_size());
 
@@ -334,7 +334,7 @@ SCENARIO(
         // Проверка заголовка. -------------------------------------------------
         auto *head =
             reinterpret_cast<stv::start_frame_and_crc_16::start_frame_t *>(
-                custom_allocator::GetMemoryPtr());
+                custom_allocator::get_mem_ptr());
 
         REQUIRE(head->start_frame_first
                 == stv::start_frame_and_crc_16::FIRST_BYTE);
@@ -360,7 +360,7 @@ TEST_CASE(
     using namespace stv;
 
     using sim_buffer_type =
-        stv::sim_buff<stv::empty_mutex, CustomAllocator<std::byte>>;
+        stv::sim_buff<stv::empty_mutex, custom_allocator<std::byte>>;
     using queue_type = etl::queue<sim_buffer_type, 10>;
 
     struct user_data_t {
