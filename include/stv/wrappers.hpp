@@ -5,7 +5,7 @@
 
 namespace stv {
 
-/// @brief
+/// @brief Обертка контейнера, предоставляющая выделенную память.
 ///
 /// @note Конструктор TBase должен принимать 2 аргумента:
 /// 1. TBase::setup_type по ссылке;
@@ -14,8 +14,10 @@ namespace stv {
 /// @note Полный набор требований к TBase вы можете найти в
 /// stv::sizeable_container_concept.
 ///
-/// @tparam TBase
-/// @tparam SIZE
+/// @tparam TBase Тип базового класса для которого необходимо предоставить
+/// обертку.
+/// @tparam SIZE Количество элементов контейнера, под которые необходимо
+/// выделить память.
 template<stv::sizeable_container_concept TBase, std::size_t SIZE = 20>
 class container_size_wrapper:
     private std::array<typename TBase::value_type, SIZE>,

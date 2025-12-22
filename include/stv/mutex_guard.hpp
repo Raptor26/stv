@@ -54,15 +54,15 @@ class lock_guard;
 /// @brief Специализация RAII класса для использования совместно с
 /// std::mutex/std::recursive_mutex.
 ///
-/// @tparam Тип передаваемого в конструктор мьютекса.
+/// TMutex Тип передаваемого в конструктор мьютекса.
 template<stv::is_mutex_concept TMutex>
 class lock_guard<TMutex> final: public etl::lock_guard<TMutex>
 {
   public:
     /// @brief Захватывает мьютекс в конструкторе и освобождает в деструкторе.
     ///
-    /// @param[in] mutex: Ссылка на мьютекс для управления.
-    /// @param[in] is_isr: не оказывает никакого эффекта т.к. стандартные
+    /// @param[in] mutex Ссылка на мьютекс для управления.
+    /// @param[in] is_isr не оказывает никакого эффекта т.к. стандартные
     /// мьютексы не поддерживают вызов из контекста прерывания.
     explicit lock_guard(
         TMutex &mutex, bool is_isr = false):
@@ -75,7 +75,7 @@ class lock_guard<TMutex> final: public etl::lock_guard<TMutex>
 /// @brief Специализация RAII класса для использования совместно с мьютексами,
 /// которые поддерживают вызов из контекста прерывания.
 ///
-/// @tparam Тип передаваемого в конструктор мьютекса.
+/// @tparam TMutex Тип передаваемого в конструктор мьютекса.
 template<stv::is_mutex_with_isr_concept TMutex>
 class lock_guard<TMutex> final:
     private stv::non_copyable,
@@ -87,8 +87,8 @@ class lock_guard<TMutex> final:
   public:
     /// @brief Захватывает мьютекс в конструкторе и освобождает в деструкторе.
     ///
-    /// @param[in] mutex: Ссылка на мьютекс для управления.
-    /// @param[in] is_isr: true если lock_guard{} вызывается из контекста
+    /// @param[in] mutex Ссылка на мьютекс для управления.
+    /// @param[in] is_isr true если lock_guard{} вызывается из контекста
     /// прерывания, false в противном случае.
     explicit lock_guard(
         TMutex &mutex, bool is_isr = false):

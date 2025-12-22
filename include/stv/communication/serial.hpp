@@ -126,10 +126,10 @@ class start_frame_and_crc_16
 
     /// @brief Заполняет заголовок.
     ///
-    /// @param[out] dst: Указатель на заголовок, который необходимо
+    /// @param[out] dst Указатель на заголовок, который необходимо
     /// заполнить.
-    /// @param[in] total: Границы всего сообщения.
-    /// @param[in] pload: Границы полезной нагрузки.
+    /// @param[in] total Границы всего сообщения.
+    /// @param[in] pload Границы полезной нагрузки.
     ///
     static void setup_header(
         std::byte *const dst, const total_message_span &total,
@@ -145,9 +145,8 @@ class start_frame_and_crc_16
 
     /// @brief Заполняет хвост.
     ///
-    /// @param[out] dst: Указатель на хвост сообщения.
-    /// @param[in] begin: Указатель на начало всего сообщения
-    /// @param[in] total: Память, выделенная под все сообщение.
+    /// @param[out] dst Указатель на хвост сообщения.
+    /// @param[in] total Память, выделенная под все сообщение.
     static void setup_trailer(
         std::byte *dst, const total_message_span &total)
     {
@@ -211,10 +210,7 @@ struct head_route {
 
     static constexpr size_t trailer_size() { return 0; }
 
-    /// @brief
-    /// @param buffer
-    /// @param payload_size
-    /// @param total_size
+    /// @brief Заполняет заголовок сообщения.
     void setup_header(
         std::byte *const dst, const total_message_span &total,
         const pload_span &pload) const
@@ -222,7 +218,10 @@ struct head_route {
         (void)total;
         auto *header = reinterpret_cast<head_route_setup_with_pload_t *>(dst);
         *header = static_cast<std::remove_pointer_t<decltype(header)>>(setup_);
-        header->pload_size = pload.size_bytes();
+        header->pload_size =
+            static_cast<decltype(header->pload_size)>(pload.size_bytes());
+        assert(pload.size_bytes()
+               <= std::numeric_limits<decltype(header->pload_size)>::max());
     }
 
     static void setup_trailer(
@@ -355,10 +354,7 @@ class composite_serial_message
         }
     }
 
-    /// @brief
-    /// @param[out] buffer: По указанному адресу будут записаны данные.
-    /// @param[in] full_message:
-    /// @param[in] full_message_size:
+    /// @brief Вызывает все декораторы, заполняющие хвосты сообщений.
     void setup_all_trailers(
         std::byte *dst, const std::byte *data, size_t data_size)
     {

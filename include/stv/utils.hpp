@@ -49,11 +49,10 @@ class non_movable
 /// STV_NO_PADDING_NO_OPTIMIZE_END
 /// }
 /// </pre>
-#if defined(__GNUC__) || defined(__clang__)
-
+#if __GNUC__ || __clang__
     #define STV_NO_PADDING_NO_OPTIMIZE_BEGIN _Pragma("pack(push, 1)")
     #define STV_NO_PADDING_NO_OPTIMIZE_END   _Pragma("pack(pop)")
-#elifdef(_MSC_VER)
+#elif _MSC_VER
     #define STV_NO_PADDING_NO_OPTIMIZE_BEGIN __pragma(pack(push, 1))
     #define STV_NO_PADDING_NO_OPTIMIZE_END   __pragma(pack(pop))
 #else

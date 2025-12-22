@@ -8,10 +8,9 @@
 
 namespace stv {
 
-/// @brief
+/// @brief Проверяет что переданный тип поддерживает общий для фильтров API.
 ///
-/// @tparam TBase
-///
+/// TBase Тип данных который нужно проверить на наличие необходимого API.
 template<typename TBase>
 concept filterable_concept =
     requires(TBase base, typename TBase::setup_type setup) {
@@ -27,28 +26,21 @@ concept filterable_concept =
 
 /// @brief TBase должен предоставлять псевдоним TBase::container_type для того
 /// чтобы в базовый класс TBase передать указатели на выделенную область памяти.
-///
-/// @tparam TBase
 template<typename TBase>
 concept sizeable_container_concept =
     requires(TBase base, typename TBase::setup_type setup) {
         typename TBase::container_type;
     };
 
-/// @brief
-///
-/// @tparam TMutex
-///
+/// @brief Проверяет, является ли тип TMutex типом, поддерживающим вызов в
+/// контексте прерывания.
 template<typename TMutex>
 concept is_mutex_with_isr_concept = requires(TMutex &mutex) {
     mutex.lock(bool{});
     mutex.unlock(bool{});
 };
 
-/// @brief
-///
-/// @tparam TMutex
-///
+/// @brief Проверяет, поддерживает ли TMutex вызов из контекста прерываний.
 template<typename TMutex>
 concept is_mutex_concept = requires(TMutex &mutex) {
     mutex.lock();

@@ -168,7 +168,7 @@ struct moving_average_setup {
     mutex_condition_type mutex{};
 
     /// @brief Оператор сравнения на равенство.
-    /// @param[in] other: Другой объект параметров.
+    /// @param[in] other Другой объект параметров.
     /// @return true, если параметры равны, иначе false.
     auto operator==(
         const moving_average_setup &other) const -> bool
@@ -177,7 +177,7 @@ struct moving_average_setup {
     }
 
     /// @brief Оператор сравнения на неравенство.
-    /// @param[in] other: Другой объект параметров.
+    /// @param[in] other Другой объект параметров.
     /// @return true, если параметры не равны, иначе false.
     auto operator!=(
         const moving_average_setup &other) const -> bool
@@ -188,7 +188,7 @@ struct moving_average_setup {
     /// @brief Возвращает true если window_width находится в допустимом
     /// диапазоне.
     ///
-    /// @param max_window_width: Максимально допустима ширина окна, которую
+    /// @param max_window_width Максимально допустима ширина окна, которую
     /// задает вызывающий код.
     ///
     /// @return true если window_width находится в допустимом диапазоне, false
@@ -323,7 +323,7 @@ class moving_average_base
     /// @note Корректирует внутренний буфер и сумму на основе новой ширины
     /// окна.
     ///
-    /// @param[in] params: Параметры фильтра.
+    /// @param[in] params Параметры фильтра.
     template<typename U>
     auto setup(
         U &&params, bool is_isr = false)
@@ -400,7 +400,7 @@ class moving_average_base
 
     /// @brief Получить арифметическое среднее из буфера.
     ///
-    /// @param[in] new_sample: Новый отсчет для добавления в буфер.
+    /// @param[in] new_sample Новый отсчет для добавления в буфер.
     ///
     /// @note Если буфер содержит меньше значений, чем было задано при вызове
     /// setup(), filt() вернет new_sample.
@@ -468,9 +468,9 @@ class moving_average_base
     /// @brief Защищенный конструктор для предотвращения прямого создания
     /// экземпляра.
     ///
-    /// @param[in] attr: Атрибуты конфигурации фильтра.
+    /// @param[in] attr Атрибуты конфигурации фильтра.
     ///
-    /// @param[in] buffer_span: Span, просматривающий предварительно выделенный
+    /// @param[in] buffer_span Span, просматривающий предварительно выделенный
     /// массив для хранения отсчетов.
     moving_average_base(
         const setup_type &attr, container_type buffer_span):
@@ -492,9 +492,9 @@ class moving_average_base
     /// @brief Изменить ширину окна и обновить счетчик, если новая ширина
     /// отличается от ширины из setup_actual.
     ///
-    /// @param[in] new_width: Новая ширина окна.
+    /// @param[in] new_width Новая ширина окна.
     void change_window_width_and_update_counter(
-        std::size_t new_width)
+        decltype(cnt_) new_width)
         noexcept(
             noexcept(set_smaller_window_width(new_width))
             && noexcept(set_bigger_window_width(new_width)))
@@ -512,11 +512,11 @@ class moving_average_base
     /// @brief Уменьшить ширину окна и удалить старейшие элементы из текущего
     /// <cnt_>.
     ///
-    /// @param[in] new_width: Новая меньшая ширина окна фильтра.
+    /// @param[in] new_width Новая меньшая ширина окна фильтра.
     ///
     /// @note Этот метод
     void set_smaller_window_width(
-        std::size_t new_width) noexcept
+        decltype(cnt_) new_width) noexcept
     {
         auto old_width      = setup_actual_.window_width;
         auto size_decrement = old_width - new_width;
@@ -538,7 +538,8 @@ class moving_average_base
 
         // Добавить old_width к текущему счетчику, чтобы иметь возможность
         // итерироваться справа налево. Счетчик должен быть больше нуля.
-        auto last_element_idx = cnt_ + old_max_element_idx;
+        auto last_element_idx =
+            cnt_ + static_cast<decltype(cnt_)>(old_max_element_idx);
 
         for(std::size_t i = 0, new_max_element_idx = new_width - 1;
             i < new_width; ++i)
@@ -552,8 +553,9 @@ class moving_average_base
         }
 
         // Установить все элементы за пределами new_width в 0.
-        std::fill(buffer.begin() + new_width, buffer.end(),
-                  static_cast<value_type>(0));
+        std::fill(buffer.begin()
+                      + static_cast<container_type::difference_type>(new_width),
+                  buffer.end(), static_cast<value_type>(0));
 
         // Обновить счетчик и проверить, что он не становится отрицательным.
         if(cnt_ < size_decrement)
@@ -571,9 +573,9 @@ class moving_average_base
     ///
     /// @note Счетчик обновляется только если буфер уже полон.
     ///
-    /// @param[in] new_width: Новая большая ширина окна фильтра.
+    /// @param[in] new_width Новая большая ширина окна фильтра.
     void set_bigger_window_width(
-        std::size_t new_width) noexcept
+        decltype(cnt_) new_width) noexcept
     {
         if(full())
         {
