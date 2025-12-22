@@ -34,6 +34,10 @@
 #include <iostream>
 #include <queue>
 
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
+// readability-function-cognitive-,
+// cppcoreguidelines-avoid-non-const-global-variables)
+
 std::array<std::byte, 64> memory;
 static int                alloc_cnt;
 
@@ -306,6 +310,7 @@ SCENARIO(
 
         // Проверка маршрутизации. ---------------------------------------------
         const auto *route =
+            // NOLINTNEXTLINE(*-reinterpret-cast)
             reinterpret_cast<stv::head_route::head_route_setup_with_pload_t *>(
                 custom_allocator::GetMemoryPtr()
                 + start_frame_and_crc_16::header_size());
@@ -345,6 +350,8 @@ SCENARIO(
 
     REQUIRE(custom_allocator::get_allocator_cnt() == 0);
 }
+
+// NOLINTNEXTLINE(readability-avoid-unconditional-preprocessor-if)
 #if 0
 TEST_CASE(
     "RND", "[stv][serial]")
@@ -512,3 +519,7 @@ TEST_CASE(
     }
 }
 #endif
+
+// NOLINTEND(*-magic-numbers, google-build-using-namespace,
+// readability-function-cognitive-complexity,
+// cppcoreguidelines-avoid-non-const-global-variables)

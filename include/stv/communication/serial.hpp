@@ -37,6 +37,15 @@
 
 namespace stv {
 
+/// @brief Тип, указывающий на все сообщение в целом.
+class total_message_span: public std::span<const std::byte>
+{
+    using std::span<const std::byte>::span;
+};
+
+/// @brief Псевдоним типа, указывающий на полезную нагрузку.
+using pload_span = std::span<const std::byte>;
+
 struct empty_serial_decorator {
     /// @brief Возвращает размер заголовка который будет добавлен перед полезной
     /// нагрузкой.
@@ -53,17 +62,17 @@ struct empty_serial_decorator {
     static constexpr size_t trailer_size() { return 0U; }
 
     ///
-    void setup_header(
-        std::byte *const dst, const std::span<const std::byte> &total,
-        const std::span<const std::byte> &pload) const
+    static void setup_header(
+        std::byte *const dst, const total_message_span &total,
+        const pload_span &pload)
     {
         (void)dst;
         (void)total;
         (void)pload;
     }
 
-    void setup_trailer(
-        std::byte *dst, const std::span<const std::byte> &total) const
+    static void setup_trailer(
+        std::byte *dst, const total_message_span &total)
     {
         (void)dst;
         (void)total;
@@ -122,9 +131,9 @@ class start_frame_and_crc_16
     /// @param[in] total: Границы всего сообщения.
     /// @param[in] pload: Границы полезной нагрузки.
     ///
-    void setup_header(
-        std::byte *const dst, const std::span<const std::byte> &total,
-        const std::span<const std::byte> &pload) const
+    static void setup_header(
+        std::byte *const dst, const total_message_span &total,
+        const pload_span &pload)
     {
         (void)pload;
         auto *start_frame              = reinterpret_cast<start_frame_t *>(dst);
@@ -139,17 +148,18 @@ class start_frame_and_crc_16
     /// @param[out] dst: Указатель на хвост сообщения.
     /// @param[in] begin: Указатель на начало всего сообщения
     /// @param[in] total: Память, выделенная под все сообщение.
-    void setup_trailer(
-        std::byte *dst, const std::span<const std::byte> &total) const
+    static void setup_trailer(
+        std::byte *dst, const total_message_span &total)
     {
-        crc_type *crc = reinterpret_cast<crc_type *>(&dst[0]);
+        auto *crc = reinterpret_cast<crc_type *>(&dst[0]);
         *crc = calculate_crc(total.data(), total.size_bytes() - trailer_size());
     }
 
   private:
-    uint16_t calculate_crc(
-        const std::byte *data, size_t length) const
+    static uint16_t calculate_crc(
+        const std::byte *data, size_t length)
     {
+        // NOLINTBEGIN(hicpp-signed-bitwise)
         // Простая реализация Crc для примера
         uint16_t crc = 0xFFFF;
         for(size_t i = 0; i < length; ++i)
@@ -167,6 +177,7 @@ class start_frame_and_crc_16
                 }
             }
         }
+        // NOLINTEND(hicpp-signed-bitwise)
         return crc;
     }
 };
@@ -186,7 +197,7 @@ struct head_route {
 
     /// ------------------------------------------------------------------------
 
-    head_route(
+    explicit head_route(
         const head_route_setup_t &setup = head_route_setup_t{.dst_id  = 0,
                                                              .pack_id = 0}):
         setup_{setup}
@@ -205,8 +216,8 @@ struct head_route {
     /// @param payload_size
     /// @param total_size
     void setup_header(
-        std::byte *const dst, const std::span<const std::byte> &total,
-        const std::span<const std::byte> &pload) const
+        std::byte *const dst, const total_message_span &total,
+        const pload_span &pload) const
     {
         (void)total;
         auto *header = reinterpret_cast<head_route_setup_with_pload_t *>(dst);
@@ -214,9 +225,8 @@ struct head_route {
         header->pload_size = pload.size_bytes();
     }
 
-    void setup_trailer(
-        std::byte *dst, const std::span<const std::byte> &total,
-        size_t total_size)
+    static void setup_trailer(
+        std::byte *dst, const total_message_span &total, size_t total_size)
     {
         (void)dst;
         (void)total;
@@ -263,7 +273,7 @@ class composite_serial_message
     using span_type = std::span<const std::byte>;
 
     composite_serial_message(
-        queue_type &queue, const span_type &pload, Decorators &&...decorators):
+        queue_type &queue, const pload_span &pload, Decorators &&...decorators):
         decorators_{std::forward<Decorators>(decorators)...},
         payload_size_{static_cast<decltype(payload_size_)>(pload.size_bytes())},
         header_size_{
@@ -282,7 +292,7 @@ class composite_serial_message
         }
     }
 
-    operator bool() const { return memory_.data() != nullptr; }
+    explicit operator bool() const { return memory_.data() != nullptr; }
 
     virtual ~composite_serial_message()
     {
@@ -294,9 +304,12 @@ class composite_serial_message
         queue_.push(std::move(memory_));
     }
 
-    std::byte       *pload() { return memory_.begin() + header_size_; }
+    std::byte *pload() { return memory_.begin() + header_size_; }
 
-    const std::byte *pload() const { return memory_.begin() + header_size_; }
+    [[nodiscard]] const std::byte *pload() const
+    {
+        return memory_.begin() + header_size_;
+    }
 
   private:
     constexpr size_t compute_header_size()
@@ -336,8 +349,8 @@ class composite_serial_message
         {
             decorator.setup_header(
                 memory_.begin() + offset,
-                std::span<const std::byte>(memory_.begin(), memory_.size()),
-                std::span<const std::byte>(pload(), payload_size_));
+                total_message_span(memory_.begin(), memory_.size()),
+                pload_span(pload(), payload_size_));
             offset += Decorator::header_size();
         }
     }
@@ -365,8 +378,9 @@ class composite_serial_message
     {
         if constexpr(Decorator::trailer_size() > 0)
         {
-            decorator.setup_trailer(dst + offset,
-                                    span_type(full_message, full_message_size));
+            decorator.setup_trailer(
+                dst + offset,
+                total_message_span(full_message, full_message_size));
             offset += Decorator::trailer_size();
         }
     }
@@ -394,7 +408,10 @@ class serial_message
     virtual ~serial_message() = default;
 
     /// @brief Возвращает true если успешно выделена память под сообщение.
-    operator bool() const { return static_cast<bool>(composite_message_); }
+    explicit operator bool() const
+    {
+        return static_cast<bool>(composite_message_);
+    }
 
     /// @brief Возвращает указатель на полезную нагрузку сообщения.
     auto operator->()
@@ -414,7 +431,7 @@ class serial_message_buffer: private stv::non_copyable, private stv::non_movable
   public:
     using span_type = std::span<const std::byte>;
 
-    serial_message_buffer(
+    explicit serial_message_buffer(
         Decorators &&...decorators):
         decorators_{std::forward<Decorators>(decorators)...}
     {
@@ -513,7 +530,7 @@ class serial_message_buffer: private stv::non_copyable, private stv::non_movable
 
     template<typename Param>
     void apply_param_to_decorators(
-        auto &tuple_of_decorators, Param &&param)
+        auto &tuple_of_decorators, Param &param)
     {
         std::apply(
             [&param, this](auto &...decorators) {

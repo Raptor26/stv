@@ -48,7 +48,7 @@ TEST_CASE(
 
     SECTION("Empty mutex with isr")
     {
-        class EmptyMutexIsr
+        class empty_mutex_isr
         {
           public:
             static auto lock(
@@ -64,7 +64,7 @@ TEST_CASE(
             }
         };
 
-        EmptyMutexIsr         empty_mutex;
+        empty_mutex_isr         empty_mutex;
         const stv::lock_guard guard{empty_mutex, false};
     }
 }
