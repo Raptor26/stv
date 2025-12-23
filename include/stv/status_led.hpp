@@ -97,13 +97,6 @@ class status_led: public status_led_api
 
     status_led_states current_blink_mode_{status_led_states::kMaxNumber};
 
-    /// @brief Теневой режим работы, режим из данной переменной будет установлен
-    /// после конечного по времени режима работы световой индикации (например
-    /// status_led_states::kLowBatt)
-    status_led_states current_blink_mode_shadow_{status_led_states::kDisable};
-
-    std::uint32_t     current_blink_period_ms_{0};
-
   public:
     explicit status_led(
         const init_type &init):
@@ -160,14 +153,10 @@ class status_led: public status_led_api
         status_led_states new_blink_mode) -> bool override
     {
         auto is_new_mode_set{false};
-        (void)new_blink_mode;
 
-#if 1
         if((new_blink_mode < status_led_states::kMaxNumber)
            && (new_blink_mode != current_blink_mode_))
         {
-            current_blink_mode_shadow_ = new_blink_mode;
-
             // Отключение световой индикации.
             disable();
 
@@ -183,12 +172,11 @@ class status_led: public status_led_api
                 delegates_[index].delegate, delegates_[index].period.count(),
                 delegates_[index].is_continuous);
             assert(id_ != etl::timer::id::NO_TIMER);
-            current_blink_mode_ = current_blink_mode_shadow_;
             callback_timer_->start(id_, true);
 
             is_new_mode_set = true;
         }
-#endif
+
         return is_new_mode_set;
     }
 
