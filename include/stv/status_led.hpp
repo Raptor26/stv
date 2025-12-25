@@ -29,10 +29,11 @@
 #include "chrono"
 #include "etl/callback_timer_atomic.h"
 #include "stv/utils.hpp"
+#include <array>
 
 namespace stv {
 
-class led_api: private stv::non_copyable, stv::non_movable
+class led_api: public  stv::non_copyable, stv::non_movable
 {
   public:
     virtual ~led_api() = default;
@@ -55,7 +56,7 @@ enum class status_led_states {
     kMaxNumber,
 };
 
-struct status_led_api: private stv::non_copyable, stv::non_movable {
+struct status_led_api: public stv::non_copyable, public stv::non_movable {
     virtual ~status_led_api() = default;
 
     virtual auto set_mode(status_led_states new_blink_mode) -> bool = 0;
@@ -78,10 +79,13 @@ struct status_led_init {
 template<typename TInit>
 class status_led: public status_led_api
 {
-    using init_type                 = TInit;
-    using callback_timer_type       = typename TInit::callback_timer_type;
-    using callback_timer_count_type = typename TInit::callback_timer_count_type;
+  public:
+    using init_type           = TInit;
+    using callback_timer_type = typename init_type::callback_timer_type;
+    using callback_timer_count_type =
+        typename init_type::callback_timer_count_type;
 
+  private:
     callback_timer_type *callback_timer_;
 
     led_api             *led_{nullptr};
