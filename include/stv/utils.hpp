@@ -61,6 +61,35 @@ class non_movable
     #define STV_NO_PADDING_NO_OPTIMIZE_END
 #endif
 
+/// @brief Return true if the all variadic «Args» is true.
+///
+/// @see Шаблоны C++. Справочник разработчика, 2-е издание - 2018
+/// 4.2. Выражения свертки.
+///
+/// @param[in] args Input boolean arguments sequence.
+///
+/// @return True if the all conditions in «Args» is valid. False in otherwise.
+template<typename... Args>
+auto all_true(
+    Args... args)
+{
+    return (... && args);
+}
+
+/// @brief Логическое сложение. Возвращает true если хотя бы один из входных
+/// аргументов равен true.
+///
+/// @param[in] args Входная последовательность аргументов.
+///
+/// @return Если хотя бы один из входных параметров равен true, метод вернет
+/// true.
+template<typename... Args>
+auto one_true(
+    Args... args)
+{
+    return (... || args);
+}
+
 } // namespace stv
 
 #endif /* UTILS_HPP */
