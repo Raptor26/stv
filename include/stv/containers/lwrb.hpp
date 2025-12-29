@@ -250,7 +250,7 @@ class lwrb_base:
     auto is_empty(
         bool is_isr = false) const
     {
-        return get_full(is_isr) == 0 ? true : false;
+        return get_full(is_isr) == 0;
     }
 
     /// @brief Возвращает емкость буфера в байтах.

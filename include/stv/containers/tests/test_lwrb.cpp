@@ -31,6 +31,10 @@
 #include <mutex>
 #include <string_view>
 
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
+// readability-function-cognitive-,
+// cppcoreguidelines-avoid-non-const-global-variables)
+
 TEMPLATE_PRODUCT_TEST_CASE(
     "lwrb", "[stv][containers]", (stv::lwrb_setup),
     ((stv::empty_mutex, stv::mutex_int_tag),
@@ -47,6 +51,7 @@ TEMPLATE_PRODUCT_TEST_CASE(
     stv::empty_mutex empty_mutex;
     (void)empty_mutex;
 
+    // NOLINTNEXTLINE(misc-const-correctness)
     setup_type attr;
 
     if constexpr(std::is_same_v<typename setup_type::mutex_condition_type,
@@ -136,3 +141,7 @@ TEMPLATE_PRODUCT_TEST_CASE(
         }
     }
 }
+
+// NOLINTEND(*-magic-numbers, google-build-using-namespace,
+// readability-function-cognitive-complexity,
+// cppcoreguidelines-avoid-non-const-global-variables)
