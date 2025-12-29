@@ -32,6 +32,7 @@
 #include <cassert>
 #include <concepts>
 #include <cstddef>
+#include <cstring>
 #include <iterator>
 #include <span>
 #include <string_view>
@@ -148,6 +149,8 @@ class lwrb_base:
   public:
     virtual ~lwrb_base() = default;
 
+    auto reset() -> void { lwrb_reset(&lwrb_); }
+
     /// @brief Запись данных в буфер.
     ///
     /// @tparam U Тип контейнера, из которого выполняется запись в буфер.
@@ -171,6 +174,23 @@ class lwrb_base:
             src.data(),                    /// указатель на область памяти.
             src.size() * item_size,        /// Вычисление размера в байтах.
             write_all_or_nothing, is_isr); /// Записать в буфер все или ничего.
+    }
+
+    /// @brief Запись C-style строки в буфер.
+    ///
+    /// @param[in] str Указатель на C-style строку в буфер.
+    /// @param[in] write_all_or_nothing Если равен true, то данные будут
+    /// записаны в буфер только в том случае, если все содержимое контейнера src
+    /// помещается в буфер.
+    /// @param[in] is_isr True если вызов выполнен из контекста прерывания,
+    /// false - в противном случае.
+    ///
+    /// @return Возвращает количество записанных в буфер байт.
+    auto write(
+        const char *str, bool write_all_or_nothing = true, bool is_isr = false)
+    {
+        return write_helper(str, std::strlen(str), write_all_or_nothing,
+                            is_isr);
     }
 
     /// @brief Чтение данных из буфера и запись в dst.

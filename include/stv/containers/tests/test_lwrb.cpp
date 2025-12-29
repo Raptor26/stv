@@ -83,6 +83,13 @@ TEMPLATE_PRODUCT_TEST_CASE(
     {
         constexpr std::string_view str{"Hello World"};
 
+        SECTION("Write as_ c-style string")
+        {
+            REQUIRE(buff.write(str.data()) == str.size());
+            REQUIRE(buff.get_full() == str.size());
+            buff.reset();
+        }
+
         REQUIRE(buff.write(str) == str.size());
         REQUIRE(buff.get_full() == str.size());
         REQUIRE_FALSE(buff.is_empty());
