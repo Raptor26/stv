@@ -26,10 +26,10 @@
 #ifndef MUTEX_HPP
 #define MUTEX_HPP
 
-#include "etl/mutex.h"
 #include "stv/concepts.hpp"
 #include "stv/type_traits.hpp"
 #include "stv/utils.hpp"
+#include <mutex>
 
 namespace stv {
 
@@ -56,7 +56,7 @@ class lock_guard;
 ///
 /// TMutex Тип передаваемого в конструктор мьютекса.
 template<stv::is_mutex_concept TMutex>
-class lock_guard<TMutex> final: public etl::lock_guard<TMutex>
+class lock_guard<TMutex> final: public std::lock_guard<TMutex>
 {
   public:
     /// @brief Захватывает мьютекс в конструкторе и освобождает в деструкторе.
@@ -66,7 +66,7 @@ class lock_guard<TMutex> final: public etl::lock_guard<TMutex>
     /// мьютексы не поддерживают вызов из контекста прерывания.
     explicit lock_guard(
         TMutex &mutex, bool is_isr = false):
-        etl::lock_guard<TMutex>{mutex}
+        std::lock_guard<TMutex>{mutex}
     {
         (void)is_isr;
     }
