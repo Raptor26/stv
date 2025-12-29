@@ -74,16 +74,16 @@ class lwrb_base:
   private:
     /// @brief Класс, деструктор которого автоматически освобождает прочитанную
     /// память в буфере.
-    class skipable final: public std::span<std::byte>
+    class skipable final: public container_type
     {
-        using mutex_type =
+        using mutex_type_private =
             std::remove_pointer_t<std::remove_cvref_t<mutex_type>>;
-        mutex_type &mutex_;
-        lwrb_t     &lwrb_;
+        mutex_type_private &mutex_;
+        lwrb_t             &lwrb_;
 
       public:
         skipable(
-            lwrb_t &lwrb, mutex_type &mutex, container_type data):
+            lwrb_t &lwrb, mutex_type_private &mutex, container_type data):
             container_type{data},
             mutex_{mutex},
             lwrb_{lwrb}
@@ -286,6 +286,54 @@ class lwrb_base:
                         {static_cast<std::byte *>(
                              lwrb_get_linear_block_read_address(&lwrb_)),
                          lwrb_get_linear_block_read_length(&lwrb_)}};
+    }
+
+    /// @brief Возвращает std::span, содержащий линейный участок памяти.
+    ///
+    /// @note Вызов метода не удаляет данные из буфера, поэтому, чтобы
+    /// освободить память, необходимо вызвать skip().
+    ///
+    /// @param[in] is_isr True если вызов выполнен из контекста прерывания,
+    /// false - в противном случае.
+    ///
+    /// @return std::span, содержащий линейный участок памяти с доступными
+    /// байтами.
+    auto get_linear_addr(
+        bool is_isr = false)
+    {
+        const stv::lock_guard critical{get_mutex_ref(), is_isr};
+        return container_type{static_cast<std::byte *>(
+                                  lwrb_get_linear_block_read_address(&lwrb_)),
+                              lwrb_get_linear_block_read_length(&lwrb_)};
+    }
+
+    /// @brief Помечает указанное в numb количество байт как прочитанные, т.е.
+    /// перемещает указатель чтения кольцевого буфера на указанное количество
+    /// байт.
+    ///
+    /// @param numb Количество байт, на которое нужно переместить указатель
+    /// чтения.
+    ///
+    /// @return Фактическое количество байт, которое помечено как прочитанное.
+    auto skip(
+        std::size_t numb, bool is_isr = false)
+    {
+        const stv::lock_guard critical{get_mutex_ref(), is_isr};
+        return lwrb_skip(&lwrb_, numb);
+    }
+
+    /// @brief Помечает указанное в to_skip количество байт как прочитанные,
+    /// т.е. перемещает указатель чтения кольцевого буфера на указанное
+    /// количество байт.
+    ///
+    /// @param to_skip std::span, указывающий на область памяти в кольцевом
+    /// буфере, которую необходимо пометить как прочитанную.
+    ///
+    /// @return Фактическое количество байт, которое помечено как прочитанное.
+    auto skip(
+        auto to_skip, bool is_isr = false)
+    {
+        return skip(to_skip.size_bytes(), is_isr);
     }
 
   protected:

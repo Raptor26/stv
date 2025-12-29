@@ -80,17 +80,32 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
         REQUIRE(buff.write(str) == str.size());
         REQUIRE(buff.get_full() == str.size());
+        REQUIRE_FALSE(buff.is_empty());
 
         SECTION("Read linear addr")
         {
-            REQUIRE_FALSE(buff.is_empty());
             {
-                const auto addr_in_buff = buff.read_linear_addr();
-                REQUIRE(std::strcmp(
-                            reinterpret_cast<const char *>(addr_in_buff.data()),
-                            str.data())
+                const auto linear_addr_in_buff = buff.read_linear_addr();
+                REQUIRE(std::strcmp(reinterpret_cast<const char *>(
+                                        linear_addr_in_buff.data()),
+                                    str.data())
                         == 0);
             }
+            REQUIRE(buff.is_empty());
+        }
+
+        SECTION("Skip")
+        {
+            const auto linear_addr_in_buff = buff.get_linear_addr();
+            REQUIRE(std::strcmp(reinterpret_cast<const char *>(
+                                    linear_addr_in_buff.data()),
+                                str.data())
+                    == 0);
+
+            REQUIRE_FALSE(buff.is_empty());
+
+            REQUIRE(buff.skip(linear_addr_in_buff)
+                    == linear_addr_in_buff.size_bytes());
             REQUIRE(buff.is_empty());
         }
 
