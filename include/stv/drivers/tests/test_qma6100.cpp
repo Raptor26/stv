@@ -100,3 +100,4 @@ TEST_CASE(
 // NOLINTEND(*-magic-numbers, google-build-using-namespace,
 // readability-function-cognitive-complexity,
 // cppcoreguidelines-avoid-non-const-global-variables)
+

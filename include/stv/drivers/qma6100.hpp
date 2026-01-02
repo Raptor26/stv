@@ -33,6 +33,12 @@
 
 namespace stv {
 
+/// @brief Структура для хранения параметров настройки QMA6100.
+///
+/// @details Эта структура содержит информацию, необходимую для инициализации и
+/// работы с датчиком QMA6100.
+///          Включает адрес устройства на шине I2C и указатель на интерфейс шины
+///          I2C.
 struct qma6100_setup {
     /// @brief Адрес устройства при подключении вывода AD0 к земле.
     static constexpr qma6100_reg_type i2c_addr_connect_to_gnd{0x12};
@@ -60,12 +66,16 @@ class qma6100:
 {
     STV_NO_PADDING_NO_OPTIMIZE_BEGIN
 
+    /// @brief Структура для хранения необработанных данных датчика.
     struct raw_t {
         std::uint16_t x{0x00};
         std::uint16_t y{0x00};
         std::uint16_t z{0x00};
 
         /// @brief Сброс считанных данных в значения "по умолчанию".
+        ///
+        /// @details Функция обнуляет все поля структуры raw_t, приводя их к
+        /// нулевым значениям.
         void reset()
         {
             x = 0;
@@ -80,18 +90,26 @@ class qma6100:
     raw_t raw_;
 
   public:
+    /// @brief Конструктор класса qma6100.
+    ///
+    /// @param[in] setup Структура qma6100_setup, содержащая параметры настройки
+    /// датчика.
     qma6100(
         const qma6100_setup &setup):
-        qma6100_reg{setup.i2c, setup.i2c_addr}
+        qma6100_i2c{setup.i2c, setup.i2c_addr}
     {
     }
 
     virtual ~qma6100() = default;
 
+    /// @brief Оператор преобразования в bool.
+    ///
+    /// @return true, если датчик успешно инициализирован и доступен на шине
+    /// I2C, false в противном случае.
     explicit operator bool() const
     {
         auto is_valid{true};
-        if(!stv::qma6100_reg::operator bool())
+        if(!stv::qma6100_i2c::operator bool())
         {
             is_valid = false;
         }
@@ -104,7 +122,7 @@ class qma6100:
     /// @param[in,out] i2c Интерфейс шины I2C.
     /// @param[in] slave_addr Адрес датчика на шине I2C.
     ///
-    /// @return true, если датчик обнаружен на шине.
+    /// @return true, если датчик обнаружен на шине I2C.
     static auto is_detected(
         stv::i2c_interface *i2c, qma6100_reg_type slave_addr)
     {
@@ -122,6 +140,9 @@ class qma6100:
         return is_detected;
     }
 
+    /// @brief Читает необработанные данные с датчика.
+    ///
+    /// @return Структура raw_t, содержащая необработанные данные с датчика.
     auto read_raw()
     {
         static constexpr qma6100_reg_type start_addr{0x01};
@@ -134,6 +155,13 @@ class qma6100:
         return raw_;
     }
 
+    /// @brief Инициализирует датчик QMA6100.
+    ///
+    /// @param[in] setup Структура qma6100_regs_setup, содержащая параметры
+    /// инициализации датчика.
+    ///
+    /// @return true, если инициализация прошла успешно, false в противном
+    /// случае.
     auto init(
         const qma6100_regs_setup &setup)
     {
