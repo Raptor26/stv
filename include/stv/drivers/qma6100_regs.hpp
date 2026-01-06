@@ -43,7 +43,11 @@ class qma6100_bw_reg
   public:
     static constexpr qma6100_reg_type addr{0x10};
 
-    qma6100_bw_reg(
+    /// @brief Конструктор с возможностью инициализации значением регистра.
+    ///
+    /// @param value Начальное значение регистра (по умолчанию 0).
+
+    explicit qma6100_bw_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
     {
         parse(value);
