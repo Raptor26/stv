@@ -47,7 +47,16 @@ struct qma6100_setup {
     qma6100_reg_type i2c_addr{i2c_addr_connect_to_gnd};
 };
 
-class qma6100: public stv::qma6100_reg
+/// @brief Класс для работы с датчиком QMA6100.
+///
+/// @details Этот класс предоставляет интерфейс для чтения данных с датчика
+/// QMA6100, инициализации и проверки его наличия на шине I2C.
+///          Он наследуется от stv::qma6100_reg, который предоставляет базовые
+///          функции для работы с регистрами датчика.
+class qma6100:
+    public stv::qma6100_i2c,
+    public stv::non_copyable,
+    public stv::non_movable
 {
     STV_NO_PADDING_NO_OPTIMIZE_BEGIN
 
