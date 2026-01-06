@@ -179,13 +179,27 @@ struct qma6100_fsr_reg {
     // -------------------------------------------------------------------------
 };
 
+/// @brief Структура инициализации класса работы с шиной i2c.
+struct qma6100_i2c_setup {
+    /// @brief Адрес устройства при подключении вывода AD0 к земле.
+    static constexpr qma6100_reg_type i2c_addr_connect_to_gnd{0x12};
+
+    /// @brief Адрес устройства при подключении вывода AD0 к питанию.
+    static constexpr qma6100_reg_type i2c_addr_connect_to_vdd{0x13};
+
+    /// @brief Указатель на интерфейс шины I2C.
+    stv::i2c_interface *i2c;
+
+    /// @brief Адрес устройства, установленный пользователем.
+    qma6100_reg_type i2c_addr{i2c_addr_connect_to_gnd};
+};
+
 /// @brief Класс выполняет операции чтения/записи регистров датчика.
 ///
 /// @details Этот класс предоставляет интерфейс для работы с регистрами датчика
 /// QMA6100 через интерфейс I2C. Он инкапсулирует логику обмена данными с
 /// устройством и предоставляет удобные методы для чтения и записи регистров как
 /// отдельных байтов, так и структурных типов.
-
 class qma6100_i2c
 {
     /// @brief Указатель на интерфейс шины I2C.
@@ -197,13 +211,11 @@ class qma6100_i2c
   public:
     /// @brief Конструктор с инициализацией интерфейса и адреса устройства.
     ///
-    /// @param i2c Указатель на интерфейс I2C.
-    /// @param i2c_addr Адрес устройства на шине I2C.
-
+    /// @param[in] setup Ссылка на структуру инициализации.
     qma6100_i2c(
-        stv::i2c_interface *i2c, qma6100_reg_type i2c_addr):
-        i2c_{i2c},
-        i2c_addr_{i2c_addr}
+        const stv::qma6100_i2c_setup &setup):
+        i2c_{setup.i2c},
+        i2c_addr_{setup.i2c_addr}
     {
     }
 
@@ -218,7 +230,6 @@ class qma6100_i2c
     /// @param dst Указатель на буфер для хранения данных.
     /// @param len Количество байтов для чтения.
     /// @return Результат операции (успех/ошибка).
-
     auto read(
         qma6100_reg_type reg_addr, void *dst, std::size_t len) const
     {
@@ -229,7 +240,6 @@ class qma6100_i2c
     ///
     /// @param reg_addr Адрес регистра для чтения.
     /// @return Значение регистра.
-
     auto read(
         qma6100_reg_type reg_addr) const
     {
@@ -254,7 +264,6 @@ class qma6100_i2c
     /// @param reg_addr Адрес регистра для записи.
     /// @param value Значение для записи.
     /// @return Результат операции (успех/ошибка).
-
     auto write(
         qma6100_reg_type reg_addr, qma6100_reg_type value)
     {
@@ -265,7 +274,6 @@ class qma6100_i2c
     ///
     /// @param reg Структура, содержащая адрес и значение регистра.
     /// @return Результат операции (успех/ошибка).
-
     auto write(
         const auto &reg)
     {

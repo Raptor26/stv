@@ -72,7 +72,7 @@ TEST_CASE(
     Mock<stv::i2c_interface> i2c;
     Fake(Method(i2c, write));
     Fake(Method(i2c, read));
-    qma6100_setup setup{.i2c = &i2c.get()};
+    qma6100_setup setup{{.i2c = &i2c.get()}};
     qma6100       driver{setup};
     REQUIRE(driver);
 

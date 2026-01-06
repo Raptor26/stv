@@ -37,28 +37,15 @@ namespace stv {
 ///
 /// @details Эта структура содержит информацию, необходимую для инициализации и
 /// работы с датчиком QMA6100.
-///          Включает адрес устройства на шине I2C и указатель на интерфейс шины
-///          I2C.
-struct qma6100_setup {
-    /// @brief Адрес устройства при подключении вывода AD0 к земле.
-    static constexpr qma6100_reg_type i2c_addr_connect_to_gnd{0x12};
-
-    /// @brief Адрес устройства при подключении вывода AD0 к питанию.
-    static constexpr qma6100_reg_type i2c_addr_connect_to_vdd{0x13};
-
-    /// @brief Указатель на интерфейс шины I2C.
-    stv::i2c_interface *i2c;
-
-    /// @brief Адрес устройства, установленный пользователем.
-    qma6100_reg_type i2c_addr{i2c_addr_connect_to_gnd};
+struct qma6100_setup: public stv::qma6100_i2c_setup {
 };
 
 /// @brief Класс для работы с датчиком QMA6100.
 ///
 /// @details Этот класс предоставляет интерфейс для чтения данных с датчика
 /// QMA6100, инициализации и проверки его наличия на шине I2C.
-///          Он наследуется от stv::qma6100_reg, который предоставляет базовые
-///          функции для работы с регистрами датчика.
+/// Он наследуется от stv::qma6100_reg, который предоставляет базовые функции
+/// для работы с регистрами датчика.
 class qma6100:
     public stv::qma6100_i2c,
     public stv::non_copyable,
@@ -96,7 +83,7 @@ class qma6100:
     /// датчика.
     qma6100(
         const qma6100_setup &setup):
-        qma6100_i2c{setup.i2c, setup.i2c_addr}
+        qma6100_i2c{setup}
     {
     }
 
