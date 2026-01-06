@@ -28,7 +28,6 @@
 
 #include "stv/utils.hpp"
 #include <cstddef>
-#include <cstdint>
 
 namespace stv {
 
@@ -47,8 +46,9 @@ class i2c_interface: public stv::non_copyable, public stv::non_movable
     ///
     /// @return true, если операция успешно завершена, false в противном
     ///         случае.
-    virtual auto write(byte_type slave_addr, byte_type reg_addr,
-                       byte_type write_reg_value) const -> bool = 0;
+    [[nodiscard("Check i2c write operation status")]] virtual auto
+    write(byte_type slave_addr, byte_type reg_addr,
+          byte_type write_reg_value) const -> bool = 0;
 
     /// @brief Считывает указанное количество регистров начиная с адреса.
     ///
@@ -59,8 +59,9 @@ class i2c_interface: public stv::non_copyable, public stv::non_movable
     ///
     /// @return true, если операция успешно завершена, false в противном
     ///         случае.
-    virtual auto read(byte_type slave_addr, byte_type reg_addr, void *dst,
-                      std::size_t len) const -> bool = 0;
+    [[nodiscard("Check i2c read operation status")]] virtual auto
+    read(byte_type slave_addr, byte_type reg_addr, void *dst,
+         std::size_t len) const -> bool = 0;
 
   protected:
     i2c_interface() = default;

@@ -81,7 +81,7 @@ class qma6100:
     ///
     /// @param[in] setup Структура qma6100_setup, содержащая параметры настройки
     /// датчика.
-    qma6100(
+    explicit qma6100(
         const qma6100_setup &setup):
         qma6100_i2c{setup}
     {

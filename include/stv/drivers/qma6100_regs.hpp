@@ -32,6 +32,8 @@
 
 namespace stv {
 
+// NOLINTBEGIN(*hicpp-signed-bitwise, *-member*)
+
 /// @brief Тип регистра.
 using qma6100_reg_type = std::byte;
 
@@ -212,7 +214,7 @@ class qma6100_i2c
     /// @brief Конструктор с инициализацией интерфейса и адреса устройства.
     ///
     /// @param[in] setup Ссылка на структуру инициализации.
-    qma6100_i2c(
+    explicit qma6100_i2c(
         const stv::qma6100_i2c_setup &setup):
         i2c_{setup.i2c},
         i2c_addr_{setup.i2c_addr}
@@ -240,10 +242,10 @@ class qma6100_i2c
     ///
     /// @param reg_addr Адрес регистра для чтения.
     /// @return Значение регистра.
-    auto read(
+    [[nodiscard]] auto read(
         qma6100_reg_type reg_addr) const
     {
-        qma6100_reg_type value;
+        qma6100_reg_type value; // NOLINT(*-init-variables)
         read(reg_addr, reinterpret_cast<void *>(&value), sizeof(value));
         return value;
     }
@@ -254,7 +256,7 @@ class qma6100_i2c
     /// @return Экземпляр структурного типа, инициализированный значением
     /// регистра.
     template<typename U>
-    auto read()
+    [[nodiscard]] auto read()
     {
         return U{read(U::addr)};
     }
@@ -280,6 +282,8 @@ class qma6100_i2c
         return write(reg.addr, static_cast<qma6100_reg_type>(reg));
     }
 };
+
+// NOLINTEND(*hicpp-signed-bitwise, *-member*)
 
 /// @brief Структура для настройки регистров датчика QMA6100.
 ///
