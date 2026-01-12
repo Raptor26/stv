@@ -31,7 +31,6 @@ function(stv_add_pedantic_compile_options_and_features TARGET_NAME)
             -Wshadow
             -Wfatal-errors
             -Wdouble-promotion
-            -Wdocumentation
             -Wformat=2
             -Wformat-overflow
             -Wformat-truncation
@@ -43,6 +42,11 @@ function(stv_add_pedantic_compile_options_and_features TARGET_NAME)
             /W4
             /WX
             >)
+
+  # Только для Clang
+  target_compile_options(
+    ${TARGET_NAME} PRIVATE $<$<CXX_COMPILER_ID:Clang,AppleClang>:
+                           -Wdocumentation >)
 
   # Установка стандартов языков
   target_compile_features(${TARGET_NAME} PRIVATE cxx_std_23 c_std_17)

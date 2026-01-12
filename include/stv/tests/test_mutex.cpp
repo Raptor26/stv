@@ -36,13 +36,13 @@ TEST_CASE(
 {
     SECTION("Empty mutex")
     {
-        stv::empty_mutex empty_mutex;
+        stv::empty_mutex      empty_mutex;
         const stv::lock_guard guard{empty_mutex};
     }
 
     SECTION("std::mutex")
     {
-        std::mutex      mutex;
+        std::mutex            mutex;
         const stv::lock_guard guard{mutex};
     }
 
@@ -64,7 +64,7 @@ TEST_CASE(
             }
         };
 
-        empty_mutex_isr         empty_mutex;
+        empty_mutex_isr       empty_mutex;
         const stv::lock_guard guard{empty_mutex, false};
     }
 }
