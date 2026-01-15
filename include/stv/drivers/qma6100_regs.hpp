@@ -289,6 +289,96 @@ class qma6100_int_map3_reg
     // -------------------------------------------------------------------------
 };
 
+class qma6100_intpin_conf
+{
+    static constexpr int dis_pu_senb_offset{7U};
+    static constexpr int dis_ie_ad0_offset{6U};
+    static constexpr int en_spi3w_offset{5U};
+    static constexpr int int2_od_offset{3U};
+    static constexpr int int2_lvl_offset{2U};
+    static constexpr int int1_od_offset{1U};
+    static constexpr int int1_lvl_offset{0U};
+
+  public:
+    /// @brief Адрес регистра в устройстве.
+    static constexpr qma6100_reg_type addr{0x20};
+
+    /// @brief Оператор преобразования в 8-битное значение регистра.
+    ///
+    /// @return 8-битное значение регистра, собранное из полей.
+    explicit operator qma6100_reg_type() const
+    {
+        return static_cast<qma6100_reg_type>(
+            (static_cast<std::uint8_t>(dis_pu_senb) << dis_pu_senb_offset)
+            | (static_cast<std::uint8_t>(dis_ie_ad0) << dis_ie_ad0_offset)
+            | (static_cast<std::uint8_t>(en_spi3w) << en_spi3w_offset)
+            | (static_cast<std::uint8_t>(int2_od) << int2_od_offset)
+            | (static_cast<std::uint8_t>(int2_lvl) << int2_lvl_offset)
+            | (static_cast<std::uint8_t>(int1_od) << int1_od_offset)
+            | (static_cast<std::uint8_t>(int1_lvl) << int1_lvl_offset));
+    }
+
+    enum struct dis_pu_senb_t : std::uint8_t {
+        enable  = 0,
+        disable = 1,
+    };
+
+    /// @brief configure pull-up resistor of PIN_SENB.
+    dis_pu_senb_t dis_pu_senb{dis_pu_senb_t::enable};
+    // -------------------------------------------------------------------------
+
+    enum struct dis_ie_ad0_t : std::uint8_t {
+        enable  = 0,
+        disable = 1,
+    };
+
+    dis_ie_ad0_t dis_ie_ad0{dis_ie_ad0_t::enable};
+    // -------------------------------------------------------------------------
+
+    enum struct en_spi3w_t : std::uint8_t {
+        disable = 0,
+        enable  = 1,
+    };
+
+    /// @brief enable 3W SPI
+    en_spi3w_t en_spi3w{en_spi3w_t::disable};
+    // -------------------------------------------------------------------------
+
+    enum struct int2_od_t : std::uint8_t {
+        push_pull  = 0,
+        open_drain = 1,
+    };
+
+    int2_od_t int2_od{int2_od_t::push_pull};
+    // -------------------------------------------------------------------------
+
+    enum struct int2_lvl_t : std::uint8_t {
+        logic_low_as_active  = 0,
+        logic_high_as_active = 1,
+    };
+
+    /// @brief logic high as active level for INT2 pin.
+    int2_lvl_t int2_lvl{int2_lvl_t::logic_high_as_active};
+    // -------------------------------------------------------------------------
+
+    enum struct int1_od_t : std::uint8_t {
+        push_pull  = 0,
+        open_drain = 1,
+    };
+
+    int1_od_t int1_od{int1_od_t::push_pull};
+    // -------------------------------------------------------------------------
+
+    enum struct int1_lvl_t : std::uint8_t {
+        logic_low_as_active  = 0,
+        logic_high_as_active = 1,
+    };
+
+    /// @brief logic high as active level for INT1 pin.
+    int1_lvl_t int1_lvl{int1_lvl_t::logic_high_as_active};
+    // -------------------------------------------------------------------------
+};
+
 /// @brief Структура инициализации класса работы с шиной i2c.
 struct qma6100_i2c_setup {
     /// @brief Адрес устройства при подключении вывода AD0 к земле.

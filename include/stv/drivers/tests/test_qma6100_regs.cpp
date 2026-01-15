@@ -305,6 +305,170 @@ TEST_CASE(
             }
         }
     }
+    SECTION("INTPIN_CONF")
+    {
+        stv::qma6100_intpin_conf reg;
+        
+        // Set all fields to zero.
+        reg.int2_lvl =
+            stv::qma6100_intpin_conf::int2_lvl_t::logic_low_as_active;
+        reg.int1_lvl =
+            stv::qma6100_intpin_conf::int1_lvl_t::logic_low_as_active;
+
+        SECTION("DIS_PU_SENB")
+        {
+            SECTION("DIS_PU_SENB == enable")
+            {
+                reg.dis_pu_senb =
+                    stv::qma6100_intpin_conf::dis_pu_senb_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("DIS_PU_SENB == disable")
+            {
+                reg.dis_pu_senb =
+                    stv::qma6100_intpin_conf::dis_pu_senb_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"10000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("DIS_IE_AD0")
+        {
+            SECTION("DIS_IE_AD0: == enable")
+            {
+                reg.dis_ie_ad0 = stv::qma6100_intpin_conf::dis_ie_ad0_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("DIS_IE_AD0: == disable")
+            {
+                reg.dis_ie_ad0 =
+                    stv::qma6100_intpin_conf::dis_ie_ad0_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"01000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("EN_SPI3W")
+        {
+            SECTION("EN_SPI3W == enable")
+            {
+                reg.en_spi3w = stv::qma6100_intpin_conf::en_spi3w_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"00100000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("EN_SPI3W == disable")
+            {
+                reg.en_spi3w = stv::qma6100_intpin_conf::en_spi3w_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("INT2_OD")
+        {
+            SECTION("INT2_OD == push_pull")
+            {
+                reg.int2_od = stv::qma6100_intpin_conf::int2_od_t::push_pull;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("INT2_OD == disable")
+            {
+                reg.int2_od = stv::qma6100_intpin_conf::int2_od_t::open_drain;
+                constexpr reg_bitset expect_reg_val{std::string{"00001000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("INT2_LVL")
+        {
+            SECTION("INT2_LVL == push_pull")
+            {
+                reg.int2_lvl =
+                    stv::qma6100_intpin_conf::int2_lvl_t::logic_low_as_active;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("INT2_LVL == disable")
+            {
+                reg.int2_lvl =
+                    stv::qma6100_intpin_conf::int2_lvl_t::logic_high_as_active;
+                constexpr reg_bitset expect_reg_val{std::string{"00000100"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("INT1_OD")
+        {
+            SECTION("INT1_OD == push_pull")
+            {
+                reg.int1_od = stv::qma6100_intpin_conf::int1_od_t::push_pull;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("INT1_OD == disable")
+            {
+                reg.int1_od = stv::qma6100_intpin_conf::int1_od_t::open_drain;
+                constexpr reg_bitset expect_reg_val{std::string{"00000010"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("INT1_LVL")
+        {
+            SECTION("INT1_LVL == push_pull")
+            {
+                reg.int1_lvl =
+                    stv::qma6100_intpin_conf::int1_lvl_t::logic_low_as_active;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("INT1_LVL == disable")
+            {
+                reg.int1_lvl =
+                    stv::qma6100_intpin_conf::int1_lvl_t::logic_high_as_active;
+                constexpr reg_bitset expect_reg_val{std::string{"00000001"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+    }
 }
 
 // NOLINTEND(*-magic-numbers, google-build-using-namespace,
