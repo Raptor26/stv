@@ -305,10 +305,11 @@ TEST_CASE(
             }
         }
     }
+
     SECTION("INTPIN_CONF")
     {
         stv::qma6100_intpin_conf reg;
-        
+
         // Set all fields to zero.
         reg.int2_lvl =
             stv::qma6100_intpin_conf::int2_lvl_t::logic_low_as_active;
@@ -462,6 +463,116 @@ TEST_CASE(
             {
                 reg.int1_lvl =
                     stv::qma6100_intpin_conf::int1_lvl_t::logic_high_as_active;
+                constexpr reg_bitset expect_reg_val{std::string{"00000001"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+    }
+
+    SECTION("INT_CFG")
+    {
+        stv::int_cfg reg;
+        SECTION("NT_RD_CLR")
+        {
+            SECTION("NT_RD_CLR == clear_related")
+            {
+                reg.int_rd_clr = stv::int_cfg::int_rd_clr_t::clear_related;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("NT_RD_CLR == clear_all")
+            {
+                reg.int_rd_clr = stv::int_cfg::int_rd_clr_t::clear_all;
+                constexpr reg_bitset expect_reg_val{std::string{"10000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("SHADOW_DIS")
+        {
+            SECTION("SHADOW_DIS == enable")
+            {
+                reg.shadow_dis = stv::int_cfg::shadow_dis_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("SHADOW_DIS == disable")
+            {
+                reg.shadow_dis = stv::int_cfg::shadow_dis_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"01000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("DIS_I2C")
+        {
+            SECTION("DIS_I2C == enable")
+            {
+                reg.dis_i2c = stv::int_cfg::dis_i2c_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("DIS_I2C == disable")
+            {
+                reg.dis_i2c = stv::int_cfg::dis_i2c_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"00100000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("LATCH_INT_STEP")
+        {
+            SECTION("LATCH_INT_STEP == non_latch_mode")
+            {
+                reg.latch_int_step =
+                    stv::int_cfg::latch_int_step_t::non_latch_mode;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("LATCH_INT_STEP == latch_mode")
+            {
+                reg.latch_int_step = stv::int_cfg::latch_int_step_t::latch_mode;
+                constexpr reg_bitset expect_reg_val{std::string{"00000010"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("LATCH_INT")
+        {
+            SECTION("LATCH_INT == non_latch_mode")
+            {
+                reg.latch_int = stv::int_cfg::latch_int_t::non_latch_mode;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("LATCH_INT == latch_mode")
+            {
+                reg.latch_int = stv::int_cfg::latch_int_t::latch_mode;
                 constexpr reg_bitset expect_reg_val{std::string{"00000001"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(

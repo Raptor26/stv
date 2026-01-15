@@ -379,6 +379,98 @@ class qma6100_intpin_conf
     // -------------------------------------------------------------------------
 };
 
+class int_cfg
+{
+    static constexpr int int_rd_clr_offset{7U};
+    static constexpr int shadow_dis_offset{6U};
+    static constexpr int dis_i2c_offset{5U};
+    static constexpr int latch_int_step_offset{1U};
+    static constexpr int latch_int_offset{0U};
+
+  public:
+    /// @brief Адрес регистра в устройстве.
+    static constexpr qma6100_reg_type addr{0x21};
+
+    /// @brief Оператор преобразования в 8-битное значение регистра.
+    ///
+    /// @return 8-битное значение регистра, собранное из полей.
+    explicit operator qma6100_reg_type() const
+    {
+        return static_cast<qma6100_reg_type>(
+            (static_cast<std::uint8_t>(int_rd_clr) << int_rd_clr_offset)
+            | (static_cast<std::uint8_t>(shadow_dis) << shadow_dis_offset)
+            | (static_cast<std::uint8_t>(dis_i2c) << dis_i2c_offset)
+            | (static_cast<std::uint8_t>(latch_int_step)
+               << latch_int_step_offset)
+            | (static_cast<std::uint8_t>(latch_int) << latch_int_offset));
+    }
+
+    enum struct int_rd_clr_t : std::uint8_t {
+        /// @brief  очистить все прерывания в режиме защёлкивания (latched-mode)
+        /// при любой операции чтения любого из регистров с адреса 0x09 по 0x0D.
+        clear_related = 0,
+
+        /// @brief очищать соответствующие прерывания только при чтении регистра
+        /// INT_ST (0x09–0x0D), независимо от того, находятся ли прерывания в
+        /// режиме защёлкивания (latched-mode) или в режиме без защёлкивания
+        /// (non-latched-mode).
+        clear_all = 1,
+    };
+
+    int_rd_clr_t int_rd_clr{int_rd_clr_t::clear_related};
+    // -------------------------------------------------------------------------
+
+    enum struct shadow_dis_t : std::uint8_t {
+        /// @brief включить функцию теневого режима для данных акселерометра.
+        enable = 0,
+
+        /// @brief отключить функцию теневого режима (shadowing function) для
+        /// данных акселерометра.
+        disable = 1,
+    };
+
+    /// @brief Когда теневой режим включён, старший байт (MSB) данных
+    /// акселерометра блокируется в момент чтения соответствующего младшего
+    /// байта (LSB) этих данных. Это гарантирует целостность данных
+    /// акселерометра во время чтения. Старший байт будет разблокирован, когда
+    /// он сам будет прочитан.
+    shadow_dis_t shadow_dis{shadow_dis_t::enable};
+    // -------------------------------------------------------------------------
+
+    enum struct dis_i2c_t : std::uint8_t {
+        /// @brief  enable I2C
+        enable = 0,
+
+        /// @brief disable I2C. Setting this bit to 1 in SPI mode is recommended
+        disable = 1,
+    };
+
+    dis_i2c_t dis_i2c{dis_i2c_t::enable};
+    // -------------------------------------------------------------------------
+
+    enum struct latch_int_step_t : std::uint8_t {
+        /// @brief step related interrupt is in latch mode
+        latch_mode = 1,
+
+        /// @brief step related interrupt is in non-latch mode.
+        non_latch_mode = 0,
+    };
+
+    latch_int_step_t latch_int_step{latch_int_step_t::non_latch_mode};
+    // -------------------------------------------------------------------------
+
+    enum struct latch_int_t : std::uint8_t {
+        /// @brief step related interrupt is in latch mode
+        latch_mode = 1,
+
+        /// @brief step related interrupt is in non-latch mode.
+        non_latch_mode = 0,
+    };
+
+    latch_int_t latch_int{latch_int_t::non_latch_mode};
+    // -------------------------------------------------------------------------
+};
+
 /// @brief Структура инициализации класса работы с шиной i2c.
 struct qma6100_i2c_setup {
     /// @brief Адрес устройства при подключении вывода AD0 к земле.
