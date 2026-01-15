@@ -197,9 +197,9 @@ TEST_CASE(
     {
         const TSetup init;
 
-        REQUIRE(init.window_width == TSetup::DEFAULT_WINDOW_WIDTH);
+        REQUIRE(init.window_width == TSetup::default_window_width);
         REQUIRE_FALSE(init.is_valid(0));
-        REQUIRE(init.is_valid(TSetup::DEFAULT_WINDOW_WIDTH));
+        REQUIRE(init.is_valid(TSetup::default_window_width));
         REQUIRE(init.is_valid(10));
     }
 

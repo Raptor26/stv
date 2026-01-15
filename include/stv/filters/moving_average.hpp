@@ -155,13 +155,13 @@ struct moving_average_setup {
     using mutex_type           = TMutex;
     using mutex_condition_type = stv::mutex_type_setup_v<TMutex, TMutexTag>;
 
-    static constexpr std::uint16_t DEFAULT_WINDOW_WIDTH{1};
+    static constexpr std::uint16_t default_window_width{1};
 
     /// @brief Ширина окна фильтра.
     ///
     /// @note Значение должно быть положительным и не превышать максимальную
     /// ширину окна.
-    std::uint16_t window_width{DEFAULT_WINDOW_WIDTH};
+    std::uint16_t window_width{default_window_width};
 
     /// @brief Если указан внешний мьютекс, то mutex будет указателем на тип
     /// TMutex, в противном случае тип будет пустым.

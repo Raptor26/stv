@@ -110,8 +110,8 @@ class start_frame_and_crc_16
     STV_NO_PADDING_NO_OPTIMIZE_END
 
   public:
-    static constexpr std::byte FIRST_BYTE{0xAA};
-    static constexpr std::byte SECOND_BYTE{0xAA};
+    static constexpr std::byte first_byte{0xAA};
+    static constexpr std::byte second_byte{0xAA};
 
     /// @brief Возвращает размер заголовка который будет добавлен перед полезной
     /// нагрузкой.
@@ -140,8 +140,8 @@ class start_frame_and_crc_16
     {
         (void)pload;
         auto *start_frame              = reinterpret_cast<start_frame_t *>(dst);
-        start_frame->start_frame_first = FIRST_BYTE;
-        start_frame->start_frame_second = SECOND_BYTE;
+        start_frame->start_frame_first = first_byte;
+        start_frame->start_frame_second = second_byte;
 
         // Неизвестно, есть ли другие декораторы, поэтому вычислим размер кадра
         // из поля total.

@@ -337,10 +337,10 @@ SCENARIO(
                 custom_allocator::get_mem_ptr());
 
         REQUIRE(head->start_frame_first
-                == stv::start_frame_and_crc_16::FIRST_BYTE);
+                == stv::start_frame_and_crc_16::first_byte);
 
         REQUIRE(head->start_frame_second
-                == stv::start_frame_and_crc_16::SECOND_BYTE);
+                == stv::start_frame_and_crc_16::second_byte);
 
         REQUIRE(head->frame_size
                 == sizeof(user_data_t) + start_frame_and_crc_16::trailer_size()
