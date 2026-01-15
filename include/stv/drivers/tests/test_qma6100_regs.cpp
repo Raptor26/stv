@@ -198,8 +198,7 @@ TEST_CASE(
         {
             SECTION("INT_DATA_EN == disable")
             {
-                reg.int_data_en =
-                    stv::qma6100_int_en1_reg::switcher_t::disable;
+                reg.int_data_en = stv::qma6100_int_en1_reg::switcher_t::disable;
                 constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -210,6 +209,52 @@ TEST_CASE(
             {
                 reg.int_data_en = stv::qma6100_int_en1_reg::switcher_t::enable;
                 constexpr reg_bitset expect_reg_val{std::string{"00010000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+    }
+
+    SECTION("INT_MAP1")
+    {
+        stv::qma6100_int_map1_reg reg;
+        SECTION("INT1_NO_MOT")
+        {
+            SECTION("INT1_NO_MOT == disable")
+            {
+                reg.int1_no_mot = stv::qma6100_int_map1_reg::mapper_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("INT1_NO_MOT == enable")
+            {
+                reg.int1_no_mot = stv::qma6100_int_map1_reg::mapper_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"10000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("INT1_ANY_MOT")
+        {
+            SECTION("INT1_ANY_MOT == disable")
+            {
+                reg.int1_any_mot = stv::qma6100_int_map1_reg::mapper_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("INT1_ANY_MOT == enable")
+            {
+                reg.int1_any_mot = stv::qma6100_int_map1_reg::mapper_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000001"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
                             expect_reg_val.to_ulong()));
