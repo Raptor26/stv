@@ -253,6 +253,42 @@ class qma6100_int_map1_reg
     mapper_t int1_any_mot{mapper_t::disable};
 };
 
+/// @brief Класс работы с регистром настройки mapping вывода прерывания датчика.
+/// @warning В классе определены не все биты регистра.
+class qma6100_int_map3_reg
+{
+    static constexpr int int2_no_mot_offset{7U};
+    static constexpr int int2_any_mot_offset{0U};
+
+  public:
+    /// @brief Адрес регистра в устройстве.
+    static constexpr qma6100_reg_type addr{0x1c};
+
+    /// @brief Оператор преобразования в 8-битное значение регистра.
+    ///
+    /// @return 8-битное значение регистра, собранное из полей.
+    explicit operator qma6100_reg_type() const
+    {
+        return static_cast<qma6100_reg_type>(
+            (static_cast<std::uint8_t>(int2_no_mot) << int2_no_mot_offset)
+            | (static_cast<std::uint8_t>(int2_any_mot) << int2_any_mot_offset));
+    }
+
+    /// @brief Отвечает за состояние mapping.
+    enum struct mapper_t : std::uint8_t {
+        disable = 0,
+        enable  = 1,
+    };
+
+    /// @brief map no_motion interrupt to INT2 pin.
+    mapper_t int2_no_mot{mapper_t::disable};
+    // -------------------------------------------------------------------------
+
+    /// @brief map any motion interrupt to INT2 pin
+    mapper_t int2_any_mot{mapper_t::disable};
+    // -------------------------------------------------------------------------
+};
+
 /// @brief Структура инициализации класса работы с шиной i2c.
 struct qma6100_i2c_setup {
     /// @brief Адрес устройства при подключении вывода AD0 к земле.

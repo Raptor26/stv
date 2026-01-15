@@ -261,6 +261,50 @@ TEST_CASE(
             }
         }
     }
+
+    SECTION("INT_MAP3")
+    {
+        stv::qma6100_int_map3_reg reg;
+        SECTION("INT2_NO_MOT")
+        {
+            SECTION("INT2_NO_MOT == disable")
+            {
+                reg.int2_no_mot = stv::qma6100_int_map3_reg::mapper_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+            SECTION("INT2_NO_MOT == enable")
+            {
+                reg.int2_no_mot = stv::qma6100_int_map3_reg::mapper_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"10000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("INT2_ANY_MOT")
+        {
+            SECTION("INT2_ANY_MOT == disable")
+            {
+                reg.int2_any_mot = stv::qma6100_int_map3_reg::mapper_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+            SECTION("INT2_ANY_MOT == enable")
+            {
+                reg.int2_any_mot = stv::qma6100_int_map3_reg::mapper_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000001"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+    }
 }
 
 // NOLINTEND(*-magic-numbers, google-build-using-namespace,
