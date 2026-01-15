@@ -173,6 +173,12 @@ class qma6100_fsr_reg
     /// @brief Адрес регистра RANGE в памяти устройства.
     static constexpr qma6100_reg_type addr{0x0F};
 
+    explicit qma6100_fsr_reg(
+        qma6100_reg_type value = qma6100_reg_type{0})
+    {
+        parse(value);
+    }
+
     /// @brief Преобразует конфигурацию в 8-битное значение регистра.
     ///
     /// @details Собирает текущую настройку диапазона в сырое значение,
@@ -183,7 +189,20 @@ class qma6100_fsr_reg
         return static_cast<std::byte>(
             (static_cast<std::byte>(range) << range_offset));
     }
+
     // -------------------------------------------------------------------------
+
+    /// @brief Оператор сравнения двух экземпляров регистра на равенство.
+    ///
+    /// @param other Ссылка на другой экземпляр qma6100_bw_reg для сравнения.
+    /// @return true, если значения регистров (после преобразования в
+    /// qma6100_reg_type) равны.
+    bool operator==(
+        const qma6100_fsr_reg &other) const
+    {
+        return static_cast<qma6100_reg_type>(*this)
+               == static_cast<qma6100_reg_type>(other);
+    }
 
     /// @brief Перечисление для настройки диапазона измерений (Full Scale
     /// Range).
@@ -202,6 +221,18 @@ class qma6100_fsr_reg
     /// @brief Текущая настройка диапазона измерений (Full Scale Range).
     range_t range{range_t::g_2};
     // -------------------------------------------------------------------------
+
+  private:
+    /// @brief Парсинг сырого значения регистра в поля класса.
+    ///
+    /// @param reg Сырое значение регистра для парсинга.
+    void parse(
+        qma6100_reg_type reg)
+    {
+        constexpr qma6100_reg_type range_mask{0x0F};
+        range =
+            static_cast<decltype(range)>((reg >> range_offset) & range_mask);
+    }
 };
 
 /// @brief Класс для работы с регистром разрешения прерываний 1 (INT_EN1)
@@ -213,13 +244,19 @@ class qma6100_fsr_reg
 /// прерывания. Класс предоставляет типобезопасный доступ к этим настройкам.
 class qma6100_int_en1_reg
 {
-    static constexpr int bint_fwm_en_offset{6U};
-    static constexpr int bint_ffull_en_offset{5U};
-    static constexpr int bint_data_en_offset{4U};
+    static constexpr int int_fwm_en_offset{6U};
+    static constexpr int int_ffull_en_offset{5U};
+    static constexpr int int_data_en_offset{4U};
 
   public:
     /// @brief Адрес регистра INT_EN1 в памяти устройства.
     static constexpr qma6100_reg_type addr{0x17};
+
+    explicit qma6100_int_en1_reg(
+        qma6100_reg_type value = qma6100_reg_type{0})
+    {
+        parse(value);
+    }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     ///
@@ -229,9 +266,21 @@ class qma6100_int_en1_reg
     explicit operator qma6100_reg_type() const
     {
         return static_cast<qma6100_reg_type>(
-            (static_cast<std::uint8_t>(int_fwm_en) << bint_fwm_en_offset)
-            | (static_cast<std::uint8_t>(int_ffull_en) << bint_ffull_en_offset)
-            | (static_cast<std::uint8_t>(int_data_en) << bint_data_en_offset));
+            (static_cast<std::uint8_t>(int_fwm_en) << int_fwm_en_offset)
+            | (static_cast<std::uint8_t>(int_ffull_en) << int_ffull_en_offset)
+            | (static_cast<std::uint8_t>(int_data_en) << int_data_en_offset));
+    }
+
+    /// @brief Оператор сравнения двух экземпляров регистра на равенство.
+    ///
+    /// @param other Ссылка на другой экземпляр qma6100_bw_reg для сравнения.
+    /// @return true, если значения регистров (после преобразования в
+    /// qma6100_reg_type) равны.
+    bool operator==(
+        const qma6100_int_en1_reg &other) const
+    {
+        return static_cast<qma6100_reg_type>(*this)
+               == static_cast<qma6100_reg_type>(other);
     }
 
     /// @brief Перечисление для управления включением/выключением функции.
@@ -252,6 +301,32 @@ class qma6100_int_en1_reg
     /// @brief Разрешение прерывания по готовности новых данных (data ready).
     switcher_t int_data_en{switcher_t::disable};
     // -------------------------------------------------------------------------
+
+  private:
+    /// @brief Парсинг сырого значения регистра в поля класса.
+    ///
+    /// @param reg Сырое значение регистра для парсинга.
+    void parse(
+        qma6100_reg_type reg)
+    {
+        {
+            constexpr qma6100_reg_type int_fwm_en_mask{0x01};
+            int_fwm_en = static_cast<decltype(int_fwm_en)>(
+                (reg >> int_fwm_en_offset) & int_fwm_en_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type iint_ffull_en_mask{0x01};
+            int_ffull_en = static_cast<decltype(int_ffull_en)>(
+                (reg >> int_ffull_en_offset) & iint_ffull_en_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type int_data_en_mask{0x01};
+            int_data_en = static_cast<decltype(int_data_en)>(
+                (reg >> int_data_en_offset) & int_data_en_mask);
+        }
+    }
 };
 
 /// @brief Класс для работы с регистром маппинга прерываний на вывод INT1
@@ -271,6 +346,12 @@ class qma6100_int_map1_reg
     /// @brief Адрес регистра INT_MAP1 в памяти устройства.
     static constexpr qma6100_reg_type addr{0x1a};
 
+    explicit qma6100_int_map1_reg(
+        qma6100_reg_type value = qma6100_reg_type{0})
+    {
+        parse(value);
+    }
+
     /// @brief Оператор преобразования в сырое значение регистра.
     ///
     /// @details Собирает текущие настройки маппинга прерываний для вывода INT1
@@ -281,6 +362,18 @@ class qma6100_int_map1_reg
         return static_cast<qma6100_reg_type>(
             (static_cast<std::uint8_t>(int1_no_mot) << int1_no_mot_offset)
             | (static_cast<std::uint8_t>(int1_any_mot) << int1_any_mot_offset));
+    }
+
+    /// @brief Оператор сравнения двух экземпляров регистра на равенство.
+    ///
+    /// @param other Ссылка на другой экземпляр qma6100_bw_reg для сравнения.
+    /// @return true, если значения регистров (после преобразования в
+    /// qma6100_reg_type) равны.
+    bool operator==(
+        const qma6100_int_map1_reg &other) const
+    {
+        return static_cast<qma6100_reg_type>(*this)
+               == static_cast<qma6100_reg_type>(other);
     }
 
     /// @brief Перечисление для управления состоянием маппинга прерывания на
@@ -297,6 +390,26 @@ class qma6100_int_map1_reg
 
     /// @brief Маппинг прерывания "any motion" (любое движение) на вывод INT1.
     mapper_t int1_any_mot{mapper_t::disable};
+
+  private:
+    /// @brief Парсинг сырого значения регистра в поля класса.
+    ///
+    /// @param reg Сырое значение регистра для парсинга.
+    void parse(
+        qma6100_reg_type reg)
+    {
+        {
+            constexpr qma6100_reg_type int1_no_mot_mask{0x01};
+            int1_no_mot = static_cast<decltype(int1_no_mot)>(
+                (reg >> int1_no_mot_offset) & int1_no_mot_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type int1_any_mot_mask{0x01};
+            int1_any_mot = static_cast<decltype(int1_any_mot)>(
+                (reg >> int1_any_mot_offset) & int1_any_mot_mask);
+        }
+    }
 };
 
 /// @brief Класс для работы с регистром маппинга прерываний на вывод INT2
@@ -315,6 +428,24 @@ class qma6100_int_map3_reg
   public:
     /// @brief Адрес регистра INT_MAP3 в памяти устройства.
     static constexpr qma6100_reg_type addr{0x1c};
+
+    explicit qma6100_int_map3_reg(
+        qma6100_reg_type value = qma6100_reg_type{0})
+    {
+        parse(value);
+    }
+
+    /// @brief Оператор сравнения двух экземпляров регистра на равенство.
+    ///
+    /// @param other Ссылка на другой экземпляр qma6100_bw_reg для сравнения.
+    /// @return true, если значения регистров (после преобразования в
+    /// qma6100_reg_type) равны.
+    bool operator==(
+        const qma6100_int_map3_reg &other) const
+    {
+        return static_cast<qma6100_reg_type>(*this)
+               == static_cast<qma6100_reg_type>(other);
+    }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     ///
@@ -343,6 +474,26 @@ class qma6100_int_map3_reg
     /// @brief Маппинг прерывания "any motion" (любое движение) на вывод INT2.
     mapper_t int2_any_mot{mapper_t::disable};
     // -------------------------------------------------------------------------
+
+  private:
+    /// @brief Парсинг сырого значения регистра в поля класса.
+    ///
+    /// @param reg Сырое значение регистра для парсинга.
+    void parse(
+        qma6100_reg_type reg)
+    {
+        {
+            constexpr qma6100_reg_type int2_no_mot_mask{0x01};
+            int2_no_mot = static_cast<decltype(int2_no_mot)>(
+                (reg >> int2_no_mot_offset) & int2_no_mot_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type int2_any_mot_mask{0x01};
+            int2_any_mot = static_cast<decltype(int2_any_mot)>(
+                (reg >> int2_any_mot_offset) & int2_any_mot_mask);
+        }
+    }
 };
 
 /// @brief Класс для работы с регистром конфигурации выводов прерываний
@@ -366,6 +517,24 @@ class qma6100_intpin_conf
   public:
     /// @brief Адрес регистра INTPIN_CONF в памяти устройства.
     static constexpr qma6100_reg_type addr{0x20};
+
+    explicit qma6100_intpin_conf(
+        qma6100_reg_type value = qma6100_reg_type{0})
+    {
+        parse(value);
+    }
+
+    /// @brief Оператор сравнения двух экземпляров регистра на равенство.
+    ///
+    /// @param other Ссылка на другой экземпляр qma6100_bw_reg для сравнения.
+    /// @return true, если значения регистров (после преобразования в
+    /// qma6100_reg_type) равны.
+    bool operator==(
+        const qma6100_intpin_conf &other) const
+    {
+        return static_cast<qma6100_reg_type>(*this)
+               == static_cast<qma6100_reg_type>(other);
+    }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     ///
@@ -457,6 +626,56 @@ class qma6100_intpin_conf
     /// @brief Настройка активного уровня для вывода INT1.
     int1_lvl_t int1_lvl{int1_lvl_t::logic_high_as_active};
     // -------------------------------------------------------------------------
+
+  private:
+    /// @brief Парсинг сырого значения регистра в поля класса.
+    ///
+    /// @param reg Сырое значение регистра для парсинга.
+    void parse(
+        qma6100_reg_type reg)
+    {
+        {
+            constexpr qma6100_reg_type idis_pu_senb_mask{0x01};
+            dis_pu_senb = static_cast<decltype(dis_pu_senb)>(
+                (reg >> dis_pu_senb_offset) & idis_pu_senb_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type dis_ie_ad0_mask{0x01};
+            dis_ie_ad0 = static_cast<decltype(dis_ie_ad0)>(
+                (reg >> dis_ie_ad0_offset) & dis_ie_ad0_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type en_spi3w_mask{0x01};
+            en_spi3w = static_cast<decltype(en_spi3w)>((reg >> en_spi3w_offset)
+                                                       & en_spi3w_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type int2_od_mask{0x01};
+            int2_od = static_cast<decltype(int2_od)>((reg >> int2_od_offset)
+                                                     & int2_od_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type int2_lvl_mask{0x01};
+            int2_lvl = static_cast<decltype(int2_lvl)>((reg >> int2_lvl_offset)
+                                                       & int2_lvl_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type int1_od_mask{0x01};
+            int1_od = static_cast<decltype(int1_od)>((reg >> int1_od_offset)
+                                                     & int1_od_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type int1_lvl_mask{0x01};
+            int1_lvl = static_cast<decltype(int1_lvl)>((reg >> int1_lvl_offset)
+                                                       & int1_lvl_mask);
+        }
+    }
 };
 
 /// @brief Класс для работы с регистром конфигурации прерываний (INT_CONF)
@@ -477,6 +696,24 @@ class int_cfg
   public:
     /// @brief Адрес регистра INT_CONF в памяти устройства.
     static constexpr qma6100_reg_type addr{0x21};
+
+    explicit int_cfg(
+        qma6100_reg_type value = qma6100_reg_type{0})
+    {
+        parse(value);
+    }
+
+    /// @brief Оператор сравнения двух экземпляров регистра на равенство.
+    ///
+    /// @param other Ссылка на другой экземпляр qma6100_bw_reg для сравнения.
+    /// @return true, если значения регистров (после преобразования в
+    /// qma6100_reg_type) равны.
+    bool operator==(
+        const int_cfg &other) const
+    {
+        return static_cast<qma6100_reg_type>(*this)
+               == static_cast<qma6100_reg_type>(other);
+    }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     ///
@@ -589,6 +826,44 @@ class int_cfg
     /// подсчётом шагов).
     latch_int_t latch_int{latch_int_t::non_latch_mode};
     // -------------------------------------------------------------------------
+
+  private:
+    /// @brief Парсинг сырого значения регистра в поля класса.
+    ///
+    /// @param reg Сырое значение регистра для парсинга.
+    void parse(
+        qma6100_reg_type reg)
+    {
+        {
+            constexpr qma6100_reg_type int_rd_clr_mask{0x01};
+            int_rd_clr = static_cast<decltype(int_rd_clr)>(
+                (reg >> int_rd_clr_offset) & int_rd_clr_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type shadow_dis_mask{0x01};
+            shadow_dis = static_cast<decltype(shadow_dis)>(
+                (reg >> shadow_dis_offset) & shadow_dis_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type dis_i2c_mask{0x01};
+            dis_i2c = static_cast<decltype(dis_i2c)>((reg >> dis_i2c_offset)
+                                                     & dis_i2c_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type latch_int_step_mask{0x01};
+            latch_int_step = static_cast<decltype(latch_int_step)>(
+                (reg >> latch_int_step_offset) & latch_int_step_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type latch_int_mask{0x01};
+            latch_int = static_cast<decltype(latch_int)>(
+                (reg >> latch_int_offset) & latch_int_mask);
+        }
+    }
 };
 
 /// @brief Структура для инициализации класса qma6100_i2c (настройки подключения
@@ -721,7 +996,19 @@ class qma6100_i2c
 /// для включения конфигураций других регистров в будущем.
 struct qma6100_regs_setup {
     /// @brief Настройка регистра полосы пропускания и фильтра (qma6100_bw_reg).
-    stv::qma6100_bw_reg bw_reg;
+    stv::qma6100_bw_reg       bw_reg;
+
+    stv::qma6100_fsr_reg      fsr_reg;
+
+    stv::qma6100_int_en1_reg  int_en1_reg;
+
+    stv::qma6100_int_map1_reg int_map1_reg;
+
+    stv::qma6100_int_map3_reg int_map3_reg;
+
+    stv::qma6100_intpin_conf  intpin_conf_reg;
+
+    stv::int_cfg              int_cfg_reg;
 };
 
 } // namespace stv

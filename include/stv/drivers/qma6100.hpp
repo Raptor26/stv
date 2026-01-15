@@ -155,7 +155,49 @@ class qma6100:
         auto is_init_success{true};
 
         write(setup.bw_reg);
-        if(read<qma6100_bw_reg>() != setup.bw_reg)
+        if(read<decltype(setup.bw_reg)>() != setup.bw_reg)
+        {
+            is_init_success = false;
+        }
+        // ---------------------------------------------------------------------
+
+        write(setup.fsr_reg);
+        if(read<decltype(setup.fsr_reg)>() != setup.fsr_reg)
+        {
+            is_init_success = false;
+        }
+        // ---------------------------------------------------------------------
+
+        write(setup.int_en1_reg);
+        if(read<decltype(setup.int_en1_reg)>() != setup.int_en1_reg)
+        {
+            is_init_success = false;
+        }
+        // ---------------------------------------------------------------------
+
+        write(setup.int_map1_reg);
+        if(read<decltype(setup.int_map1_reg)>() != setup.int_map1_reg)
+        {
+            is_init_success = false;
+        }
+        // ---------------------------------------------------------------------
+
+        write(setup.int_map3_reg);
+        if(read<decltype(setup.int_map3_reg)>() != setup.int_map3_reg)
+        {
+            is_init_success = false;
+        }
+        // ---------------------------------------------------------------------
+
+        write(setup.intpin_conf_reg);
+        if(read<decltype(setup.intpin_conf_reg)>() != setup.intpin_conf_reg)
+        {
+            is_init_success = false;
+        }
+        // ---------------------------------------------------------------------
+
+        write(setup.int_cfg_reg);
+        if(read<decltype(setup.int_cfg_reg)>() != setup.int_cfg_reg)
         {
             is_init_success = false;
         }

@@ -24,11 +24,13 @@
 /// IN THE SOFTWARE.
 
 #include "stv/drivers/qma6100.hpp"
+#include "stv/drivers/qma6100_regs.hpp"
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <fakeit.hpp>
+#include <type_traits>
 
 // NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
 // readability-function-cognitive-,
@@ -82,15 +84,76 @@ TEST_CASE(
         regs_setup.bw_reg.bw   = qma6100_bw_reg::bw_t::mclk_1024_488_hz;
         regs_setup.bw_reg.nlpf = qma6100_bw_reg::nlpf_t::average_4;
 
-        // Заглушка первого вызова read
+        regs_setup.fsr_reg.range = qma6100_fsr_reg::range_t::g_4;
+
+        regs_setup.int_en1_reg.int_data_en =
+            qma6100_int_en1_reg::switcher_t::enable;
+        regs_setup.int_en1_reg.int_ffull_en =
+            qma6100_int_en1_reg::switcher_t::enable;
+        regs_setup.int_en1_reg.int_fwm_en =
+            qma6100_int_en1_reg::switcher_t::enable;
+
+        regs_setup.int_map1_reg.int1_any_mot =
+            qma6100_int_map1_reg::mapper_t::enable;
+        regs_setup.int_map1_reg.int1_no_mot =
+            qma6100_int_map1_reg::mapper_t::enable;
+
+        regs_setup.int_map3_reg.int2_any_mot =
+            qma6100_int_map3_reg::mapper_t::enable;
+
+        regs_setup.intpin_conf_reg.dis_pu_senb =
+            qma6100_intpin_conf::dis_pu_senb_t::disable;
+        regs_setup.intpin_conf_reg.dis_ie_ad0 =
+            qma6100_intpin_conf::dis_ie_ad0_t::disable;
+        regs_setup.intpin_conf_reg.en_spi3w =
+            qma6100_intpin_conf::en_spi3w_t::enable;
+        regs_setup.intpin_conf_reg.int2_od =
+            qma6100_intpin_conf::int2_od_t::open_drain;
+        regs_setup.intpin_conf_reg.int2_lvl =
+            qma6100_intpin_conf::int2_lvl_t::logic_low_as_active;
+        regs_setup.intpin_conf_reg.int1_od =
+            qma6100_intpin_conf::int1_od_t::open_drain;
+        regs_setup.intpin_conf_reg.int1_lvl =
+            qma6100_intpin_conf::int1_lvl_t::logic_low_as_active;
+
+        regs_setup.int_cfg_reg.int_rd_clr =
+            stv::int_cfg::int_rd_clr_t::clear_all;
+        regs_setup.int_cfg_reg.shadow_dis = stv::int_cfg::shadow_dis_t::disable;
+        regs_setup.int_cfg_reg.dis_i2c    = stv::int_cfg::dis_i2c_t::disable;
+        regs_setup.int_cfg_reg.latch_int_step =
+            stv::int_cfg::latch_int_step_t::latch_mode;
+        regs_setup.int_cfg_reg.latch_int =
+            stv::int_cfg::latch_int_t::latch_mode;
+
+        /// @brief Крайнее записанное при вызове i2c::write() значение регистра.
+        qma6100_reg_type latest_written_reg_value{0xAA};
+
+        When(Method(i2c, write))
+            .AlwaysDo(
+                [&](auto slave_addr, auto reg_addr, auto write_reg_value) {
+                    (void)slave_addr;
+                    (void)reg_addr;
+                    latest_written_reg_value = write_reg_value;
+                    return true;
+                });
+
         When(Method(i2c, read))
-            .Do([&](auto slave_addr, auto reg_addr, void *dst, auto len) {
+            .AlwaysDo([&](auto slave_addr, auto reg_addr, void *dst, auto len) {
                 (void)slave_addr;
                 (void)reg_addr;
                 (void)len;
-
                 auto dst_byte = reinterpret_cast<qma6100_reg_type *>(dst);
-                *dst_byte = static_cast<qma6100_reg_type>(regs_setup.bw_reg);
+
+                // Считывается то значение, которое было записано при крайнем
+                // вызове 2c::write()ю
+                *dst_byte = latest_written_reg_value;
+
+                // Сброс значения записанного регистра чтобы избежать ошибки,
+                // при которой результат теста может быть ложно положительным
+                // если значения последовательно расположенных регистров
+                // совпадают.
+                latest_written_reg_value = qma6100_reg_type{0xAA};
+
                 return true;
             });
         REQUIRE(driver.init(regs_setup));
@@ -100,4 +163,3 @@ TEST_CASE(
 // NOLINTEND(*-magic-numbers, google-build-using-namespace,
 // readability-function-cognitive-complexity,
 // cppcoreguidelines-avoid-non-const-global-variables)
-
