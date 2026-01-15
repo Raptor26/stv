@@ -165,7 +165,11 @@ class qma6100_bw_reg
 /// широкий диапазон позволяет измерять большие ускорения, но уменьшает
 /// разрешение (чувствительность) измерений. Класс предоставляет простой
 /// интерфейс для работы с этим параметром.
-struct qma6100_fsr_reg {
+class qma6100_fsr_reg
+{
+    static constexpr int range_offset{0U};
+
+  public:
     /// @brief Адрес регистра RANGE в памяти устройства.
     static constexpr qma6100_reg_type addr{0x0F};
 
@@ -174,10 +178,10 @@ struct qma6100_fsr_reg {
     /// @details Собирает текущую настройку диапазона в сырое значение,
     /// готовое для записи в регистр устройства.
     /// @return 8-битное значение регистра, содержащее настройку диапазона.
-    explicit operator std::uint8_t() const
+    explicit operator std::byte() const
     {
-        return static_cast<std::uint8_t>(
-            (static_cast<std::uint8_t>(range) << 0U));
+        return static_cast<std::byte>(
+            (static_cast<std::byte>(range) << range_offset));
     }
     // -------------------------------------------------------------------------
 

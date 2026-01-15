@@ -114,35 +114,45 @@ TEST_CASE(
             {
                 reg.range = stv::qma6100_fsr_reg::range_t::g_2;
                 constexpr reg_bitset expect_reg_val{std::string{"00000001"}};
-                REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
             }
 
             SECTION("RANGE == g_4")
             {
                 reg.range = stv::qma6100_fsr_reg::range_t::g_4;
                 constexpr reg_bitset expect_reg_val{std::string{"00000010"}};
-                REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
             }
 
             SECTION("RANGE == g_8")
             {
                 reg.range = stv::qma6100_fsr_reg::range_t::g_8;
                 constexpr reg_bitset expect_reg_val{std::string{"00000100"}};
-                REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
             }
 
             SECTION("RANGE == g_16")
             {
                 reg.range = stv::qma6100_fsr_reg::range_t::g_16;
                 constexpr reg_bitset expect_reg_val{std::string{"00001000"}};
-                REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
             }
 
             SECTION("RANGE == g_32")
             {
                 reg.range = stv::qma6100_fsr_reg::range_t::g_32;
                 constexpr reg_bitset expect_reg_val{std::string{"00001111"}};
-                REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
             }
         }
     }
