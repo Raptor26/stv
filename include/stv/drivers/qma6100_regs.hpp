@@ -504,7 +504,7 @@ class qma6100_int_map3_reg
 /// выводов прерываний (INT1, INT2), а также некоторыми общими настройками
 /// интерфейса (например, подтяжками и режимом SPI). Позволяет настраивать такие
 /// параметры, как активный уровень, тип выхода (push-pull/open-drain) и другие.
-class qma6100_intpin_conf
+class qma6100_intpin_conf_reg
 {
     static constexpr int dis_pu_senb_offset{7U};
     static constexpr int dis_ie_ad0_offset{6U};
@@ -518,7 +518,7 @@ class qma6100_intpin_conf
     /// @brief Адрес регистра INTPIN_CONF в памяти устройства.
     static constexpr qma6100_reg_type addr{0x20};
 
-    explicit qma6100_intpin_conf(
+    explicit qma6100_intpin_conf_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
     {
         parse(value);
@@ -530,7 +530,7 @@ class qma6100_intpin_conf
     /// @return true, если значения регистров (после преобразования в
     /// qma6100_reg_type) равны.
     bool operator==(
-        const qma6100_intpin_conf &other) const
+        const qma6100_intpin_conf_reg &other) const
     {
         return static_cast<qma6100_reg_type>(*this)
                == static_cast<qma6100_reg_type>(other);
@@ -685,7 +685,7 @@ class qma6100_intpin_conf
 /// который управляет общими настройками системы прерываний, такими как режим
 /// защёлкивания (latch), политика очистки флагов прерываний, настройка теневого
 /// регистра для данных и управление интерфейсом I2C.
-class int_cfg
+class qma6100_int_cfg_reg
 {
     static constexpr int int_rd_clr_offset{7U};
     static constexpr int shadow_dis_offset{6U};
@@ -697,7 +697,7 @@ class int_cfg
     /// @brief Адрес регистра INT_CONF в памяти устройства.
     static constexpr qma6100_reg_type addr{0x21};
 
-    explicit int_cfg(
+    explicit qma6100_int_cfg_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
     {
         parse(value);
@@ -709,7 +709,7 @@ class int_cfg
     /// @return true, если значения регистров (после преобразования в
     /// qma6100_reg_type) равны.
     bool operator==(
-        const int_cfg &other) const
+        const qma6100_int_cfg_reg &other) const
     {
         return static_cast<qma6100_reg_type>(*this)
                == static_cast<qma6100_reg_type>(other);
@@ -996,19 +996,19 @@ class qma6100_i2c
 /// для включения конфигураций других регистров в будущем.
 struct qma6100_regs_setup {
     /// @brief Настройка регистра полосы пропускания и фильтра (qma6100_bw_reg).
-    stv::qma6100_bw_reg       bw_reg;
+    stv::qma6100_bw_reg          bw_reg;
 
-    stv::qma6100_fsr_reg      fsr_reg;
+    stv::qma6100_fsr_reg         fsr_reg;
 
-    stv::qma6100_int_en1_reg  int_en1_reg;
+    stv::qma6100_int_en1_reg     int_en1_reg;
 
-    stv::qma6100_int_map1_reg int_map1_reg;
+    stv::qma6100_int_map1_reg    int_map1_reg;
 
-    stv::qma6100_int_map3_reg int_map3_reg;
+    stv::qma6100_int_map3_reg    int_map3_reg;
 
-    stv::qma6100_intpin_conf  intpin_conf_reg;
+    stv::qma6100_intpin_conf_reg intpin_conf_reg;
 
-    stv::int_cfg              int_cfg_reg;
+    stv::qma6100_int_cfg_reg     int_cfg_reg;
 };
 
 } // namespace stv

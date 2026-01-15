@@ -102,28 +102,28 @@ TEST_CASE(
             qma6100_int_map3_reg::mapper_t::enable;
 
         regs_setup.intpin_conf_reg.dis_pu_senb =
-            qma6100_intpin_conf::dis_pu_senb_t::disable;
+            qma6100_intpin_conf_reg::dis_pu_senb_t::disable;
         regs_setup.intpin_conf_reg.dis_ie_ad0 =
-            qma6100_intpin_conf::dis_ie_ad0_t::disable;
+            qma6100_intpin_conf_reg::dis_ie_ad0_t::disable;
         regs_setup.intpin_conf_reg.en_spi3w =
-            qma6100_intpin_conf::en_spi3w_t::enable;
+            qma6100_intpin_conf_reg::en_spi3w_t::enable;
         regs_setup.intpin_conf_reg.int2_od =
-            qma6100_intpin_conf::int2_od_t::open_drain;
+            qma6100_intpin_conf_reg::int2_od_t::open_drain;
         regs_setup.intpin_conf_reg.int2_lvl =
-            qma6100_intpin_conf::int2_lvl_t::logic_low_as_active;
+            qma6100_intpin_conf_reg::int2_lvl_t::logic_low_as_active;
         regs_setup.intpin_conf_reg.int1_od =
-            qma6100_intpin_conf::int1_od_t::open_drain;
+            qma6100_intpin_conf_reg::int1_od_t::open_drain;
         regs_setup.intpin_conf_reg.int1_lvl =
-            qma6100_intpin_conf::int1_lvl_t::logic_low_as_active;
+            qma6100_intpin_conf_reg::int1_lvl_t::logic_low_as_active;
 
         regs_setup.int_cfg_reg.int_rd_clr =
-            stv::int_cfg::int_rd_clr_t::clear_all;
-        regs_setup.int_cfg_reg.shadow_dis = stv::int_cfg::shadow_dis_t::disable;
-        regs_setup.int_cfg_reg.dis_i2c    = stv::int_cfg::dis_i2c_t::disable;
+            stv::qma6100_int_cfg_reg::int_rd_clr_t::clear_all;
+        regs_setup.int_cfg_reg.shadow_dis = stv::qma6100_int_cfg_reg::shadow_dis_t::disable;
+        regs_setup.int_cfg_reg.dis_i2c    = stv::qma6100_int_cfg_reg::dis_i2c_t::disable;
         regs_setup.int_cfg_reg.latch_int_step =
-            stv::int_cfg::latch_int_step_t::latch_mode;
+            stv::qma6100_int_cfg_reg::latch_int_step_t::latch_mode;
         regs_setup.int_cfg_reg.latch_int =
-            stv::int_cfg::latch_int_t::latch_mode;
+            stv::qma6100_int_cfg_reg::latch_int_t::latch_mode;
 
         /// @brief Крайнее записанное при вызове i2c::write() значение регистра.
         qma6100_reg_type latest_written_reg_value{0xAA};

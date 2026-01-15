@@ -318,20 +318,20 @@ TEST_CASE(
 
     SECTION("INTPIN_CONF")
     {
-        stv::qma6100_intpin_conf reg;
+        stv::qma6100_intpin_conf_reg reg;
 
         // Set all fields to zero.
         reg.int2_lvl =
-            stv::qma6100_intpin_conf::int2_lvl_t::logic_low_as_active;
+            stv::qma6100_intpin_conf_reg::int2_lvl_t::logic_low_as_active;
         reg.int1_lvl =
-            stv::qma6100_intpin_conf::int1_lvl_t::logic_low_as_active;
+            stv::qma6100_intpin_conf_reg::int1_lvl_t::logic_low_as_active;
 
         SECTION("DIS_PU_SENB")
         {
             SECTION("DIS_PU_SENB == enable")
             {
                 reg.dis_pu_senb =
-                    stv::qma6100_intpin_conf::dis_pu_senb_t::enable;
+                    stv::qma6100_intpin_conf_reg::dis_pu_senb_t::enable;
                 constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -341,7 +341,7 @@ TEST_CASE(
             SECTION("DIS_PU_SENB == disable")
             {
                 reg.dis_pu_senb =
-                    stv::qma6100_intpin_conf::dis_pu_senb_t::disable;
+                    stv::qma6100_intpin_conf_reg::dis_pu_senb_t::disable;
                 constexpr reg_bitset expect_reg_val{std::string{"10000000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -353,7 +353,7 @@ TEST_CASE(
         {
             SECTION("DIS_IE_AD0: == enable")
             {
-                reg.dis_ie_ad0 = stv::qma6100_intpin_conf::dis_ie_ad0_t::enable;
+                reg.dis_ie_ad0 = stv::qma6100_intpin_conf_reg::dis_ie_ad0_t::enable;
                 constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -363,7 +363,7 @@ TEST_CASE(
             SECTION("DIS_IE_AD0: == disable")
             {
                 reg.dis_ie_ad0 =
-                    stv::qma6100_intpin_conf::dis_ie_ad0_t::disable;
+                    stv::qma6100_intpin_conf_reg::dis_ie_ad0_t::disable;
                 constexpr reg_bitset expect_reg_val{std::string{"01000000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -375,7 +375,7 @@ TEST_CASE(
         {
             SECTION("EN_SPI3W == enable")
             {
-                reg.en_spi3w = stv::qma6100_intpin_conf::en_spi3w_t::enable;
+                reg.en_spi3w = stv::qma6100_intpin_conf_reg::en_spi3w_t::enable;
                 constexpr reg_bitset expect_reg_val{std::string{"00100000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -384,7 +384,7 @@ TEST_CASE(
 
             SECTION("EN_SPI3W == disable")
             {
-                reg.en_spi3w = stv::qma6100_intpin_conf::en_spi3w_t::disable;
+                reg.en_spi3w = stv::qma6100_intpin_conf_reg::en_spi3w_t::disable;
                 constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -396,7 +396,7 @@ TEST_CASE(
         {
             SECTION("INT2_OD == push_pull")
             {
-                reg.int2_od = stv::qma6100_intpin_conf::int2_od_t::push_pull;
+                reg.int2_od = stv::qma6100_intpin_conf_reg::int2_od_t::push_pull;
                 constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -405,7 +405,7 @@ TEST_CASE(
 
             SECTION("INT2_OD == disable")
             {
-                reg.int2_od = stv::qma6100_intpin_conf::int2_od_t::open_drain;
+                reg.int2_od = stv::qma6100_intpin_conf_reg::int2_od_t::open_drain;
                 constexpr reg_bitset expect_reg_val{std::string{"00001000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -418,7 +418,7 @@ TEST_CASE(
             SECTION("INT2_LVL == push_pull")
             {
                 reg.int2_lvl =
-                    stv::qma6100_intpin_conf::int2_lvl_t::logic_low_as_active;
+                    stv::qma6100_intpin_conf_reg::int2_lvl_t::logic_low_as_active;
                 constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -428,7 +428,7 @@ TEST_CASE(
             SECTION("INT2_LVL == disable")
             {
                 reg.int2_lvl =
-                    stv::qma6100_intpin_conf::int2_lvl_t::logic_high_as_active;
+                    stv::qma6100_intpin_conf_reg::int2_lvl_t::logic_high_as_active;
                 constexpr reg_bitset expect_reg_val{std::string{"00000100"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -440,7 +440,7 @@ TEST_CASE(
         {
             SECTION("INT1_OD == push_pull")
             {
-                reg.int1_od = stv::qma6100_intpin_conf::int1_od_t::push_pull;
+                reg.int1_od = stv::qma6100_intpin_conf_reg::int1_od_t::push_pull;
                 constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -449,7 +449,7 @@ TEST_CASE(
 
             SECTION("INT1_OD == disable")
             {
-                reg.int1_od = stv::qma6100_intpin_conf::int1_od_t::open_drain;
+                reg.int1_od = stv::qma6100_intpin_conf_reg::int1_od_t::open_drain;
                 constexpr reg_bitset expect_reg_val{std::string{"00000010"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -462,7 +462,7 @@ TEST_CASE(
             SECTION("INT1_LVL == push_pull")
             {
                 reg.int1_lvl =
-                    stv::qma6100_intpin_conf::int1_lvl_t::logic_low_as_active;
+                    stv::qma6100_intpin_conf_reg::int1_lvl_t::logic_low_as_active;
                 constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -472,7 +472,7 @@ TEST_CASE(
             SECTION("INT1_LVL == disable")
             {
                 reg.int1_lvl =
-                    stv::qma6100_intpin_conf::int1_lvl_t::logic_high_as_active;
+                    stv::qma6100_intpin_conf_reg::int1_lvl_t::logic_high_as_active;
                 constexpr reg_bitset expect_reg_val{std::string{"00000001"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -483,12 +483,12 @@ TEST_CASE(
 
     SECTION("INT_CFG")
     {
-        stv::int_cfg reg;
+        stv::qma6100_int_cfg_reg reg;
         SECTION("NT_RD_CLR")
         {
             SECTION("NT_RD_CLR == clear_related")
             {
-                reg.int_rd_clr = stv::int_cfg::int_rd_clr_t::clear_related;
+                reg.int_rd_clr = stv::qma6100_int_cfg_reg::int_rd_clr_t::clear_related;
                 constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -497,7 +497,7 @@ TEST_CASE(
 
             SECTION("NT_RD_CLR == clear_all")
             {
-                reg.int_rd_clr = stv::int_cfg::int_rd_clr_t::clear_all;
+                reg.int_rd_clr = stv::qma6100_int_cfg_reg::int_rd_clr_t::clear_all;
                 constexpr reg_bitset expect_reg_val{std::string{"10000000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -509,7 +509,7 @@ TEST_CASE(
         {
             SECTION("SHADOW_DIS == enable")
             {
-                reg.shadow_dis = stv::int_cfg::shadow_dis_t::enable;
+                reg.shadow_dis = stv::qma6100_int_cfg_reg::shadow_dis_t::enable;
                 constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -518,7 +518,7 @@ TEST_CASE(
 
             SECTION("SHADOW_DIS == disable")
             {
-                reg.shadow_dis = stv::int_cfg::shadow_dis_t::disable;
+                reg.shadow_dis = stv::qma6100_int_cfg_reg::shadow_dis_t::disable;
                 constexpr reg_bitset expect_reg_val{std::string{"01000000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -530,7 +530,7 @@ TEST_CASE(
         {
             SECTION("DIS_I2C == enable")
             {
-                reg.dis_i2c = stv::int_cfg::dis_i2c_t::enable;
+                reg.dis_i2c = stv::qma6100_int_cfg_reg::dis_i2c_t::enable;
                 constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -539,7 +539,7 @@ TEST_CASE(
 
             SECTION("DIS_I2C == disable")
             {
-                reg.dis_i2c = stv::int_cfg::dis_i2c_t::disable;
+                reg.dis_i2c = stv::qma6100_int_cfg_reg::dis_i2c_t::disable;
                 constexpr reg_bitset expect_reg_val{std::string{"00100000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -552,7 +552,7 @@ TEST_CASE(
             SECTION("LATCH_INT_STEP == non_latch_mode")
             {
                 reg.latch_int_step =
-                    stv::int_cfg::latch_int_step_t::non_latch_mode;
+                    stv::qma6100_int_cfg_reg::latch_int_step_t::non_latch_mode;
                 constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -561,7 +561,7 @@ TEST_CASE(
 
             SECTION("LATCH_INT_STEP == latch_mode")
             {
-                reg.latch_int_step = stv::int_cfg::latch_int_step_t::latch_mode;
+                reg.latch_int_step = stv::qma6100_int_cfg_reg::latch_int_step_t::latch_mode;
                 constexpr reg_bitset expect_reg_val{std::string{"00000010"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -573,7 +573,7 @@ TEST_CASE(
         {
             SECTION("LATCH_INT == non_latch_mode")
             {
-                reg.latch_int = stv::int_cfg::latch_int_t::non_latch_mode;
+                reg.latch_int = stv::qma6100_int_cfg_reg::latch_int_t::non_latch_mode;
                 constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
@@ -582,7 +582,7 @@ TEST_CASE(
 
             SECTION("LATCH_INT == latch_mode")
             {
-                reg.latch_int = stv::int_cfg::latch_int_t::latch_mode;
+                reg.latch_int = stv::qma6100_int_cfg_reg::latch_int_t::latch_mode;
                 constexpr reg_bitset expect_reg_val{std::string{"00000001"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
