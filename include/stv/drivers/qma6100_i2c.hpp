@@ -61,7 +61,9 @@ struct qma6100_i2c_setup {
 /// классов (например, qma6100_bw_reg, qma6100_fsr_reg). Поддерживает чтение
 /// сырых байтов, чтение с автоматическим парсингом в структуры, а также запись
 /// как сырых значений, так и структур.
-class qma6100_i2c
+class qma6100_i2c:
+    public virtual stv::non_copyable,
+    public virtual stv::non_movable
 {
     /// @brief Указатель на интерфейс шины I2C.
     stv::i2c_interface *i2c_;

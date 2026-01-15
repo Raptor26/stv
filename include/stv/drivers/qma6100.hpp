@@ -62,8 +62,8 @@ struct qma6100_setup: public stv::qma6100_i2c_setup {
 ///          акселерометрических данных.
 class qma6100:
     public stv::qma6100_i2c,
-    public stv::non_copyable,
-    public stv::non_movable
+     public virtual stv::non_copyable,
+     public virtual stv::non_movable
 {
     STV_NO_PADDING_NO_OPTIMIZE_BEGIN
 
