@@ -146,6 +146,76 @@ TEST_CASE(
             }
         }
     }
+
+    SECTION("INT_EN1")
+    {
+        stv::qma6100_int_en1_reg reg;
+
+        SECTION("NT_FWM_EN")
+        {
+            SECTION("NT_FWM_EN == disable")
+            {
+                reg.int_fwm_en = stv::qma6100_int_en1_reg::switcher_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("NT_FWM_EN == enable")
+            {
+                reg.int_fwm_en = stv::qma6100_int_en1_reg::switcher_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"01000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("INT_FFULL_EN")
+        {
+            SECTION("INT_FFULL_EN == disable")
+            {
+                reg.int_ffull_en =
+                    stv::qma6100_int_en1_reg::switcher_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("INT_FFULL_EN == enable")
+            {
+                reg.int_ffull_en = stv::qma6100_int_en1_reg::switcher_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"00100000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("INT_DATA_EN")
+        {
+            SECTION("INT_DATA_EN == disable")
+            {
+                reg.int_data_en =
+                    stv::qma6100_int_en1_reg::switcher_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("INT_DATA_EN == enable")
+            {
+                reg.int_data_en = stv::qma6100_int_en1_reg::switcher_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"00010000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+    }
 }
 
 // NOLINTEND(*-magic-numbers, google-build-using-namespace,

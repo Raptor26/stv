@@ -57,7 +57,6 @@ class qma6100_bw_reg
     /// @brief Конструктор с возможностью инициализации значением регистра.
     ///
     /// @param value Начальное значение регистра (по умолчанию 0).
-
     explicit qma6100_bw_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
     {
@@ -178,6 +177,45 @@ struct qma6100_fsr_reg {
 
     /// @brief Текущая настройка диапазона измерений.
     range_t range{range_t::g_2};
+    // -------------------------------------------------------------------------
+};
+
+class qma6100_int_en1_reg
+{
+    static constexpr int bint_fwm_en_offset{6U};
+    static constexpr int bint_ffull_en_offset{5U};
+    static constexpr int bint_data_en_offset{4U};
+
+  public:
+    /// @brief Адрес регистра в устройстве.
+    static constexpr qma6100_reg_type addr{0x17};
+
+    /// @brief Оператор преобразования в 8-битное значение регистра.
+    ///
+    /// @return 8-битное значение регистра, собранное из полей.
+    explicit operator qma6100_reg_type() const
+    {
+        return static_cast<qma6100_reg_type>(
+            (static_cast<std::uint8_t>(int_fwm_en) << bint_fwm_en_offset)
+            | (static_cast<std::uint8_t>(int_ffull_en) << bint_ffull_en_offset)
+            | (static_cast<std::uint8_t>(int_data_en) << bint_data_en_offset));
+    }
+
+    enum struct switcher_t : std::uint8_t {
+        disable = 0,
+        enable  = 1,
+    };
+
+    /// @brief FIFO watermark interrupt.
+    switcher_t int_fwm_en{switcher_t::disable};
+    // -------------------------------------------------------------------------
+
+    /// @brief FIFO full interrupt.
+    switcher_t int_ffull_en{switcher_t::disable};
+    // -------------------------------------------------------------------------
+
+    /// @brief data ready interrupt.
+    switcher_t int_data_en{switcher_t::disable};
     // -------------------------------------------------------------------------
 };
 
