@@ -890,8 +890,6 @@ class qma6100_int_cfg_reg
     }
 };
 
-
-
 // NOLINTEND(*hicpp-signed-bitwise, *-member*)
 
 /// @brief Структура для хранения настройки регистров датчика QMA6100.

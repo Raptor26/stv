@@ -26,7 +26,6 @@
 #ifndef QMA6100_I2C_HPP
 #define QMA6100_I2C_HPP
 
-#include "qma6100_regs.hpp"
 #include "qma6100_types.hpp"
 #include "stv/i2c.hpp"
 
