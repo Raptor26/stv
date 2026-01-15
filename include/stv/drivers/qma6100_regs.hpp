@@ -211,11 +211,11 @@ class qma6100_fsr_reg
     /// быть измерено датчиком. Выбор диапазона влияет на разрешение АЦП:
     /// меньший диапазон даёт более высокую чувствительность к малым ускорениям.
     enum struct range_t : std::uint8_t {
-        g_2  = 1,  ///< Диапазон ±2g
-        g_4  = 2,  ///< Диапазон ±4g
-        g_8  = 4,  ///< Диапазон ±8g
-        g_16 = 8,  ///< Диапазон ±16g
-        g_32 = 15, ///< Диапазон ±32g
+        g_2  = 0b0001, ///< Диапазон ±2g
+        g_4  = 0b0010, ///< Диапазон ±4g
+        g_8  = 0b0100, ///< Диапазон ±8g
+        g_16 = 0b1000, ///< Диапазон ±16g
+        g_32 = 0b1111, ///< Диапазон ±32g
     };
 
     /// @brief Текущая настройка диапазона измерений (Full Scale Range).
@@ -230,8 +230,35 @@ class qma6100_fsr_reg
         qma6100_reg_type reg)
     {
         constexpr qma6100_reg_type range_mask{0x0F};
-        range =
-            static_cast<decltype(range)>((reg >> range_offset) & range_mask);
+        auto raw_value = (reg >> range_offset) & range_mask;
+
+        // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
+        switch(static_cast<decltype(range)>(raw_value))
+        {
+                // Согласно документации, если значение не совпадает ни с одним
+                // из указанных в range_t значений, то по умолчанию будет
+                // применено значение range_t::g_2.
+
+            case range_t::g_2:
+                range = range_t::g_2;
+                break;
+            case range_t::g_4:
+                range = range_t::g_4;
+                break;
+            case range_t::g_8:
+                range = range_t::g_8;
+                break;
+            case range_t::g_16:
+                range = range_t::g_16;
+                break;
+            case range_t::g_32:
+                range = range_t::g_32;
+                break;
+
+            default:
+                range = range_t::g_2;
+                break;
+        }
     }
 };
 
