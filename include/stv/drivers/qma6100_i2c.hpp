@@ -28,6 +28,7 @@
 
 #include "qma6100_types.hpp"
 #include "stv/i2c.hpp"
+#include "stv/utils.hpp"
 
 namespace stv {
 
@@ -44,7 +45,7 @@ struct qma6100_i2c_setup {
     static constexpr qma6100_reg_type i2c_addr_connect_to_vdd{0x13};
 
     /// @brief Указатель на объект интерфейса шины I2C (i2c_interface).
-    stv::i2c_interface *i2c;
+    stv::i2c_interface *i2c{nullptr};
 
     /// @brief Адрес устройства на шине I2C. По умолчанию используется адрес для
     /// AD0=GND.
@@ -66,10 +67,10 @@ class qma6100_i2c:
     public virtual stv::non_movable
 {
     /// @brief Указатель на интерфейс шины I2C.
-    stv::i2c_interface *i2c_;
+    const stv::i2c_interface *i2c_;
 
     /// @brief Адрес устройства на шине I2C.
-    qma6100_reg_type i2c_addr_;
+    const qma6100_reg_type i2c_addr_;
 
   public:
     /// @brief Конструктор с инициализацией интерфейса I2C и адреса устройства.
