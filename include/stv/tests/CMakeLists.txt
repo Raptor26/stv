@@ -5,7 +5,7 @@ project(test_stv)
 find_package(Catch2 REQUIRED)
 include(Catch)
 
-add_executable(${PROJECT_NAME} test_mutex.cpp test_utils.cpp)
+add_executable(${PROJECT_NAME} test_mutex.cpp test_runtime.cpp test_utils.cpp)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Catch2::Catch2WithMain stv::stv)
 catch_discover_tests(${PROJECT_NAME})
