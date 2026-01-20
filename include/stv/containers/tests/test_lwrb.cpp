@@ -37,9 +37,8 @@
 
 TEMPLATE_PRODUCT_TEST_CASE(
     "lwrb", "[stv][containers]", (stv::lwrb_setup),
-    ((stv::empty_mutex, stv::mutex_int_tag),
-     (std::recursive_mutex, stv::mutex_int_tag),
-     (std::recursive_mutex, stv::mutex_ext_tag)))
+    ((stv::empty_mutex), (stv::empty_mutex *), (std::recursive_mutex),
+     (std::recursive_mutex *)))
 {
     using setup_type     = TestType;
     using lwrb_base_type = stv::lwrb_base<setup_type>;
@@ -54,14 +53,14 @@ TEMPLATE_PRODUCT_TEST_CASE(
     // NOLINTNEXTLINE(misc-const-correctness)
     setup_type attr;
 
-    if constexpr(std::is_same_v<typename setup_type::mutex_condition_type,
-                                std::add_pointer_t<std::recursive_mutex>>)
+    if constexpr(std::is_same_v<typename setup_type::mutex_type,
+                                std::recursive_mutex *>)
     {
         attr.mutex = &std_mutex;
     }
 
-    if constexpr(std::is_same_v<typename setup_type::mutex_condition_type,
-                                std::add_pointer_t<stv::empty_mutex>>)
+    if constexpr(std::is_same_v<typename setup_type::mutex_type,
+                                stv::empty_mutex *>)
     {
         attr.mutex = &empty_mutex;
     }

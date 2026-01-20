@@ -39,20 +39,31 @@
 
 namespace stv {
 
-template<typename TMutex    = stv::empty_mutex,
-         typename TMutexTag = stv::mutex_int_tag>
-struct lwrb_setup {
-    using value_type           = std::byte;
-    using mutex_tag            = TMutexTag;
-    using mutex_type           = TMutex;
-    using mutex_condition_type = stv::mutex_type_setup_v<TMutex, TMutexTag>;
+template<typename TMutexOrPtr = stv::empty_mutex>
+class lwrb_setup
+{
+    // Определяем базовый тип мьютекса.
+    using mutex_base_type = std::remove_pointer_t<TMutexOrPtr>;
+
+    // Если передан указатель на мьютекс, то считаем что пользователь хочет
+    // использовать внешний мьютекс.
+    static constexpr bool is_external_mutex = std::is_pointer_v<TMutexOrPtr>;
+
+    // Тип для хранения мьютекса. Либо указатель на мьютекс, либо пустой тип.
+    using mutex_condition_type =
+        std::conditional_t<is_external_mutex, mutex_base_type *,
+                           std::monostate>;
+
+  public:
+    using value_type = std::byte;
+    using mutex_type = TMutexOrPtr;
 
     /// @brief Если указан внешний мьютекс, то mutex будет указателем на тип
     /// TMutex, в противном случае тип будет пустым.
     mutex_condition_type mutex{};
 };
 
-using lwrb_setup_default = lwrb_setup<stv::empty_mutex, stv::mutex_int_tag>;
+using lwrb_setup_default = lwrb_setup<stv::empty_mutex>;
 
 /// @brief API управления кольцевым буфером.
 ///
@@ -67,10 +78,7 @@ class lwrb_base:
     using container_type       = std::span<value_type>;
     using container_const_type = std::span<const value_type>;
     using setup_type           = TSetup;
-
-    using mutex_tag = typename TSetup::mutex_tag;
-    using mutex_type =
-        stv::mutex_type_v<typename TSetup::mutex_type, mutex_tag>;
+    using mutex_type           = typename TSetup::mutex_type;
 
   private:
     /// @brief Класс, деструктор которого автоматически освобождает прочитанную
@@ -106,7 +114,7 @@ class lwrb_base:
 
     auto get_mutex_ref() const -> std::remove_pointer_t<mutex_type> &
     {
-        if constexpr(std::is_same_v<mutex_tag, stv::mutex_ext_tag>)
+        if constexpr(std::is_pointer_v<decltype(mutex_)>)
         {
             assert(mutex_ != nullptr);
             return *mutex_;
@@ -363,7 +371,7 @@ class lwrb_base:
     {
         lwrb_init(&lwrb_, buffer_span.data(), buffer_span.size_bytes());
 
-        if constexpr(std::is_same_v<mutex_tag, stv::mutex_ext_tag>)
+        if constexpr(std::is_pointer_v<decltype(mutex_)>)
         {
             mutex_ = setup.mutex;
         }
