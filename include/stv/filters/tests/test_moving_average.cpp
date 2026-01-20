@@ -40,7 +40,7 @@
 // cppcoreguidelines-avoid-non-const-global-variables)
 
 TEST_CASE(
-    "Usage example (no multithread)", "[stv][moving_average]")
+    "Usage example (no multithread)", "[stv][filters]")
 {
     // Объявление псевдонима структуры инициализации.
     using TMovingAverageSetup =
@@ -61,7 +61,7 @@ TEST_CASE(
 
 TEST_CASE(
     "Usage example (with multithread by std::recursive_mutex)",
-    "[stv][moving_average]")
+    "[stv][filters]")
 {
     // Объявление псевдонима структуры инициализации.
     // @note Обратите внимание, обязательно должен использоваться рекурсивный
@@ -109,7 +109,7 @@ TEST_CASE(
 
 TEST_CASE(
     "Usage example (with custom guard by pointer and interface)",
-    "[stv][moving_average]")
+    "[stv][filters]")
 {
     struct ICustomGuard {
         virtual ~ICustomGuard() = default;
@@ -129,7 +129,7 @@ TEST_CASE(
 
     // Объявление псевдонима структуры инициализации.
     using TMovingAverageSetup =
-        stv::moving_average_setup<float, ICustomGuard, stv::mutex_ext_tag>;
+        stv::moving_average_setup<float, ICustomGuard *>;
 
     // Объявление псевдонима базового класса, который обеспечивает необходимый
     // функционал/
@@ -162,7 +162,7 @@ TEST_CASE(
 
 TEST_CASE(
     "Usage example (no multithread) with heap allocate memory",
-    "[stv][moving_average]")
+    "[stv][filters]")
 {
     // Объявление псевдонима структуры инициализации.
     using TMovingAverageSetup =
@@ -234,13 +234,11 @@ TEST_CASE(
     REQUIRE_FALSE(init.is_valid(10));
 }
 
-TEMPLATE_PRODUCT_TEST_CASE_SIG(
-    "Test copy operators and move operator", "[stv]",
-    ((typename TData, typename TMutex), TData, TMutex),
+TEMPLATE_PRODUCT_TEST_CASE(
+    "Test copy operators and move operator", "[stv][filters]",
     (stv::moving_average_setup),
-    ((double, std::recursive_mutex, stv::mutex_ext_tag),
-     (float, stv::empty_mutex, stv::mutex_ext_tag),
-     (float, stv::empty_mutex, stv::mutex_int_tag)))
+    ((float, stv::empty_mutex), (double, stv::empty_mutex *),
+     (double, std::recursive_mutex *)))
 {
     using namespace stv;
 
@@ -259,18 +257,14 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
         (void)empty_mutex;
 
         TSetup attr;
-        if constexpr(std::is_same_v<typename TSetup::mutex_tag,
-                                    stv::mutex_ext_tag>
-                     && std::is_same_v<typename TSetup::mutex_type,
-                                       std::recursive_mutex>)
+        if constexpr(std::is_same_v<typename TSetup::mutex_type,
+                                    decltype(std_mutex) *>)
         {
             attr.mutex = &std_mutex;
         }
 
-        if constexpr(std::is_same_v<typename TSetup::mutex_tag,
-                                    stv::mutex_ext_tag>
-                     && std::is_same_v<typename TSetup::mutex_type,
-                                       stv::empty_mutex>)
+        if constexpr(std::is_same_v<typename TSetup::mutex_type,
+                                    decltype(empty_mutex) *>)
         {
             attr.mutex = &empty_mutex;
         }
@@ -297,13 +291,16 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
             THEN("<buffer> from <dst_average> should point to new memory "
                  "address")
             {
-                REQUIRE(&dst_average.buffer != &src_average.buffer);
+                REQUIRE(&dst_average.buffer_
+                        != std::addressof(src_average.buffer_));
+                REQUIRE(std::addressof(dst_average.mutex_)
+                        != std::addressof(src_average.mutex_));
             }
 
             AND_THEN("<buffer> from <dst_average> should have all values from "
                      "<src_average> object")
             {
-                REQUIRE(dst_average.buffer == src_average.buffer);
+                REQUIRE(dst_average.buffer_ == src_average.buffer_);
             }
         }
 
@@ -314,20 +311,22 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
             THEN("<buffer> from <dst_average> should point to new memory "
                  "address")
             {
-                REQUIRE(&dst_average.buffer != &src_average.buffer);
+                REQUIRE(std::addressof(dst_average.buffer_)
+                        != std::addressof(src_average.buffer_));
+                REQUIRE(std::addressof(dst_average.mutex_)
+                        != std::addressof(src_average.mutex_));
             }
 
             AND_THEN("<buffer> from <dst_average> should have all values from "
                      "<src_average> object")
             {
-                REQUIRE(dst_average.buffer == src_average.buffer);
+                REQUIRE(dst_average.buffer_ == src_average.buffer_);
             }
         }
 
         WHEN("User move source object to destination one")
         {
-            auto *src_average_buffer_address = &src_average.buffer;
-            auto  src_buffer_span            = src_average.buffer;
+            auto src_buffer_span = src_average.buffer_;
 
             SimpleMovingAverage<TBase, window_width> dst_average{
                 std::move(src_average)};
@@ -335,13 +334,16 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
             THEN("<buffer> from <dst_average> should point to new memory "
                  "address")
             {
-                REQUIRE(&dst_average.buffer != src_average_buffer_address);
+                REQUIRE(std::addressof(dst_average.buffer_)
+                        != std::addressof(src_average.buffer_));
+                REQUIRE(std::addressof(dst_average.mutex_)
+                        != std::addressof(src_average.mutex_));
             }
 
             AND_THEN("<buffer> from <dst_average> should have all values from "
                      "<src_average> object")
             {
-                REQUIRE(dst_average.buffer == src_buffer_span);
+                REQUIRE(dst_average.buffer_ == src_buffer_span);
             }
         }
 
@@ -358,8 +360,7 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
                 (void)filtered;
             }
 
-            auto *src_average_buffer_address = &src.buffer;
-            auto  src_buffer_span            = src.buffer;
+            auto src_buffer_span = src.buffer_;
 
             SimpleMovingAverage<TBase, window_width> dst_average{attr};
 
@@ -368,24 +369,23 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
             THEN("<buffer> from <dst_average> should point to new memory "
                  "address")
             {
-                REQUIRE(&dst_average.buffer != src_average_buffer_address);
+                REQUIRE(std::addressof(dst_average.buffer_)
+                        != std::addressof(src.buffer_));
             }
 
             AND_THEN("<buffer> from <dst_average> should have all values from "
                      "<src> object")
             {
-                REQUIRE(dst_average.buffer == src_buffer_span);
+                REQUIRE(dst_average.buffer_ == src_buffer_span);
             }
         }
     }
 }
 
-TEMPLATE_PRODUCT_TEST_CASE_SIG(
-    "Moving Average", "[stv]",
-    ((typename TData, typename TMutex), TData, TMutex),
-    (stv::moving_average_setup),
-    ((double, std::recursive_mutex), (float, stv::empty_mutex),
-     (int, std::recursive_mutex), (fpm::fixed_16_16, stv::empty_mutex)))
+TEMPLATE_PRODUCT_TEST_CASE(
+    "Moving Average", "[stv][filters]", (stv::moving_average_setup),
+    ((float, stv::empty_mutex), (double, stv::empty_mutex *),
+     (fpm::fixed_16_16, std::recursive_mutex), (int, std::recursive_mutex *)))
 {
     using namespace stv;
     using namespace boost;
@@ -394,6 +394,24 @@ TEMPLATE_PRODUCT_TEST_CASE_SIG(
     using TBase  = moving_average_base<TSetup>;
     constexpr decltype(std::declval<TSetup>().window_width) window_width{15};
     TSetup                                                  attr;
+
+    std::recursive_mutex                                    std_mutex{};
+    (void)std_mutex;
+
+    stv::empty_mutex empty_mutex;
+    (void)empty_mutex;
+
+    if constexpr(std::is_same_v<typename TSetup::mutex_type,
+                                decltype(std_mutex) *>)
+    {
+        attr.mutex = &std_mutex;
+    }
+
+    if constexpr(std::is_same_v<typename TSetup::mutex_type,
+                                decltype(empty_mutex) *>)
+    {
+        attr.mutex = &empty_mutex;
+    }
 
     SECTION("Create invalid object")
     {

@@ -134,6 +134,7 @@
 #include "stv/wrappers.hpp"
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <concepts>
 #include <cstdint>
 #include <variant>
@@ -147,13 +148,24 @@ struct max_window_width_limit_error {
 };
 
 /// @brief Параметры фильтра скользящего среднего.
-template<typename T, typename TMutex = stv::empty_mutex,
-         typename TMutexTag = stv::mutex_int_tag>
-struct moving_average_setup {
-    using value_type           = T;
-    using mutex_tag            = TMutexTag;
-    using mutex_type           = TMutex;
-    using mutex_condition_type = stv::mutex_type_setup_v<TMutex, TMutexTag>;
+template<typename T, typename TMutexOrPtr = stv::empty_mutex>
+class moving_average_setup
+{
+    // Определяем базовый тип мьютекса.
+    using mutex_base_type = std::remove_pointer_t<TMutexOrPtr>;
+
+    // Если передан указатель на мьютекс, то считаем что пользователь хочет
+    // использовать внешний мьютекс.
+    static constexpr bool is_external_mutex = std::is_pointer_v<TMutexOrPtr>;
+
+    // Тип для хранения мьютекса. Либо указатель на мьютекс, либо пустой тип.
+    using mutex_condition_type =
+        std::conditional_t<is_external_mutex, mutex_base_type *,
+                           std::monostate>;
+
+  public:
+    using value_type = T;
+    using mutex_type = TMutexOrPtr;
 
     static constexpr std::uint16_t default_window_width{1};
 
@@ -218,10 +230,8 @@ template<typename TSetup>
 class moving_average_base
 {
   public:
-    using value_type = typename TSetup::value_type;
-    using mutex_tag  = typename TSetup::mutex_tag;
-    using mutex_type =
-        stv::mutex_type_v<typename TSetup::mutex_type, mutex_tag>;
+    using value_type     = typename TSetup::value_type;
+    using mutex_type     = typename TSetup::mutex_type;
     using setup_type     = TSetup;
     using container_type = gsl::span<value_type>;
 
@@ -235,7 +245,11 @@ class moving_average_base
     ///
     /// @note Это поле сделано защищенным для тестирования защищенных
     /// операторов перемещения и копирования.
-    container_type buffer;
+    container_type buffer_; /// NOLINT(readability-identifier-naming)
+
+    /// @brief Используется для обеспечения атомарности обновления данных в
+    /// многопоточном приложении.
+    mutable mutex_type mutex_; /// NOLINT(readability-identifier-naming)
 
   private:
     /// @brief Накопленная сумма значений в буфере.
@@ -264,10 +278,6 @@ class moving_average_base
     /// значение вместо обратного.
     value_type window_width_inv_{};
 
-    /// @brief Используется для обеспечения атомарности обновления данных в
-    /// многопоточном приложении.
-    mutable mutex_type mutex_;
-
   public:
     /// @brief Деструктор.
     ///
@@ -295,11 +305,11 @@ class moving_average_base
     moving_average_base(const moving_average_base &other) = default;
 
     explicit operator boost::leaf::result<void>() const noexcept(
-        noexcept(setup_default_.is_valid(buffer.size()))
-        && noexcept(setup_actual_.is_valid(buffer.size())))
+        noexcept(setup_default_.is_valid(buffer_.size()))
+        && noexcept(setup_actual_.is_valid(buffer_.size())))
     {
-        BOOST_LEAF_CHECK(setup_default_.is_valid(buffer.size()));
-        BOOST_LEAF_CHECK(setup_actual_.is_valid(buffer.size()));
+        BOOST_LEAF_CHECK(setup_default_.is_valid(buffer_.size()));
+        BOOST_LEAF_CHECK(setup_actual_.is_valid(buffer_.size()));
         return boost::leaf::result<void>{};
     }
 
@@ -328,12 +338,12 @@ class moving_average_base
     auto setup(
         U &&params, bool is_isr = false)
         noexcept(
-            noexcept(params.is_valid(buffer.size()))
+            noexcept(params.is_valid(buffer_.size()))
             && noexcept(
                 change_window_width_and_update_counter(params.window_width))
             && noexcept(UpdateWindowWithInverse())) -> boost::leaf::result<void>
     {
-        BOOST_LEAF_CHECK(params.is_valid(buffer.size()));
+        BOOST_LEAF_CHECK(params.is_valid(buffer_.size()));
 
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
 
@@ -413,8 +423,8 @@ class moving_average_base
     {
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
 
-        sum_          += new_sample - buffer[cnt_];
-        buffer[cnt_]   = new_sample;
+        sum_          += new_sample - buffer_[cnt_];
+        buffer_[cnt_]   = new_sample;
         auto filtered  = new_sample;
 
         if(!full(is_isr))
@@ -474,15 +484,15 @@ class moving_average_base
     /// массив для хранения отсчетов.
     moving_average_base(
         const setup_type &attr, container_type buffer_span):
-        buffer{buffer_span},
-        setup_actual_(static_cast<bool>(attr.is_valid(buffer.size()))
+        buffer_{buffer_span},
+        setup_actual_(static_cast<bool>(attr.is_valid(buffer_.size()))
                           ? attr
                           : setup_type{.window_width = 0U}),
         setup_default_{setup_actual_}
     {
         UpdateWindowWithInverse();
 
-        if constexpr(std::is_same_v<mutex_tag, stv::mutex_ext_tag>)
+        if constexpr(std::is_pointer_v<decltype(mutex_)>)
         {
             mutex_ = attr.mutex;
         }
@@ -527,7 +537,7 @@ class moving_average_base
             // Вычислить индекс элемента, который должен быть удален из
             // суммы.
             auto idx  = (cnt_ + i) % old_width;
-            sum_     -= buffer[idx];
+            sum_     -= buffer_[idx];
         }
 
         // Обновить буфер, оставляя только последние элементы.
@@ -549,13 +559,13 @@ class moving_average_base
             auto idx = ((last_element_idx - i) % old_width);
 
             // Обновить буфер
-            buffer[new_max_element_idx - i] = buffer[idx];
+            buffer_[new_max_element_idx - i] = buffer_[idx];
         }
 
         // Установить все элементы за пределами new_width в 0.
-        std::fill(buffer.begin()
+        std::fill(buffer_.begin()
                       + static_cast<container_type::difference_type>(new_width),
-                  buffer.end(), static_cast<value_type>(0));
+                  buffer_.end(), static_cast<value_type>(0));
 
         // Обновить счетчик и проверить, что он не становится отрицательным.
         if(cnt_ < size_decrement)
@@ -607,7 +617,7 @@ class moving_average_base
 
     auto get_mutex_ref() const -> std::remove_pointer_t<mutex_type> &
     {
-        if constexpr(std::is_same_v<mutex_tag, stv::mutex_ext_tag>)
+        if constexpr(std::is_pointer_v<decltype(mutex_)>)
         {
             assert(mutex_ != nullptr);
             return *mutex_;
