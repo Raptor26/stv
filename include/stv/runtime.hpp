@@ -116,6 +116,8 @@ class runtime
         }
     }
 
+    virtual ~runtime() = default;
+
     explicit operator bool() const
     {
         auto is_valid{true};
