@@ -131,9 +131,10 @@ class runtime
     ///
     /// @note Ожидается, что данный метод вызывается из контекста прерывания,
     /// например из прерывания systic.
-    auto inc() -> void
+    auto inc(
+        bool is_isr = false) -> void
     {
-        const auto lock  = stv::lock_guard{get_mutex_ref()};
+        const auto lock  = stv::lock_guard{get_mutex_ref(), is_isr};
         counter_        += increment_period_.count();
     }
 
