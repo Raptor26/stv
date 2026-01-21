@@ -61,6 +61,12 @@ class non_movable
     #define STV_NO_PADDING_NO_OPTIMIZE_END
 #endif
 
+#if UNIT_TEST_ENABLE
+    #define STV_VIRTUAL virtual
+#else
+    #define STV_VIRTUAL
+#endif
+
 /// @brief Return true if the all variadic «Args» is true.
 ///
 /// @see Шаблоны C++. Справочник разработчика, 2-е издание - 2018
