@@ -61,7 +61,7 @@ class non_movable
     #define STV_NO_PADDING_NO_OPTIMIZE_END
 #endif
 
-#if UNIT_TEST_ENABLE
+#ifdef UNIT_TEST_ENABLE
     #define STV_VIRTUAL virtual
 #else
     #define STV_VIRTUAL
