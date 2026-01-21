@@ -1,7 +1,7 @@
 /// @file kraslibs_deadline_timer.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
 ///
-/// @copyright (c) 2025 Gagaring
+/// @copyright (c) 2026 Gagaring
 ///
 /// MIT License:
 ///
@@ -23,177 +23,144 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
-#ifndef KRASLIBS_DEADLINE_TIMER_HPP
-#define KRASLIBS_DEADLINE_TIMER_HPP
+#ifndef DEADLINE_TIMER_HPP
+#define DEADLINE_TIMER_HPP
 
-#include "kraslibs_runtime.hpp"
-#include "kraslibs_utils.hpp"
-#include <limits>
+#include "runtime.hpp"
+#include "stv/mutex_guard.hpp"
+#include "stv/utils.hpp"
+#include <type_traits>
 
-namespace kraslibs {
+namespace stv {
 
-template<std::unsigned_integral TCounter = runtime_type>
-struct DeadlineTimerStructInit {
-    Runtime<TCounter> *runtime_ptr{nullptr};
-
-    /// @brief Минимальное значение timeout. Если установлено меньше указанного
-    /// значения рпи вызове SetTimeoutInMs(), то IsDeadlineElapsed() всегда
-    /// будет возвращать false.
-    TCounter min_timeout_ms{MIN_TIMEOUT_MS_DEFAULT};
-
-  private:
-    static constexpr TCounter MIN_TIMEOUT_MS_DEFAULT{100};
-};
-
-/// @brief Класс обеспечивает проверку deadline.
-/// @tparam TCounter
-template<std::unsigned_integral TCounter = runtime_type>
-class DeadlineTimer
+template<typename TRuntime, typename TMutexOrPtr = stv::empty_mutex>
+class deadline_timer_setup
 {
-    /// @brief Указатель на структуру времени с момента старта системы.
-    Runtime<TCounter> *runtime_ptr_;
+    // Определяем базовый тип мьютекса.
+    using mutex_base_type = std::remove_pointer_t<TMutexOrPtr>;
 
-    /// @brief В данную переменную записывается время с момента старта системы
-    /// при вызове SetCurrentTimeInMs().
-    volatile TCounter current_time_{0};
+    // Если передан указатель на мьютекс, то считаем что пользователь хочет
+    // использовать внешний мьютекс.
+    static constexpr bool is_external_mutex = std::is_pointer_v<TMutexOrPtr>;
 
-    /// @brief Период времени относительно current_time_, при превышении
-    /// которого IsDeadlineElapsed() начнет возвращать true.
-    volatile TCounter deadline_ms_{0};
-
-    volatile TCounter timeout_ms_{0};
-
-    /// @brief Минимальное значение timeout. Если установлено меньше указанного
-    /// значения при вызове SetTimeoutInMs(), то IsDeadlineElapsed() всегда
-    /// будет возвращать false.
-    const TCounter min_timeout_ms_{100};
-
-    /// @brief Остаток времени до истечения deadline. Полезно при отладке.
-    volatile TCounter time_before_deadline_ms_{
-        std::numeric_limits<decltype(time_before_deadline_ms_)>::max()};
+    // Тип для хранения мьютекса. Либо указатель на мьютекс, либо пустой тип.
+    using mutex_condition_type =
+        std::conditional_t<is_external_mutex, mutex_base_type *,
+                           std::monostate>;
 
   public:
-    explicit DeadlineTimer(
-        const DeadlineTimerStructInit<TCounter> &attr):
-        runtime_ptr_{attr.runtime_ptr},
-        min_timeout_ms_{attr.min_timeout_ms}
+    using runtime_type = TRuntime;
+    using counter_type = TRuntime::value_type;
+    using mutex_type   = TMutexOrPtr;
+
+    /// @brief Указатель на runtime таймер.
+    TRuntime            *runtime{nullptr};
+
+    mutex_condition_type mutex{};
+};
+
+template<typename TSetup>
+class deadline_timer: public stv::non_copyable, stv::non_movable
+{
+    using setup_type   = TSetup;
+    using runtime_type = TSetup::runtime_type;
+    using counter_type = TSetup::counter_type;
+    using mutex_type   = typename TSetup::mutex_type;
+
+    /// @brief Указатель на runtime таймер.
+    runtime_type      *runtime_;
+    counter_type       deadline_{counter_type{0}};
+    bool               is_started_{false};
+    mutable mutex_type mutex_;
+
+    auto               start() -> void { is_started_ = true; }
+
+    /// @brief Возвращает статус deadline таймера: активен или нет
+    ///
+    /// @return true - если таймер активен и deadline еще не истек, false в
+    /// противном случае.
+    [[nodiscard]] auto is_started() const { return is_started_; }
+
+    auto get_mutex_ref() const -> std::remove_pointer_t<mutex_type> &
     {
-    }
-
-    virtual ~DeadlineTimer() = default;
-
-    DeadlineTimer(const DeadlineTimer &other) = default;
-    DeadlineTimer(DeadlineTimer &&other)      = delete;
-
-    auto operator=(const DeadlineTimer &other) -> DeadlineTimer & = default;
-    auto operator=(DeadlineTimer &&other) -> DeadlineTimer &      = delete;
-
-    /// @brief Возвращает True если класс готов к работе.
-    explicit operator bool() const
-    {
-        auto is_true{true};
-        if(!runtime_ptr_)
+        if constexpr(std::is_pointer_v<decltype(mutex_)>)
         {
-            is_true = false;
+            assert(mutex_);
+            return *mutex_;
         }
-        return is_true;
-    }
-
-    /// @brief Метод устанавливает timeout от текущего момента (момента вызова).
-    /// В дальнейшем, вы можете провеять истек ли указанный в timeout_ms период
-    /// времени с помощью IsDeadlineElapsed().
-    /// @note Вызов метода SetTimeoutInMs() эквивалентно запуску таймера.
-    /// @param[in] timeout_ms: Период времени, по истечении которого
-    /// IsDeadlineElapsed() начет возвращать true.
-    /// @return true - если timeout успешно установлен, false в противном
-    /// случае.
-    KRASLIBS_VIRTUAL auto SetTimeoutInMs(
-        TCounter timeout_ms) -> bool
-    {
-        auto is_timeout_set{false};
-        if(timeout_ms >= min_timeout_ms_)
+        else
         {
-            SetCurrentTimeInMs();
-
-            deadline_ms_   = GiveCurrentTimeInMs() + timeout_ms;
-            timeout_ms_    = timeout_ms;
-            is_timeout_set = true;
+            return mutex_;
         }
-
-        return is_timeout_set;
     }
 
-    /// @brief Метод вычисляет период времени между вызовами SetTimeoutInMs() и
-    /// IsDeadlineElapsed(). Если период времени равен или превышает значение,
-    /// указанное при вызове SetTimeoutInMs(), то метод вернет true, в противном
-    /// случае вернет false.
-    /// @return true если период между вызовами SetTimeoutInMs() и
-    /// IsDeadlineElapsed() равен или превышает промежуток, указанный при вызове
-    /// SetTimeoutInMs().
-    KRASLIBS_VIRTUAL auto IsDeadlineElapsed() -> bool
+  public:
+    explicit deadline_timer(
+        const setup_type &setup):
+        runtime_(setup.runtime)
     {
-        if(deadline_ms_ == 0U)
+        if constexpr(std::is_pointer_v<decltype(mutex_)>)
         {
-            return false;
+            mutex_ = setup.mutex;
         }
+    }
 
-        const TCounter current_time = runtime_ptr_->GiveCurrentTimeInMs();
+    virtual ~deadline_timer() = default;
 
-        time_before_deadline_ms_ = deadline_ms_ - current_time;
+    explicit operator bool() const { return stv::all_true(runtime_); }
 
-        // elapsed_time я является целым беззнаковым типом. Переполнение целых
-        // беззнаковых чисел является определенным.
-        const TCounter elapsed_time = current_time - current_time_;
-
-        auto           is_timeout_elapsed{false};
-        if(elapsed_time >= timeout_ms_)
+    /// @brief Проверяет, истек ли указанный при вызове set_delay() период
+    /// времени.
+    ///
+    /// @note Если set_delay() не был указан, то метод всегда вернет true.
+    ///
+    /// @return true если истек указанный при вызове set_delay() период времени.
+    [[nodiscard]] auto is_elapsed()
+    {
+        const auto lock = stv::lock_guard{get_mutex_ref()};
+        if(is_started())
         {
-            is_timeout_elapsed       = true;
-            time_before_deadline_ms_ = 0U;
+            const auto current_time = runtime_->get();
+            const auto is_deadline_elapsed{
+                static_cast<bool>(current_time >= deadline_)};
+
+            if(is_deadline_elapsed)
+            {
+                this->stop();
+            }
+            return is_deadline_elapsed;
         }
-
-        return is_timeout_elapsed;
+        return true;
     }
 
-    /// @brief После вызова метода, IsDeadlineElapsed() всегда будет возвращать
-    /// false до тех пор пока не будет вызван SetTimeoutInMs().
-    /// @note SetTimeoutInMs() должен вернуть true, это означает что период
-    /// успешно установлен.
-    KRASLIBS_VIRTUAL void Reset()
+    /// @brief Устанавливает задержку срабатывания и запускает таймер.
+    ///
+    /// @param[in] delay Задержка относительно момента вызова по истечении
+    /// которой метод is_elapsed() вернет true.
+    auto set_delay(
+        const counter_type &delay) -> void
     {
-        deadline_ms_ = 0U;
-        time_before_deadline_ms_ =
-            std::numeric_limits<decltype(time_before_deadline_ms_)>::max();
+        if(delay.count()
+           != static_cast<std::remove_cvref_t<decltype(delay)>::rep>(0))
+        {
+            const auto lock         = stv::lock_guard{get_mutex_ref()};
+            const auto current_time = runtime_->get();
+            deadline_               = current_time + delay;
+            this->start();
+        }
     }
 
-    KRASLIBS_VIRTUAL auto IsActive() -> bool { return deadline_ms_ != 0; }
-
-    /// @brief Возвращает промежуток времени перед наступлением deadline.
-    /// @return Количество мс. перед наступлением deadline.
-    KRASLIBS_VIRTUAL auto GetTimeBeforeDeadlineMs() -> TCounter
+    /// @brief Принудительно останавливает deadline таймер.
+    ///
+    /// @note После остановки таймера метод is_elapsed() вернет true.
+    auto stop() -> void
     {
-        return time_before_deadline_ms_;
-    }
-
-  private:
-    /// @brief Запись текущего времени с момента старта системы. Относительно
-    /// этого записанного значения будет проверятся истекло ли время.
-    void SetCurrentTimeInMs()
-    {
-        // todo добавить критическую секцию.
-        current_time_ = runtime_ptr_->GiveCurrentTimeInMs();
-    }
-
-    /// @brief Возвращает значение счетчика, установленное при вызове
-    /// SetCurrentTimeInMs().
-    /// @return Значение счетчика.
-    [[nodiscard]] auto GiveCurrentTimeInMs() const
-    {
-        // todo добавить критическую секцию.
-        return current_time_;
+        const auto lock = stv::lock_guard{get_mutex_ref()};
+        is_started_     = false;
+        deadline_       = counter_type{0};
     }
 };
 
-} // namespace kraslibs
+} // namespace stv
 
-#endif /* KRASLIBS_DEADLINE_TIMER_HPP */
+#endif /* DEADLINE_TIMER_HPP */
