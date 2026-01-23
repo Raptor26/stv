@@ -106,7 +106,8 @@ class lwrb_base:
         }
     };
 
-    lwrb_t lwrb_;
+    container_type storage_;
+    lwrb_t         lwrb_;
 
     /// @brief Используется для обеспечения атомарности обновления данных в
     /// многопоточном приложении.
@@ -278,6 +279,7 @@ class lwrb_base:
     auto is_empty(
         bool is_isr = false) const
     {
+        const stv::lock_guard critical{get_mutex_ref(), is_isr};
         return get_full(is_isr) == 0;
     }
 
@@ -337,7 +339,7 @@ class lwrb_base:
         bool is_isr = false)
     {
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
-        return container_type{static_cast<std::byte *>(
+        return container_type{static_cast<value_type *>(
                                   lwrb_get_linear_block_read_address(&lwrb_)),
                               lwrb_get_linear_block_read_length(&lwrb_)};
     }
@@ -366,7 +368,7 @@ class lwrb_base:
     ///
     /// @return Фактическое количество байт, которое помечено как прочитанное.
     auto skip(
-        auto to_skip, bool is_isr = false)
+        const auto &to_skip, bool is_isr = false)
     {
         return skip(to_skip.size_bytes(), is_isr);
     }
@@ -381,9 +383,10 @@ class lwrb_base:
   protected:
     // NOLINTBEGIN(*-member-init)
     lwrb_base(
-        const setup_type &setup, container_type buffer_span)
+        const setup_type &setup, container_type buffer_span):
+        storage_{buffer_span}
     {
-        lwrb_init(&lwrb_, buffer_span.data(), buffer_span.size_bytes());
+        lwrb_init(&lwrb_, storage_.data(), storage_.size_bytes());
 
         if constexpr(std::is_pointer_v<decltype(mutex_)>)
         {
@@ -395,7 +398,7 @@ class lwrb_base:
 };
 
 template<typename TBase, std::size_t SIZE_IN_BYTES>
-using lwrb = stv::container_size_wrapper<TBase, SIZE_IN_BYTES>;
+using lwrb = stv::container_size_wrapper<TBase, SIZE_IN_BYTES + 1>;
 
 } // namespace stv
 
