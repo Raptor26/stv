@@ -2,8 +2,26 @@
 #define WRAPPERS_HPP
 
 #include "stv/concepts.hpp"
+#include <array>
 
 namespace stv {
+
+template<typename T, std::size_t SIZE>
+class memory_storage_proxy
+{
+    std::array<T, SIZE> storage_;
+
+  public:
+    [[nodiscard]] auto begin() { return storage_.begin(); }
+
+    [[nodiscard]] auto begin() const { return storage_.begin(); }
+
+    [[nodiscard]] auto end() { return storage_.end(); }
+
+    [[nodiscard]] auto end() const { return storage_.end(); }
+
+    [[nodiscard]] auto data() { return storage_.data(); }
+};
 
 /// @brief Обертка контейнера, предоставляющая выделенную память.
 ///
@@ -20,7 +38,7 @@ namespace stv {
 /// выделить память.
 template<stv::sizeable_container_concept TBase, std::size_t SIZE = 20>
 class container_size_wrapper:
-    private std::array<typename TBase::value_type, SIZE>,
+    public stv::memory_storage_proxy<typename TBase::value_type, SIZE>,
     public TBase
 {
   protected:
@@ -28,12 +46,15 @@ class container_size_wrapper:
     using setup_type     = typename TBase::setup_type;
     using container_type = typename TBase::container_type;
 
+    using buffer_type =
+        stv::memory_storage_proxy<typename TBase::value_type, SIZE>;
+
   public:
     template<typename U>
         requires std::same_as<std::remove_cvref_t<U>, setup_type>
     explicit container_size_wrapper(
         U &&attr):
-        std::array<value_type, SIZE>{},
+        buffer_type{},
         TBase{std::forward<U>(attr), container_type{this->begin(), this->end()}}
     {
     }
