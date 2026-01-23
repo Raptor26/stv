@@ -294,6 +294,12 @@ class lwrb_base:
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
         return lwrb_.size;
     }
+
+    auto reset_buff(
+        bool is_isr = false) -> void
+    {
+        const stv::lock_guard critical{get_mutex_ref(), is_isr};
+        lwrb_reset(&lwrb_);
     }
 
     /// @brief Возвращает std::span, который указывает на линейный участок
@@ -363,6 +369,13 @@ class lwrb_base:
         auto to_skip, bool is_isr = false)
     {
         return skip(to_skip.size_bytes(), is_isr);
+    }
+
+    auto advance(
+        std::size_t len, bool is_isr = false)
+    {
+        const stv::lock_guard critical{get_mutex_ref(), is_isr};
+        return lwrb_advance(&lwrb_, len);
     }
 
   protected:
