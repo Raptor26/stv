@@ -286,13 +286,14 @@ class lwrb_base:
     /// @param[in] is_isr True если вызов выполнен из контекста прерывания,
     /// false - в противном случае.
     ///
-    /// @return Возвращает количество байт, которое одновременно может
+    /// @return Возвращает емкость буфера..
     /// хранить буфер.
     auto capacity(
         bool is_isr = false)
     {
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
-        return lwrb_.size - static_cast<decltype(lwrb_.size)>(1);
+        return lwrb_.size;
+    }
     }
 
     /// @brief Возвращает std::span, который указывает на линейный участок

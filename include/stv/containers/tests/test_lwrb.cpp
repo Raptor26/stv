@@ -66,7 +66,7 @@ TEMPLATE_PRODUCT_TEST_CASE(
     }
 
     stv::lwrb<lwrb_base_type, buffer_size> buff{attr};
-    REQUIRE(buff.get_free() == buffer_size - 1);
+    REQUIRE(buff.get_free() == buffer_size);
 
     SECTION("Check write with overflow")
     {
@@ -74,8 +74,10 @@ TEMPLATE_PRODUCT_TEST_CASE(
         REQUIRE(buff.write(str) == 0);
         REQUIRE(buff.get_full() == 0);
 
-        REQUIRE(buff.write(str, false) == buff.capacity());
-        REQUIRE(buff.get_full() == buff.capacity());
+        const auto     real_capacity = buff.capacity() - 1;
+        constexpr auto write_all_or_nothing{false};
+        REQUIRE(buff.write(str, write_all_or_nothing) == real_capacity);
+        REQUIRE(buff.get_full() == real_capacity);
     }
 
     SECTION("Check write/read")
