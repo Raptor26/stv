@@ -23,7 +23,7 @@
 /// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 /// IN THE SOFTWARE.
 
-#include "stv/communication/serial.hpp"
+#include "stv/communication/serial_sender.hpp"
 #include "stv/containers/simbuff.hpp"
 #include "stv/mutex_guard.hpp"
 #include <benchmark/benchmark.h>
