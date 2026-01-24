@@ -60,7 +60,9 @@ class sim_buff
     explicit sim_buff(
         const std::size_t size_in_bytes):
         size_in_bytes_{size_in_bytes},
-        data_ptr_{safe_allocate(size_in_bytes_)}
+        data_ptr_{safe_allocate(size_in_bytes_)},
+        offset_head_{0},
+        offset_tail_{0}
     {
     }
 
@@ -68,7 +70,9 @@ class sim_buff
 
     sim_buff():
         data_ptr_{nullptr},
-        size_in_bytes_{0}
+        size_in_bytes_{0},
+        offset_head_{0},
+        offset_tail_{0}
     {
     }
 
@@ -81,7 +85,9 @@ class sim_buff
     sim_buff(
         const sim_buff &other) noexcept:
         size_in_bytes_{other.size_in_bytes_},
-        data_ptr_{safe_allocate(size_in_bytes_)}
+        data_ptr_{safe_allocate(size_in_bytes_)},
+        offset_head_{other.offset_head_},
+        offset_tail_{other.offset_tail_}
     {
         if(data_ptr_ != nullptr)
         {
@@ -94,7 +100,9 @@ class sim_buff
     sim_buff(
         sim_buff &&other) noexcept:
         size_in_bytes_{other.size_in_bytes_},
-        data_ptr_{other.data_ptr_}
+        data_ptr_{other.data_ptr_},
+        offset_head_{other.offset_head_},
+        offset_tail_{other.offset_tail_}
     {
         other.data_ptr_ = nullptr;
     }
@@ -120,33 +128,27 @@ class sim_buff
     // -------------------------------------------------------------------------
     [[nodiscard]] auto begin() noexcept
     {
-        return reinterpret_cast<iterator>(data_ptr_);
+        return reinterpret_cast<iterator>(data());
     }
 
     [[nodiscard]] auto begin() const noexcept
     {
-        return reinterpret_cast<const_iterator>(data_ptr_);
+        return reinterpret_cast<const_iterator>(data());
     }
 
-    [[nodiscard]] auto cbegin() const noexcept
-    {
-        return reinterpret_cast<const_iterator>(data_ptr_);
-    }
+    [[nodiscard]] auto cbegin() const noexcept { return begin(); }
 
     [[nodiscard]] auto end() noexcept
     {
-        return reinterpret_cast<iterator>(begin() + size_in_bytes_);
+        return reinterpret_cast<iterator>(begin() + size());
     }
 
     [[nodiscard]] auto end() const noexcept
     {
-        return reinterpret_cast<const_iterator>(begin() + size_in_bytes_);
+        return reinterpret_cast<const_iterator>(begin() + size());
     }
 
-    [[nodiscard]] auto cend() const noexcept
-    {
-        return reinterpret_cast<const_iterator>(begin() + size_in_bytes_);
-    }
+    [[nodiscard]] auto cend() const noexcept { return end(); }
 
     // -------------------------------------------------------------------------
 
@@ -169,7 +171,7 @@ class sim_buff
     template<typename USER_DATA_TYPE = std::uint8_t>
     [[nodiscard]] auto data() const noexcept
     {
-        return reinterpret_cast<USER_DATA_TYPE *>(data_ptr_);
+        return reinterpret_cast<USER_DATA_TYPE *>(data_ptr_ + offset_head_);
     }
 
     // -------------------------------------------------------------------------
@@ -177,7 +179,10 @@ class sim_buff
     /// @brief Возвращает размер выделенной области памяти в байтах.
     /// @return Количество байт, выделенные по адресу, который возвращает метод
     /// Addr().
-    [[nodiscard]] auto size() const noexcept { return size_in_bytes_; }
+    [[nodiscard]] auto size() const noexcept
+    {
+        return size_in_bytes_ - offset_head_ - offset_tail_;
+    }
 
     // -------------------------------------------------------------------------
 
@@ -186,6 +191,39 @@ class sim_buff
     void free() noexcept { safe_deallocate(); }
 
     // -------------------------------------------------------------------------
+
+    /// @brief Задает смещение в байтах относительно начала выделенной области
+    /// памяти. Метод data() возвращает адрес начала выделенной в аллокаторе
+    /// области памяти + смещение.
+    ///
+    /// @note Значение вызова size() уменьшается на количество байт, указанное
+    /// при вызове trim_head() и trim_tail().
+    ///
+    /// @param offset Смещение в байтах относительно начала области памяти.
+    void trim_head(
+        std::size_t offset)
+    {
+        if(offset < size_in_bytes_)
+        {
+            offset_head_ = offset;
+        }
+    }
+
+    /// @brief Задает смещение в байтах относительно конца выделенной области
+    /// памяти.
+    ///
+    /// @note Значение вызова size() уменьшается на количество байт, указанное
+    /// при вызове trim_head() и trim_tail().
+    ///
+    /// @param offset Смещение в байтах относительно конца области памяти.
+    void trim_tail(
+        std::size_t offset)
+    {
+        if(offset < size_in_bytes_)
+        {
+            offset_tail_ = offset;
+        }
+    }
 
   private:
     [[nodiscard]] auto safe_allocate(
@@ -214,7 +252,11 @@ class sim_buff
     std::size_t size_in_bytes_;
 
     /// @brief Указатель на выделенную область памяти под хранение сообщения.
-    pointer data_ptr_;
+    pointer     data_ptr_;
+
+    std::size_t offset_head_;
+
+    std::size_t offset_tail_;
 };
 
 } // namespace stv
