@@ -36,6 +36,7 @@
 #include <iterator>
 #include <span>
 #include <string_view>
+#include <type_traits>
 
 namespace stv {
 
@@ -163,6 +164,28 @@ class lwrb_base:
 
     auto reset() -> void { lwrb_reset(&lwrb_); }
 
+    auto write(
+        const void *src, std::size_t len, bool write_all_or_nothing = true,
+        bool is_isr = false)
+    {
+        return write_helper(src, len, write_all_or_nothing, is_isr);
+    }
+
+    template<typename TIter>
+        requires std::input_or_output_iterator<TIter>
+    auto write(
+        const TIter iter_begin, const TIter iter_end,
+        bool write_all_or_nothing = true, bool is_isr = false)
+    {
+        constexpr auto item_size =
+            sizeof(typename std::iterator_traits<TIter>::value_type);
+        return write_helper(
+            iter_begin,
+            static_cast<std::size_t>(std::distance(iter_begin, iter_end))
+                * item_size,
+            write_all_or_nothing, is_isr);
+    }
+
     /// @brief Запись данных в буфер.
     ///
     /// @tparam U Тип контейнера, из которого выполняется запись в буфер.
@@ -176,6 +199,7 @@ class lwrb_base:
     ///
     /// @return Возвращает количество записанных в буфер байт.
     template<typename U>
+        requires std::ranges::contiguous_range<U> && requires(U u) { u.size(); }
     auto write(
         const U &src, bool write_all_or_nothing = true, bool is_isr = false)
     {
@@ -323,7 +347,7 @@ class lwrb_base:
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
         return skipable{lwrb_,
                         get_mutex_ref(),
-                        {static_cast<std::byte *>(
+                        {static_cast<value_type *>(
                              lwrb_get_linear_block_read_address(&lwrb_)),
                          lwrb_get_linear_block_read_length(&lwrb_)}};
     }
@@ -382,6 +406,8 @@ class lwrb_base:
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
         return lwrb_advance(&lwrb_, len);
     }
+
+    decltype(auto) get_instance() { return &lwrb_; }
 
   protected:
     // NOLINTBEGIN(*-member-init)

@@ -133,8 +133,9 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
         SECTION("Read like std::span")
         {
-            std::array<std::byte, buffer_size> dst{};
-            REQUIRE(buff.read(std::span<std::byte>{dst.data(), dst.size()})
+            std::array<typename lwrb_base_type::value_type, buffer_size> dst{};
+            REQUIRE(buff.read(std::span<typename lwrb_base_type::value_type>{
+                        dst.data(), dst.size()})
                     == str.size());
             REQUIRE(std::strcmp(reinterpret_cast<const char *>(dst.data()),
                                 str.data())
@@ -143,8 +144,9 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
         SECTION("Read like span in zero buffer")
         {
-            std::array<std::byte, 0> dst{};
-            REQUIRE(buff.read(std::span<std::byte>{dst.data(), dst.size()})
+            std::array<typename lwrb_base_type::value_type, 0> dst{};
+            REQUIRE(buff.read(std::span<typename lwrb_base_type::value_type>{
+                        dst.data(), dst.size()})
                     == 0);
         }
     }
