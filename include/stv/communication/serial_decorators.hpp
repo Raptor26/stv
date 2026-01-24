@@ -163,6 +163,23 @@ class start_frame_and_crc_16
         *crc = calculate_crc(total.data(), total.size_bytes() - trailer_size());
     }
 
+    static auto is_crc_valid(
+        const total_message_span &total)
+    {
+        const auto *crc_pos = reinterpret_cast<const crc_type *>(
+            total.end().base() - trailer_size());
+
+        auto is_crc_valid{false};
+        auto crc =
+            calculate_crc(total.data(), total.size_bytes() - trailer_size());
+        if(*crc_pos == crc)
+        {
+            is_crc_valid = true;
+        }
+
+        return is_crc_valid;
+    }
+
   private:
     static uint16_t calculate_crc(
         const std::byte *data, size_t length)
