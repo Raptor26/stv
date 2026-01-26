@@ -33,6 +33,22 @@ class non_movable
     ~non_movable() = default;
 };
 
+class non_movable_non_copyable
+{
+  public:
+    non_movable_non_copyable() = default;
+
+    non_movable_non_copyable(const non_movable_non_copyable &) = delete;
+    non_movable_non_copyable &
+    operator=(const non_movable_non_copyable &) = delete;
+
+    non_movable_non_copyable(non_movable_non_copyable &&)            = delete;
+    non_movable_non_copyable &operator=(non_movable_non_copyable &&) = delete;
+
+  protected:
+    ~non_movable_non_copyable() = default;
+};
+
 /// ----------------------------------------------------------------------------
 /// The macros below are useful for preventing optimization of structures and
 /// classes with template parameters.
