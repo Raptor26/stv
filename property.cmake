@@ -31,13 +31,15 @@ function(stv_add_pedantic_compile_options_and_features TARGET_NAME)
             -Wshadow
             -Wfatal-errors
             -Wdouble-promotion
-            -Wdocumentation
             -Wformat=2
             -Wformat-overflow
             -Wformat-truncation
             -Wundef
             -fno-common
             -Wconversion
+            >
+            $<$<CXX_COMPILER_ID:Clang,AppleClang>:
+            -Wdocumentation
             >
             $<$<CXX_COMPILER_ID:MSVC>:
             /W4
