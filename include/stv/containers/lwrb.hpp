@@ -102,7 +102,8 @@ class lwrb_base:
         ~skipable()
         {
             const stv::lock_guard critical{mutex_};
-            lwrb_skip(&lwrb_, container_type::size_bytes());
+            lwrb_skip(&lwrb_,
+                      static_cast<lwrb_sz_t>(container_type::size_bytes()));
         }
     };
 
@@ -136,7 +137,8 @@ class lwrb_base:
 
         lwrb_sz_t             write_bytes{0};
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
-        lwrb_write_ex(&lwrb_, src, size, &write_bytes, flags);
+        lwrb_write_ex(&lwrb_, src, static_cast<lwrb_sz_t>(size), &write_bytes,
+                      flags);
 
         return write_bytes;
     }
@@ -150,7 +152,8 @@ class lwrb_base:
         lwrb_sz_t  read_bytes{0};
         (void)is_isr;
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
-        lwrb_read_ex(&lwrb_, dst, size, &read_bytes, flags);
+        lwrb_read_ex(&lwrb_, dst, static_cast<lwrb_sz_t>(size), &read_bytes,
+                     flags);
 
         return read_bytes;
     }
@@ -356,7 +359,7 @@ class lwrb_base:
         std::size_t numb, bool is_isr = false)
     {
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
-        return lwrb_skip(&lwrb_, numb);
+        return lwrb_skip(&lwrb_, static_cast<lwrb_sz_t>(numb));
     }
 
     /// @brief Помечает указанное в to_skip количество байт как прочитанные,
@@ -386,7 +389,7 @@ class lwrb_base:
         const setup_type &setup, container_type buffer_span):
         storage_{buffer_span}
     {
-        lwrb_init(&lwrb_, storage_.data(), storage_.size_bytes());
+        lwrb_init(&lwrb_, storage_.data(), static_cast<lwrb_sz_t>(storage_.size_bytes()));
 
         if constexpr(std::is_pointer_v<decltype(mutex_)>)
         {
