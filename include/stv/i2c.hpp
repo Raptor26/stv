@@ -31,7 +31,7 @@
 
 namespace stv {
 
-class i2c_interface: public stv::non_copyable, public stv::non_movable
+class i2c_interface: public stv::non_movable_non_copyable
 {
   public:
     using byte_type = std::byte;
