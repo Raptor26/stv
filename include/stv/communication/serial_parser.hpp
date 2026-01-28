@@ -36,7 +36,7 @@
 
 namespace stv {
 
-/// @brief ПАраметры инициализации класса serial_parser.
+/// @brief Параметры инициализации класса serial_parser.
 ///
 /// @tparam TlwrbBase Тип кольцевого буфера который нужно распарсить и найти
 /// сообщения.
@@ -83,9 +83,12 @@ class serial_parser_setup
 ///     @see serial_parser_setup
 /// @tparam Decorators Декораторы (возможно стоит удалить).
 template<typename TSetup, typename... Decorators>
-class serial_parser: private stv::non_copyable, private stv::non_movable
+class serial_parser: virtual private stv::non_movable_non_copyable
 {
-    using setup_type     = TSetup;
+  public:
+    using setup_type = TSetup;
+
+  private:
     using lwrb_base_type = typename setup_type::lwrb_base_type;
     using queue_type     = typename setup_type::queue_type;
     using container_type = typename queue_type::value_type;
@@ -201,7 +204,7 @@ class serial_parser: private stv::non_copyable, private stv::non_movable
     ///
     /// @return true если найдено сообщение и помещено в очередь, false в
     /// противном случае.
-    auto compute()
+    auto run()
     {
         const auto parsed_cnt = parsed_cnt_;
 
@@ -398,7 +401,7 @@ class serial_parser_route: public stv::non_copyable, public stv::non_movable
     }
 
     ///
-    auto compute()
+    auto run()
     {
         auto message_routed_cnt{0U};
         while(!queue_to_read_->empty())

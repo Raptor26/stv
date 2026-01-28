@@ -141,7 +141,7 @@ TEST_CASE(
                 SECTION("Invalid message only")
                 {
                     lwrb.write(test_message);
-                    REQUIRE_FALSE(parser.compute());
+                    REQUIRE_FALSE(parser.run());
                 }
 
                 SECTION("Without offset")
@@ -157,7 +157,7 @@ TEST_CASE(
                         serial_message_buffer.queue_instance();
                     auto msg = queue_instance.front();
                     lwrb.write(msg.begin(), msg.end());
-                    REQUIRE(parser.compute());
+                    REQUIRE(parser.run());
                     queue_instance.pop();
                 }
 
@@ -180,7 +180,7 @@ TEST_CASE(
                         serial_message_buffer.queue_instance();
                     auto msg = queue_instance.front();
                     lwrb.write(msg.begin(), msg.end());
-                    REQUIRE(parser.compute());
+                    REQUIRE(parser.run());
                     queue_instance.pop();
                 }
 
@@ -231,7 +231,7 @@ TEST_CASE(
                     queue_instance.pop();
                 }
 
-                REQUIRE(parser.compute());
+                REQUIRE(parser.run());
 
                 {
                     auto msg = parsed_msg_queue.front();
@@ -288,7 +288,7 @@ TEST_CASE(
                                                              route_setup);
                 }
 
-                REQUIRE(route.compute());
+                REQUIRE(route.run());
                 decltype(auto) queue_to_check =
                     hash_table.at(parsed_msg_queue_id);
                 REQUIRE_FALSE(queue_to_check->empty());
