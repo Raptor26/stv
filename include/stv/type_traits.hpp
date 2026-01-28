@@ -27,6 +27,7 @@
 #define TYPE_TRAITS_HPP
 
 #include <type_traits>
+#include <variant>
 
 namespace stv {
 
