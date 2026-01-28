@@ -83,7 +83,7 @@ class sim_buff
     // -------------------------------------------------------------------------
 
     sim_buff(
-        const sim_buff &other) noexcept:
+        const sim_buff &other):
         size_in_bytes_{other.size_in_bytes_},
         data_ptr_{safe_allocate(size_in_bytes_)},
         offset_head_{other.offset_head_},
@@ -201,7 +201,7 @@ class sim_buff
     ///
     /// @param offset Смещение в байтах относительно начала области памяти.
     void trim_head(
-        std::size_t offset)
+        std::size_t offset) noexcept
     {
         if(offset < size_in_bytes_)
         {
@@ -217,7 +217,7 @@ class sim_buff
     ///
     /// @param offset Смещение в байтах относительно конца области памяти.
     void trim_tail(
-        std::size_t offset)
+        std::size_t offset) noexcept
     {
         if(offset < size_in_bytes_)
         {
@@ -227,7 +227,7 @@ class sim_buff
 
   private:
     [[nodiscard]] auto safe_allocate(
-        std::size_t size_in_bytes) noexcept -> pointer
+        std::size_t size_in_bytes) -> pointer
     {
         if(size_in_bytes > 0U)
         {
@@ -239,7 +239,7 @@ class sim_buff
 
     // -------------------------------------------------------------------------
 
-    void safe_deallocate()
+    void safe_deallocate() noexcept
     {
         if(data_ptr_ != nullptr)
         {
