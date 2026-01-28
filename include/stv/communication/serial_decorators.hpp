@@ -30,6 +30,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <limits>
 #include <span>
 
@@ -159,34 +160,33 @@ class start_frame_and_crc_16
     static void setup_trailer(
         std::byte *dst, const total_message_span &total)
     {
-        auto *crc = reinterpret_cast<crc_type *>(&dst[0]);
-        *crc = calculate_crc(total.data(), total.size_bytes() - trailer_size());
+        crc_type computed_crc =
+            calculate_crc(total.data(), total.size_bytes() - trailer_size());
+        std::memcpy(dst, &computed_crc, sizeof(computed_crc));
     }
 
     static auto is_crc_valid(
         const total_message_span &total)
     {
-        const auto *crc_pos = reinterpret_cast<const crc_type *>(
-            total.end().base() - trailer_size());
-
-        auto is_crc_valid{false};
-        auto crc =
+        // Вычисляем ожидаемый CRC по данным (без трейлера).
+        auto expected_crc =
             calculate_crc(total.data(), total.size_bytes() - trailer_size());
-        if(*crc_pos == crc)
-        {
-            is_crc_valid = true;
-        }
 
-        return is_crc_valid;
+        // Безопасно читаем полученный CRC из конца буфера.
+        crc_type         received_crc;
+        const std::byte *crc_pos = total.end().base() - trailer_size();
+        std::memcpy(&received_crc, crc_pos, sizeof(received_crc));
+
+        return received_crc == expected_crc;
     }
 
   private:
-    static uint16_t calculate_crc(
+    static crc_type calculate_crc(
         const std::byte *data, size_t length)
     {
         // NOLINTBEGIN(hicpp-signed-bitwise)
         // Простая реализация Crc для примера
-        uint16_t crc = 0xFFFF;
+        crc_type crc = 0xFFFF;
         for(size_t i = 0; i < length; ++i)
         {
             crc ^= static_cast<std::uint8_t>(data[i]);
