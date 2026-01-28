@@ -199,7 +199,8 @@ class lwrb_base:
     ///
     /// @return Возвращает количество записанных в буфер байт.
     template<typename U>
-        requires std::ranges::contiguous_range<U> && requires(U u) { u.size(); }
+        requires std::ranges::contiguous_range<U>
+                 && requires(U src) { src.size(); }
     auto write(
         const U &src, bool write_all_or_nothing = true, bool is_isr = false)
     {
