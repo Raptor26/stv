@@ -378,11 +378,13 @@ class serial_parser_route: public stv::non_copyable, public stv::non_movable
     using queue_type = typename setup_type::queue_type;
     using hash_type  = typename setup_type::hash_type;
 
-    queue_type *queue_to_read_{nullptr};
+    /// @brief Из данной очереди считываются сообщения и перемещаются к
+    /// получателю, которые указаны в hash_to_write_.
+    queue_type *const queue_to_read_{nullptr};
 
     /// @brief Указатель на хэш-таблицу, которая содержит очереди для записи
     /// сообщения согласно указанному маршруту.
-    hash_type *hash_to_write_{nullptr};
+    hash_type *const hash_to_write_{nullptr};
 
   public:
     explicit serial_parser_route(
@@ -413,7 +415,8 @@ class serial_parser_route: public stv::non_copyable, public stv::non_movable
                 msg.data());
 
             // Используем итератор чтобы избежать выброса исключений.
-            auto dst_buff_key_val_it = hash_to_write_->find(router_ptr->dst_id);
+            auto dst_buff_key_val_it = hash_to_write_->find(
+                static_cast<hash_type::key_type>(router_ptr->dst_id));
             if(dst_buff_key_val_it != hash_to_write_->end())
             {
                 dst_buff_key_val_it->second->push(std::move(msg));
