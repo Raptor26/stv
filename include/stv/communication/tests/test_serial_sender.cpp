@@ -30,9 +30,11 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <cstddef>
 #include <etl/queue.h>
 #include <iostream>
 #include <queue>
+#include <span>
 
 // NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
 // readability-function-cognitive-,
@@ -103,6 +105,18 @@ SCENARIO(
         auto serial_message_buffer = make_serial_message_buffer<queue_type>(
             stv::empty_serial_decorator{});
 
+        WHEN("Request empty span")
+        {
+            char symb{'h'};
+            serial_message_buffer.request(std::span(&symb, 0));
+
+            THEN("Nothing placed to queue")
+            {
+                decltype(auto) queue_instance =
+                    serial_message_buffer.queue_instance();
+                REQUIRE(queue_instance.size() == 0);
+            }
+        }
         WHEN("Check containers")
         {
             THEN("array")

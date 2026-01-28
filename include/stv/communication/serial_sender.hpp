@@ -84,12 +84,15 @@ class composite_serial_message
 
     virtual ~composite_serial_message()
     {
-        setup_all_headers();
+        if(memory_.begin())
+        {
+            setup_all_headers();
 
-        setup_all_trailers(memory_.begin() + header_size_ + payload_size_,
-                           memory_.begin(), total_size_);
+            setup_all_trailers(memory_.begin() + header_size_ + payload_size_,
+                               memory_.begin(), total_size_);
 
-        queue_.push(std::move(memory_));
+            queue_.push(std::move(memory_));
+        }
     }
 
     std::byte *pload() { return memory_.begin() + header_size_; }
