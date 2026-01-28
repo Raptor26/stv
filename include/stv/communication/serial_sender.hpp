@@ -73,7 +73,7 @@ class composite_serial_message
         queue_{queue},
         memory_(total_size_)
     {
-        if(pload.data())
+        if(pload.data() && memory_.begin())
         {
             memcpy(memory_.begin() + header_size_, pload.data(),
                    pload.size_bytes());
@@ -109,6 +109,8 @@ class composite_serial_message
     [[nodiscard]] auto end() { return memory_.end(); }
 
     [[nodiscard]] auto end() const { return memory_.end(); }
+
+    [[nodiscard]] auto size() const { return memory_.size(); }
 
   private:
     constexpr size_t compute_header_size()
@@ -225,6 +227,8 @@ class serial_message
     [[nodiscard]] auto end() { return composite_message_.end(); }
 
     [[nodiscard]] auto end() const { return composite_message_.end(); }
+
+    [[nodiscard]] auto size() const { return composite_message_.size(); }
 };
 
 template<typename TQueue, typename... Decorators>
