@@ -227,8 +227,10 @@ class serial_message
 template<typename TQueue, typename... Decorators>
 class serial_message_buffer: private stv::non_copyable, private stv::non_movable
 {
+  public:
     using queue_type = TQueue;
 
+  private:
     const std::tuple<Decorators...> decorators_;
     queue_type                      queue_;
 
@@ -322,6 +324,8 @@ class serial_message_buffer: private stv::non_copyable, private stv::non_movable
     {
         return request(std::as_bytes(std::span{cbegin, cend}));
     }
+
+    auto queue_instance() -> decltype(queue_) & { return queue_; }
 
   private:
     /// @brief Выполняет запрос памяти из кучи под сообщение.
