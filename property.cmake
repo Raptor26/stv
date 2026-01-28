@@ -37,6 +37,15 @@ function(stv_add_pedantic_compile_options_and_features TARGET_NAME)
             -Wundef
             -fno-common
             -Wconversion
+            -Wswitch-enum
+            -Wfloat-equal
+            -fstrict-aliasing
+            -Wsign-conversion
+            -Wcast-align
+            -Wtype-limits
+            -Wnon-virtual-dtor
+            -Woverloaded-virtual
+            -fstrict-aliasing
             >
             $<$<CXX_COMPILER_ID:Clang,AppleClang>:
             -Wdocumentation
