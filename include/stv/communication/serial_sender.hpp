@@ -99,6 +99,14 @@ class composite_serial_message
         return memory_.begin() + header_size_;
     }
 
+    [[nodiscard]] auto begin() { return memory_.begin(); }
+
+    [[nodiscard]] auto begin() const { return memory_.begin(); }
+
+    [[nodiscard]] auto end() { return memory_.end(); }
+
+    [[nodiscard]] auto end() const { return memory_.end(); }
+
   private:
     constexpr size_t compute_header_size()
     {
@@ -183,6 +191,9 @@ class serial_message
     composite_serial_message_type composite_message_;
 
   public:
+    using value_type    = std::byte;
+    using iterator_type = std::byte *;
+
     serial_message(
         queue_type &queue, const span_type &pload, Decorators... decorators):
         composite_message_{queue, pload,
@@ -203,6 +214,14 @@ class serial_message
     {
         return reinterpret_cast<user_type *>(composite_message_.pload());
     }
+
+    [[nodiscard]] auto begin() { return composite_message_.begin(); }
+
+    [[nodiscard]] auto begin() const { return composite_message_.begin(); }
+
+    [[nodiscard]] auto end() { return composite_message_.end(); }
+
+    [[nodiscard]] auto end() const { return composite_message_.end(); }
 };
 
 template<typename TQueue, typename... Decorators>
