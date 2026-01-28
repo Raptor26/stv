@@ -14,7 +14,6 @@ class non_copyable
     non_copyable(non_copyable &&)            = default;
     non_copyable &operator=(non_copyable &&) = default;
 
-  protected:
     ~non_copyable() = default;
 };
 
@@ -29,7 +28,6 @@ class non_movable
     non_movable(non_movable &&)            = delete;
     non_movable &operator=(non_movable &&) = delete;
 
-  protected:
     ~non_movable() = default;
 };
 
@@ -45,7 +43,6 @@ class non_movable_non_copyable
     non_movable_non_copyable(non_movable_non_copyable &&)            = delete;
     non_movable_non_copyable &operator=(non_movable_non_copyable &&) = delete;
 
-  protected:
     ~non_movable_non_copyable() = default;
 };
 

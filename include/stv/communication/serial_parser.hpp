@@ -27,11 +27,11 @@
 #define SERIAL_PARSER_HPP
 
 #include "stv/communication//serial_decorators.hpp"
-#include "stv/containers/lwrb.hpp"
+#include "stv/mutex_guard.hpp"
 #include "stv/utils.hpp"
 #include <cstddef>
+#include <functional>
 #include <lwrb/lwrb.h>
-#include <optional>
 #include <utility>
 
 namespace stv {
@@ -51,6 +51,8 @@ class serial_parser_setup
 
     // Если передан указатель на мьютекс, то считаем что пользователь хочет
     // использовать внешний мьютекс.
+    ///
+    /// NOLINTNEXTLINE(bugprone-dynamic-static-initializers
     static constexpr bool is_external_mutex = std::is_pointer_v<TMutexOrPtr>;
 
     // Тип для хранения мьютекса. Либо указатель на мьютекс, либо пустой тип.
@@ -152,8 +154,9 @@ class serial_parser: virtual private stv::non_movable_non_copyable
 
     /// @brief Хэщ таблица указателей на метода каждого поддерживаемого
     /// состояния парсера.
+    ///
+    /// NOLINTNEXTLINE(bugprone-dynamic-static-initializers
     static constexpr hash_type state_fnc_hash{construct_states_hash()};
-
     /// @brief Мьютекс.
     mutable mutex_type mutex_;
 
@@ -348,6 +351,8 @@ class serial_route_setup
 
     // Если передан указатель на мьютекс, то считаем что пользователь хочет
     // использовать внешний мьютекс.
+    ///
+    /// NOLINTNEXTLINE(bugprone-dynamic-static-initializers
     static constexpr bool is_external_mutex = std::is_pointer_v<TMutexOrPtr>;
 
     // Тип для хранения мьютекса. Либо указатель на мьютекс, либо пустой тип.

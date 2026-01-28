@@ -140,13 +140,13 @@ class callback_timer:
     volatile bool is_notify_given_{false};
 
   public:
-    callback_timer(
+    explicit callback_timer(
         decltype(period_) period)
     {
         set_period(period);
     }
 
-    operator bool()
+    explicit operator bool()
     {
         auto is_ready_to_run{true};
 
@@ -213,15 +213,7 @@ class callback_timer:
     void give_notify() { is_notify_given_ = true; }
 
   private:
-    auto is_period_valid()
-    {
-        if(period_ > count_type{0U})
-        {
-            return true;
-        }
-
-        return false;
-    }
+    auto is_period_valid() { return period_ > count_type{0U}; }
 };
 
 /// @brief Структура данных для инициализации callback_timer_context.
@@ -285,7 +277,7 @@ class callback_timer_context:
 
   public:
     template<typename... TArgs>
-    callback_timer_context(
+    explicit callback_timer_context(
         const delegate_init_type &delegate, TArgs &&...args):
         base_type{std::forward<TArgs>(args)...},
         callback_timer_{delegate.callback_timer},

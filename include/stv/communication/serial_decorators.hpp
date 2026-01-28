@@ -167,7 +167,7 @@ class start_frame_and_crc_16
             calculate_crc(total.data(), total.size_bytes() - trailer_size());
 
         // Безопасно читаем полученный CRC из конца буфера.
-        crc_type         received_crc;
+        crc_type         received_crc{};
         const std::byte *crc_pos = total.end().base() - trailer_size();
         std::memcpy(&received_crc, crc_pos, sizeof(received_crc));
 
