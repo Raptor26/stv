@@ -30,8 +30,8 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <span>
 #include <limits>
+#include <span>
 
 namespace stv {
 
