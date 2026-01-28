@@ -263,11 +263,6 @@ struct head_route {
         (void)total_size;
     }
 
-#ifdef UNIT_TEST_ENABLE
-  public:
-#else
-  private:
-#endif
     STV_NO_PADDING_NO_OPTIMIZE_BEGIN
 
     struct head_route_setup_with_pload_t: public head_route_setup_t {
