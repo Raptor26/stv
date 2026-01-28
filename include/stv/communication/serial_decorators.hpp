@@ -92,12 +92,7 @@ class start_frame_and_crc_16
     using frame_size_type = std::uint8_t;
     using crc_type        = std::uint16_t;
 
-#ifdef UNIT_TEST_ENABLE
   public:
-#else
-  private:
-#endif
-
     STV_NO_PADDING_NO_OPTIMIZE_BEGIN
 
     struct start_frame_t {
@@ -111,7 +106,6 @@ class start_frame_and_crc_16
 
     STV_NO_PADDING_NO_OPTIMIZE_END
 
-  public:
     static constexpr std::byte first_byte{0xAA};
     static constexpr std::byte second_byte{0xAA};
 
