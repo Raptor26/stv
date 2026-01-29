@@ -118,12 +118,19 @@ TEST_CASE(
 
         regs_setup.int_cfg_reg.int_rd_clr =
             stv::qma6100_int_cfg_reg::int_rd_clr_t::clear_all;
-        regs_setup.int_cfg_reg.shadow_dis = stv::qma6100_int_cfg_reg::shadow_dis_t::disable;
-        regs_setup.int_cfg_reg.dis_i2c    = stv::qma6100_int_cfg_reg::dis_i2c_t::disable;
+        regs_setup.int_cfg_reg.shadow_dis =
+            stv::qma6100_int_cfg_reg::shadow_dis_t::disable;
+        regs_setup.int_cfg_reg.dis_i2c =
+            stv::qma6100_int_cfg_reg::dis_i2c_t::disable;
         regs_setup.int_cfg_reg.latch_int_step =
             stv::qma6100_int_cfg_reg::latch_int_step_t::latch_mode;
         regs_setup.int_cfg_reg.latch_int =
             stv::qma6100_int_cfg_reg::latch_int_t::latch_mode;
+
+        regs_setup.pm_reg.mode_bit = stv::qma6100_pm_reg::mode_bit_t::active;
+        regs_setup.pm_reg.mclk_sel = stv::qma6100_pm_reg::mclk_sel_t::freq_200k;
+        regs_setup.pm_reg.t_rstb_sinc_sel =
+            stv::qma6100_pm_reg::t_rstb_sinc_sel_t::k_6_mult_mckl;
 
         /// @brief Крайнее записанное при вызове i2c::write() значение регистра.
         qma6100_reg_type latest_written_reg_value{0xAA};

@@ -890,6 +890,101 @@ class qma6100_int_cfg_reg
     }
 };
 
+class qma6100_pm_reg
+{
+    static constexpr int mode_bit_offset{7};
+    static constexpr int t_rstb_sinc_sel_offset{4};
+    static constexpr int mclk_sel_offset{0};
+
+  public:
+    /// @brief Адрес регистра BANDWIDTH в памяти устройства.
+    static constexpr qma6100_reg_type addr{0x11};
+
+    //
+    explicit operator qma6100_reg_type() const
+    {
+        return static_cast<qma6100_reg_type>(
+            (static_cast<std::uint8_t>(mode_bit) << mode_bit_offset)
+            | (static_cast<std::uint8_t>(t_rstb_sinc_sel)
+               << t_rstb_sinc_sel_offset)
+            | (static_cast<std::uint8_t>(mclk_sel) << mclk_sel_offset));
+    }
+
+    explicit qma6100_pm_reg(
+        qma6100_reg_type value = qma6100_reg_type{0})
+    {
+        parse(value);
+    }
+
+    bool operator==(
+        const qma6100_pm_reg &other) const
+    {
+        return static_cast<qma6100_reg_type>(*this)
+               == static_cast<qma6100_reg_type>(other);
+    }
+
+    enum struct mode_bit_t : std::uint8_t {
+        active  = 1,
+        standby = 0,
+    };
+
+    mode_bit_t mode_bit{mode_bit_t::active};
+    // -------------------------------------------------------------------------
+
+    enum struct t_rstb_sinc_sel_t : std::uint8_t {
+        k_3_mult_mckl = 0,
+        k_4_mult_mckl = 1,
+        k_6_mult_mckl = 2,
+        k_8_mult_mckl = 3,
+    };
+
+    t_rstb_sinc_sel_t t_rstb_sinc_sel{t_rstb_sinc_sel_t::k_8_mult_mckl};
+    // -------------------------------------------------------------------------
+
+    enum struct mclk_sel_t : std::uint8_t {
+        freq_500k = 0,
+        freq_333k = 1,
+        freq_200k = 2,
+        freq_100k = 3,
+        freq_50k  = 4,
+        freq_20k  = 5,
+        freq_10k  = 6,
+        freq_5k   = 7,
+    };
+
+    mclk_sel_t mclk_sel{mclk_sel_t::freq_500k};
+    // -------------------------------------------------------------------------
+
+  private:
+    /// @brief Парсинг сырого значения регистра в поля класса.
+    ///
+    /// @details Извлекает битовые поля, соответствующие настройкам bw и nlpf,
+    /// из переданного сырого значения регистра и сохраняет их в
+    /// соответствующих полях объекта.
+    /// @param reg Сырое значение регистра для парсинга.
+    void parse(
+        qma6100_reg_type reg)
+    {
+        {
+            constexpr qma6100_reg_type mode_bit_mask{0x01};
+            mode_bit = static_cast<decltype(mode_bit)>((reg >> mode_bit_offset)
+                                                       & mode_bit_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type t_rstb_sinc_mask{0x03};
+            t_rstb_sinc_sel = static_cast<decltype(t_rstb_sinc_sel)>(
+                (reg >> t_rstb_sinc_sel_offset) & t_rstb_sinc_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type mclk_sel_mask{0x0F};
+            mclk_sel = static_cast<decltype(mclk_sel)>((reg >> mclk_sel_offset)
+                                                       & mclk_sel_mask);
+        }
+    }
+};
+
 // NOLINTEND(*hicpp-signed-bitwise, *-member*)
 
 /// @brief Структура для хранения настройки регистров датчика QMA6100.
@@ -913,6 +1008,8 @@ struct qma6100_regs_setup {
     stv::qma6100_intpin_conf_reg intpin_conf_reg;
 
     stv::qma6100_int_cfg_reg     int_cfg_reg;
+
+    stv::qma6100_pm_reg          pm_reg;
 };
 
 } // namespace stv

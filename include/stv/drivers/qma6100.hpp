@@ -272,6 +272,13 @@ class qma6100:
         }
         // ---------------------------------------------------------------------
 
+        write(setup.pm_reg);
+        if(read<decltype(setup.pm_reg)>() != setup.pm_reg)
+        {
+            is_init_success = false;
+        }
+        // ---------------------------------------------------------------------
+
         return is_init_success;
     }
 };
