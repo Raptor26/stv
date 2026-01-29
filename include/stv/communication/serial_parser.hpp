@@ -26,12 +26,13 @@
 #ifndef SERIAL_PARSER_HPP
 #define SERIAL_PARSER_HPP
 
+#include "lwrb/lwrb.h"
 #include "stv/communication//serial_decorators.hpp"
 #include "stv/mutex_guard.hpp"
 #include "stv/utils.hpp"
 #include <cstddef>
 #include <functional>
-#include <lwrb/lwrb.h>
+#include <type_traits>
 #include <utility>
 
 namespace stv {
@@ -216,6 +217,16 @@ class serial_parser: virtual private stv::non_movable_non_copyable
         {
         }
         return parsed_cnt != parsed_cnt_;
+    }
+
+    /// @brief Возвращает ссылку на очередь, в которую помещаются распарсенные
+    /// сообщения.
+    ///
+    /// @return Ссылка на очередь, которая может содержать распарсенные
+    /// сообщения.
+    auto queue_instance() -> std::remove_pointer_t<decltype(queue_)> &
+    {
+        return *queue_;
     }
 
   private:
