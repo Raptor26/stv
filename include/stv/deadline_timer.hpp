@@ -29,6 +29,7 @@
 #include "runtime.hpp"
 #include "stv/mutex_guard.hpp"
 #include "stv/utils.hpp"
+#include "utils.hpp"
 #include <type_traits>
 
 namespace stv {
@@ -54,17 +55,21 @@ class deadline_timer_setup
     using mutex_type   = TMutexOrPtr;
 
     /// @brief Указатель на runtime таймер.
-    TRuntime            *runtime{nullptr};
+    TRuntime *runtime{nullptr};
+
+    /// @brief Задержка deadline таймера. Если не равна 0, то таймер начинает
+    /// отсчет сразу после создания.
+    counter_type         delay{0};
 
     mutex_condition_type mutex{};
 };
 
 template<typename TSetup>
-class deadline_timer: public stv::non_copyable, stv::non_movable
+class deadline_timer: public stv::non_movable_non_copyable
 {
     using setup_type   = TSetup;
-    using runtime_type = TSetup::runtime_type;
-    using counter_type = TSetup::counter_type;
+    using runtime_type = typename setup_type::runtime_type;
+    using counter_type = typename setup_type::counter_type;
     using mutex_type   = typename TSetup::mutex_type;
 
     /// @brief Указатель на runtime таймер.
@@ -103,6 +108,8 @@ class deadline_timer: public stv::non_copyable, stv::non_movable
         {
             mutex_ = setup.mutex;
         }
+
+        set_delay(setup.delay);
     }
 
     virtual ~deadline_timer() = default;

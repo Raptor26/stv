@@ -112,6 +112,19 @@ TEST_CASE(
             REQUIRE(deadline.is_elapsed());
         }
 
+        SECTION("Create deadline and start it in Ctor")
+        {
+            constexpr runtime_counter_type elapsed_time{2s};
+            When(Method(runtime_mock, get)).Return(0s, elapsed_time - 100ms);
+
+            stv::deadline_timer deadline_started{deadline_setup_type{
+                .runtime = &runtime_mock.get(), .delay = elapsed_time}};
+            REQUIRE_FALSE(deadline_started.is_elapsed());
+
+            When(Method(runtime_mock, get)).AlwaysReturn(elapsed_time);
+            REQUIRE(deadline_started.is_elapsed());
+        }
+
         SECTION("Set timeout and check is elapsed with overflow")
         {
             constexpr runtime_counter_type      elapsed_time{2s};
