@@ -62,8 +62,8 @@ struct qma6100_setup: public stv::qma6100_i2c_setup {
 ///          акселерометрических данных.
 class qma6100:
     public stv::qma6100_i2c,
-     public virtual stv::non_copyable,
-     public virtual stv::non_movable
+    public virtual stv::non_copyable,
+    public virtual stv::non_movable
 {
     STV_NO_PADDING_NO_OPTIMIZE_BEGIN
 
@@ -161,12 +161,12 @@ class qma6100:
         stv::i2c_interface *i2c, qma6100_reg_type slave_addr)
     {
         auto                              is_detected{false};
-        qma6100_reg_type                  chip_id{0xFF};
-        static constexpr qma6100_reg_type chip_id_expected{0xFA};
+        static constexpr qma6100_reg_type chip_id_valid{0x90};
         static constexpr qma6100_reg_type chip_id_addr{0x00};
+        qma6100_reg_type                  chip_id{0xFF};
         const auto                        is_success =
             i2c->read(slave_addr, chip_id_addr, &chip_id, sizeof(chip_id));
-        if(is_success && (chip_id == chip_id_expected))
+        if(is_success && (chip_id == chip_id_valid))
         {
             is_detected = true;
         }

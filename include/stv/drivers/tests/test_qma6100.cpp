@@ -56,7 +56,7 @@ TEST_CASE(
                     (void)len;
 
                     auto chip_id = reinterpret_cast<std::uint8_t *>(dst);
-                    *chip_id     = 0xFA;
+                    *chip_id     = 0x90;
                     return true;
                 });
             REQUIRE(qma6100::is_detected(
