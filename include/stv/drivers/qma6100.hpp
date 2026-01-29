@@ -62,8 +62,7 @@ struct qma6100_setup: public stv::qma6100_i2c_setup {
 ///          акселерометрических данных.
 class qma6100:
     public stv::qma6100_i2c,
-    public virtual stv::non_copyable,
-    public virtual stv::non_movable
+    virtual public stv::non_movable_non_copyable
 {
     STV_NO_PADDING_NO_OPTIMIZE_BEGIN
 
@@ -196,6 +195,8 @@ class qma6100:
         }
         return raw_;
     }
+
+    auto read_normalized() { return read_raw(); }
 
     /// @brief Выполняет инициализацию датчика QMA6100 с заданными параметрами.
     ///
