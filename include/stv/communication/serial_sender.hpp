@@ -26,10 +26,12 @@
 #ifndef SERIAL_HPP
 #define SERIAL_HPP
 
+#include "etl/queue.h"
 #include "serial_decorators.hpp"
 #include "stv/containers/simbuff.hpp"
 #include <cassert>
 #include <concepts>
+#include <cstddef>
 #include <iterator>
 #include <limits>
 #include <memory>
@@ -38,13 +40,13 @@
 
 namespace stv {
 
-template<typename TQueue, typename... Decorators>
+template<typename TQueueBase, typename... Decorators>
 class composite_serial_message
 {
-    using queue_type = TQueue;
+    using queue_base_type = TQueueBase;
     using container_type =
-        queue_type::value_type; ///< Тип объекта, который можно
-                                ///< поместить в queue_.
+        queue_base_type::value_type; ///< Тип объекта, который можно
+                                     ///< поместить в queue_.
 
     /// @brief Декораторы.
     const std::tuple<Decorators...> decorators_;
@@ -54,14 +56,15 @@ class composite_serial_message
     const std::uint16_t             trailer_size_;
     const std::uint16_t             total_size_;
 
-    queue_type                     &queue_;
+    queue_base_type                &queue_;
     container_type                  memory_;
 
   public:
     using span_type = std::span<const std::byte>;
 
     composite_serial_message(
-        queue_type &queue, const pload_span &pload, Decorators &&...decorators):
+        queue_base_type &queue, const pload_span &pload,
+        Decorators &&...decorators):
         decorators_{std::forward<Decorators>(decorators)...},
         payload_size_{static_cast<decltype(payload_size_)>(pload.size_bytes())},
         header_size_{
@@ -71,7 +74,7 @@ class composite_serial_message
         total_size_{static_cast<decltype(total_size_)>(
             header_size_ + payload_size_ + trailer_size_)},
         queue_{queue},
-        memory_(total_size_)
+        memory_{total_size_}
     {
         if(pload.data() && memory_.begin())
         {
@@ -184,13 +187,13 @@ class composite_serial_message
     }
 };
 
-template<typename UserData, typename TQueue, typename... Decorators>
+template<typename UserData, typename TQueueBaseType, typename... Decorators>
 class serial_message
 {
-    using queue_type = TQueue;
-    using user_type  = UserData;
+    using queue_base_type = TQueueBaseType;
+    using user_type       = UserData;
     using composite_serial_message_type =
-        stv::composite_serial_message<queue_type, Decorators...>;
+        stv::composite_serial_message<queue_base_type, Decorators...>;
     using span_type = typename composite_serial_message_type::span_type;
 
     composite_serial_message_type composite_message_;
@@ -200,7 +203,8 @@ class serial_message
     using iterator_type = std::byte *;
 
     serial_message(
-        queue_type &queue, const span_type &pload, Decorators... decorators):
+        queue_base_type &queue, const span_type &pload,
+        Decorators... decorators):
         composite_message_{queue, pload,
                            std::forward<Decorators>(decorators)...}
     {
@@ -231,26 +235,29 @@ class serial_message
     [[nodiscard]] auto size() const { return composite_message_.size(); }
 };
 
-template<typename TQueue, typename... Decorators>
-class serial_message_buffer: private stv::non_copyable, private stv::non_movable
+template<typename TQueueBaseType, typename... Decorators>
+class serial_message_buffer_base:
+    private stv::non_copyable,
+    private stv::non_movable
 {
   public:
-    using queue_type = TQueue;
+    using queue_base_type = TQueueBaseType;
 
   private:
     const std::tuple<Decorators...> decorators_;
-    queue_type                      queue_;
+    queue_base_type                &queue_;
 
   public:
     using span_type = std::span<const std::byte>;
 
-    explicit serial_message_buffer(
-        Decorators &&...decorators):
-        decorators_{std::forward<Decorators>(decorators)...}
+    explicit serial_message_buffer_base(
+        queue_base_type &queue, Decorators &&...decorators):
+        decorators_{std::forward<Decorators>(decorators)...},
+        queue_{queue}
     {
     }
 
-    virtual ~serial_message_buffer() = default;
+    virtual ~serial_message_buffer_base() = default;
 
     auto request(
         std::string_view str)
@@ -373,7 +380,7 @@ class serial_message_buffer: private stv::non_copyable, private stv::non_movable
         // Конструирование объекта serial_message из updated_decorators.
         return std::apply(
             [this, &pload](auto &&...decs) {
-                return serial_message<UserData, TQueue, Decorators...>(
+                return serial_message<UserData, queue_base_type, Decorators...>(
                     queue_, pload, std::forward<decltype(decs)>(decs)...);
             },
             decorators_copy);
@@ -403,11 +410,32 @@ class serial_message_buffer: private stv::non_copyable, private stv::non_movable
     }
 };
 
-template<typename TQueue, typename... Decorators>
+template<typename TSimbuff, std::size_t QUEUE_SIZE = 10, typename... Decorators>
+class serial_message_buffer:
+    public serial_message_buffer_base<etl::iqueue<TSimbuff>, Decorators...>
+{
+    using simbuff_type    = TSimbuff;
+    using queue_base_type = etl::iqueue<simbuff_type>;
+    using base_type =
+        serial_message_buffer_base<queue_base_type, Decorators...>;
+
+    etl::queue<simbuff_type, 22> queue_;
+
+  public:
+    explicit serial_message_buffer(
+        Decorators &&...decorators):
+        base_type{queue_, std::forward<Decorators>(decorators)...}
+    {
+    }
+
+    ~serial_message_buffer() override = default;
+};
+
+template<typename TSimBuff, std::size_t QUEUE_SIZE, typename... Decorators>
 auto make_serial_message_buffer(
     Decorators &&...decorators)
 {
-    return serial_message_buffer<TQueue, Decorators...>(
+    return serial_message_buffer<TSimBuff, QUEUE_SIZE, Decorators...>(
         std::forward<Decorators>(decorators)...);
 }
 

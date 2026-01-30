@@ -110,8 +110,9 @@ TEST_CASE(
     {
         /// @brief Объект используется для создания сообщений требуемой для
         /// проверки парсера структуры.
-        auto serial_message_buffer = make_serial_message_buffer<queue_type>(
-            stv::start_frame_and_crc_16{});
+        auto serial_message_buffer =
+            make_serial_message_buffer<sim_buffer_type, 10>(
+                stv::start_frame_and_crc_16{});
 
         using serial_parser_setup_type =
             stv::serial_parser_setup<lwrb_base_type, queue_type>;
@@ -153,7 +154,7 @@ TEST_CASE(
                         // который вычислит CRC.
                     }
 
-                    auto queue_instance =
+                    decltype(auto) queue_instance =
                         serial_message_buffer.queue_instance();
                     auto msg = queue_instance.front();
                     lwrb.write(msg.begin(), msg.end());
@@ -176,7 +177,7 @@ TEST_CASE(
                         // который вычислит CRC.
                     }
 
-                    auto queue_instance =
+                    decltype(auto) queue_instance =
                         serial_message_buffer.queue_instance();
                     auto msg = queue_instance.front();
                     lwrb.write(msg.begin(), msg.end());
@@ -217,7 +218,8 @@ TEST_CASE(
                     // вычислит CRC.
                 }
 
-                auto queue_instance = serial_message_buffer.queue_instance();
+                decltype(auto) queue_instance =
+                    serial_message_buffer.queue_instance();
 
                 {
                     decltype(auto) msg = queue_instance.front();
@@ -261,7 +263,7 @@ TEST_CASE(
             stv::serial_parser_route<serial_route_setup_type>;
 
         auto serial_message_buffer =
-            make_serial_message_buffer<queue_type>(stv::head_route{});
+            make_serial_message_buffer<sim_buffer_type, 10>(stv::head_route{});
 
         etl::unordered_map<int, queue_base_type *, 10U> hash_table;
         constexpr int                                   parsed_msg_queue_id{10};
