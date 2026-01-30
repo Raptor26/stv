@@ -47,10 +47,18 @@ concept is_mutex_concept = requires(TMutex &mutex) {
     mutex.unlock();
 } && !is_mutex_with_isr_concept<TMutex>;
 
+/// @brief Концепт проверяет, что тип Т является контейнером, который хранит
+/// тривиальные объекты в непрерывном фрагменте памяти.
 template<typename T>
 concept contiguous_trivial_container_concept =
     std::ranges::contiguous_range<T>
-    && std::is_trivial_v<std::ranges::range_value_t<T>>;
+    && std::is_trivial_v<std::ranges::range_value_t<T>> && requires(T src) {
+           src.data();
+           src.size();
+           src.begin();
+           src.end();
+       };
+;
 
 #ifndef __APPLE__
 template<typename T>
@@ -61,6 +69,17 @@ template<typename T>
 // NOLINTNEXTLINE(readability-identifier-naming)
 inline constexpr bool is_duration_v = true;
 #endif
+
+/// @brief Концепт проверяет, что тип T является контейнером с непрерывно
+/// выделенной памятью.
+template<typename T>
+concept contiguous_container_concept =
+    std::ranges::contiguous_range<T> && requires(T src) {
+        src.data();
+        src.size();
+        src.begin();
+        src.end();
+    };
 
 } // namespace stv
 
