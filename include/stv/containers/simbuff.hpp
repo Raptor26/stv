@@ -69,8 +69,8 @@ class sim_buff
     // -------------------------------------------------------------------------
 
     sim_buff():
-        data_ptr_{nullptr},
         size_in_bytes_{0},
+        data_ptr_{nullptr},
         offset_head_{0},
         offset_tail_{0}
     {
