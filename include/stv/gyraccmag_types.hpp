@@ -90,9 +90,10 @@ class inertial_sens_storage_proxy
 
     // Дружественная функция для ADL.
     friend void swap(
-        inertial_sens_storage_proxy &a, inertial_sens_storage_proxy &b) noexcept
+        inertial_sens_storage_proxy &rhs,
+        inertial_sens_storage_proxy &lhs) noexcept
     {
-        a.swap(b);
+        rhs.swap(lhs);
     }
 };
 
