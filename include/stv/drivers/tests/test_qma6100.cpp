@@ -42,6 +42,8 @@ TEST_CASE(
     using namespace fakeit;
     using namespace stv;
 
+    using qma6100_type = stv::qma6100<float, std::uint32_t>;
+
     SECTION("Who am i")
     {
         Mock<stv::i2c_interface> i2c;
@@ -59,14 +61,14 @@ TEST_CASE(
                     *chip_id     = 0x90;
                     return true;
                 });
-            REQUIRE(qma6100::is_detected(
+            REQUIRE(qma6100_type::is_detected(
                 &i2c.get(), qma6100_setup::i2c_addr_connect_to_gnd));
         }
 
         SECTION("Nothing read")
         {
             Fake(Method(i2c, read));
-            REQUIRE_FALSE(qma6100::is_detected(
+            REQUIRE_FALSE(qma6100_type::is_detected(
                 &i2c.get(), qma6100_setup::i2c_addr_connect_to_gnd));
         }
     }

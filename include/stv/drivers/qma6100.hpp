@@ -28,6 +28,7 @@
 
 #include "qma6100_i2c.hpp"
 #include "qma6100_regs.hpp"
+#include "stv/gyraccmag_types.hpp"
 #include "stv/utils.hpp"
 #include <array>
 #include <bit>
@@ -63,10 +64,16 @@ struct qma6100_setup: public stv::qma6100_i2c_setup {
 ///          вызвать метод `init()` для настройки датчика. После успешной
 ///          инициализации можно периодически вызывать `read_raw()` для
 ///          получения акселерометрических данных.
+template<typename T = float, typename TTimeStamp = std::uint32_t>
 class qma6100:
     public stv::qma6100_i2c,
+    public stv::iacc<T, TTimeStamp>,
     virtual public stv::non_movable_non_copyable
 {
+    using base_type      = stv::iacc<float, std::uint32_t>;
+    using acc_type       = typename base_type::acc_type;
+    using timestamp_type = typename base_type::timestamp_type;
+
     STV_NO_PADDING_NO_OPTIMIZE_BEGIN
 
     /// @brief Структура для хранения необработанных (raw) данных с
@@ -100,28 +107,16 @@ class qma6100:
 
     STV_NO_PADDING_NO_OPTIMIZE_END
 
-    /// @brief Структура для хранения нормализованных данных с
-    /// акселерометра.
-    ///
-    /// @details Содержит три поля типа float для осей X, Y и Z,
-    /// представляющие ускорение в g (стандартные единицы гравитации).
-    struct normalize_t {
-        /// @brief Значение ускорения по оси X в g.
-        float x;
-
-        /// @brief Значение ускорения по оси Y в g.
-        float y;
-
-        /// @brief Значение ускорения по оси Z в g.
-        float z;
-    };
+    timestamp_type timestamp_;
 
     /// @brief Внутренний буфер для хранения последних считанных
     /// необработанных данных.
     ///
     /// @details Обновляется при каждом успешном вызове метода `read_raw()`.
     /// Если чтение прошло неудачно, поля структуры сбрасываются в ноль.
-    raw_t raw_;
+    raw_t    raw_;
+
+    acc_type acc_;
 
     /// @brief Значение LSB (Least Significant Bit) для текущего диапазона
     /// измерений.
@@ -261,6 +256,8 @@ class qma6100:
             {
                 raw_.z = convert_axis(storage.data() + 4);
             }
+
+            ++timestamp_;
         }
         else
         {
@@ -284,8 +281,7 @@ class qma6100:
     auto normalize(
         const auto &raw)
     {
-        return normalize_t{
-            .x = raw.x * lsb_, .y = raw.y * lsb_, .z = raw.z * lsb_};
+        return acc_type{raw.x * lsb_, raw.y * lsb_, raw.z * lsb_, timestamp_};
     }
 
     /// @brief Записывает регистр в память датчика, а затем считывает его и
@@ -397,7 +393,13 @@ class qma6100:
     ///
     /// @return Структура `normalize_t`, содержащая нормализованные значения
     /// ускорения по осям X, Y и Z в g.
-    auto read_normalized() { return normalize(read_raw()); }
+    auto read_normalized()
+    {
+        acc_ = normalize(read_raw());
+        return acc_;
+    }
+
+    [[nodiscard]] auto get_acc() const -> acc_type override { return acc_; }
 
     /// @brief Выполняет инициализацию датчика QMA6100 с заданными
     /// параметрами.
