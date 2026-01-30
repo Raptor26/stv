@@ -288,6 +288,25 @@ class qma6100:
             .x = raw.x * lsb_, .y = raw.y * lsb_, .z = raw.z * lsb_};
     }
 
+    /// @brief Записывает регистр в память датчика, а затем считывает его и
+    /// сравнивает с тем что планировалось записать.
+    ///
+    /// @param[in] reg регистр, значение которого необходимо записать.
+    ///
+    /// @return true если записанное и, затем считанное значение совпали.
+    auto write_reg_then_check(
+        const auto &reg)
+    {
+        auto is_reg_written_success{false};
+        write(reg);
+        if(read<std::remove_cvref_t<decltype(reg)>>() == reg)
+        {
+            is_reg_written_success = true;
+        }
+
+        return is_reg_written_success;
+    }
+
   public:
     /// @brief Конструктор объекта для работы с датчиком QMA6100.
     ///
@@ -398,64 +417,18 @@ class qma6100:
     auto init(
         const qma6100_regs_setup &setup)
     {
-        auto is_init_success{true};
+        const auto is_init_success =
+            stv::all_true(write_reg_then_check(setup.bw_reg),
+                          write_reg_then_check(setup.fsr_reg),
+                          write_reg_then_check(setup.int_en1_reg),
+                          write_reg_then_check(setup.int_map1_reg),
+                          write_reg_then_check(setup.int_map3_reg),
+                          write_reg_then_check(setup.intpin_conf_reg),
+                          write_reg_then_check(setup.int_cfg_reg),
+                          write_reg_then_check(setup.pm_reg));
 
-        write(setup.bw_reg);
-        if(read<decltype(setup.bw_reg)>() != setup.bw_reg)
-        {
-            is_init_success = false;
-        }
-        // ---------------------------------------------------------------------
-
-        write(setup.fsr_reg);
-        if(read<decltype(setup.fsr_reg)>() != setup.fsr_reg)
-        {
-            is_init_success = false;
-        }
-        // ---------------------------------------------------------------------
-
-        write(setup.int_en1_reg);
-        if(read<decltype(setup.int_en1_reg)>() != setup.int_en1_reg)
-        {
-            is_init_success = false;
-        }
-        // ---------------------------------------------------------------------
-
-        write(setup.int_map1_reg);
-        if(read<decltype(setup.int_map1_reg)>() != setup.int_map1_reg)
-        {
-            is_init_success = false;
-        }
-        // ---------------------------------------------------------------------
-
-        write(setup.int_map3_reg);
-        if(read<decltype(setup.int_map3_reg)>() != setup.int_map3_reg)
-        {
-            is_init_success = false;
-        }
-        // ---------------------------------------------------------------------
-
-        write(setup.intpin_conf_reg);
-        if(read<decltype(setup.intpin_conf_reg)>() != setup.intpin_conf_reg)
-        {
-            is_init_success = false;
-        }
-        // ---------------------------------------------------------------------
-
-        write(setup.int_cfg_reg);
-        if(read<decltype(setup.int_cfg_reg)>() != setup.int_cfg_reg)
-        {
-            is_init_success = false;
-        }
-        // ---------------------------------------------------------------------
-
-        write(setup.pm_reg);
-        if(read<decltype(setup.pm_reg)>() != setup.pm_reg)
-        {
-            is_init_success = false;
-        }
-        // ---------------------------------------------------------------------
-
+        // Вычисление масштабного коэффициента необходимо выполнить после записи
+        // регистра "fsr_reg".
         lsb_ = compute_lsb();
 
         return is_init_success;
