@@ -16,6 +16,7 @@ add_subdirectory(third_party/leaf SYSTEM)
 add_subdirectory(third_party/etl SYSTEM)
 add_subdirectory(third_party/fpm SYSTEM)
 add_subdirectory(third_party/lwrb SYSTEM)
+add_subdirectory(third_party/frozen SYSTEM)
 
 if((STV_IS_STANDALONE OR UTEST) AND TARGET lwrb)
   target_compile_definitions(lwrb PUBLIC -DLWRB_DISABLE_ATOMIC)
@@ -29,7 +30,7 @@ target_include_directories(${PROJECT_NAME}
                            INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include/")
 
 target_link_libraries(stv INTERFACE Microsoft.GSL::GSL Boost::leaf etl::etl fpm
-                                    lwrb_ex)
+                                    lwrb_ex frozen::frozen)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   target_compile_options(
