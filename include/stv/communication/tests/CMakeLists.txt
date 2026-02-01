@@ -23,6 +23,11 @@ if(CLANG_TIDY_ENABLE)
   endif()
 endif()
 
+if(ASAN_ENABLE)
+  target_compile_options(${PROJECT_NAME} PRIVATE ${ASAN_SANITIZER_FLAGS})
+  target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address,undefined)
+endif()
+
 # Behchmark
 find_package(benchmark)
 if(benchmark_FOUND)
