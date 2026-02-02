@@ -5,7 +5,7 @@ project(test_stv_containers)
 find_package(Catch2 REQUIRED)
 include(Catch)
 
-add_executable(${PROJECT_NAME} test_lwrb.cpp)
+add_executable(${PROJECT_NAME} test_lwrb.cpp test_simbuff.cpp)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Catch2::Catch2WithMain stv::stv)
 catch_discover_tests(${PROJECT_NAME})

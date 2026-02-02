@@ -28,6 +28,7 @@
 
 #include "stv/mutex_guard.hpp"
 #include <memory>
+#include <type_traits>
 
 namespace stv {
 
@@ -156,7 +157,7 @@ class sim_buff
     {
         bool is_ready{false};
 
-        if(data_ptr_ != nullptr)
+        if(data_ptr_)
         {
             is_ready = true;
         }
@@ -171,7 +172,9 @@ class sim_buff
     template<typename USER_DATA_TYPE = std::uint8_t>
     [[nodiscard]] auto data() const noexcept
     {
-        return reinterpret_cast<USER_DATA_TYPE *>(data_ptr_ + offset_head_);
+        return reinterpret_cast<
+            std::remove_pointer_t<std::remove_reference_t<USER_DATA_TYPE>> *>(
+            data_ptr_ + offset_head_);
     }
 
     // -------------------------------------------------------------------------
@@ -208,7 +211,7 @@ class sim_buff
     {
         if(offset < size_in_bytes_)
         {
-            offset_head_ = offset;
+            offset_head_ += offset;
         }
     }
 
@@ -224,7 +227,7 @@ class sim_buff
     {
         if(offset < size_in_bytes_)
         {
-            offset_tail_ = offset;
+            offset_tail_ += offset;
         }
     }
 
