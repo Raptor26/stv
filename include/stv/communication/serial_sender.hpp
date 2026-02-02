@@ -414,12 +414,12 @@ template<typename TSimbuff, std::size_t QUEUE_SIZE = 10, typename... Decorators>
 class serial_message_buffer:
     public serial_message_buffer_base<etl::iqueue<TSimbuff>, Decorators...>
 {
-    using simbuff_type    = TSimbuff;
-    using queue_base_type = etl::iqueue<simbuff_type>;
+    using sim_buff_type    = TSimbuff;
+    using queue_base_type = etl::iqueue<sim_buff_type>;
     using base_type =
         serial_message_buffer_base<queue_base_type, Decorators...>;
 
-    etl::queue<simbuff_type, 22> queue_;
+    etl::queue<sim_buff_type, 22> queue_;
 
   public:
     explicit serial_message_buffer(

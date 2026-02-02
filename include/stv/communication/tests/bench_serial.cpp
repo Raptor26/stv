@@ -36,7 +36,7 @@ static void request(
 {
     using namespace stv;
 
-    using simbuff_type = stv::sim_buff<stv::empty_mutex>;
+    using sim_buff_type = stv::sim_buff<stv::empty_mutex>;
 
     struct UserData {
         std::uint8_t i{11};
@@ -45,7 +45,7 @@ static void request(
         std::uint8_t z{44};
     };
 
-    auto serial_message_buffer = make_serial_message_buffer<simbuff_type, 10>(
+    auto serial_message_buffer = make_serial_message_buffer<sim_buff_type, 10>(
         stv::start_frame_and_crc_16{}, stv::head_route{});
 
     for(auto unused: state)
