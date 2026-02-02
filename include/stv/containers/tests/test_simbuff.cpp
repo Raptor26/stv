@@ -42,15 +42,15 @@ TEST_CASE(
     {
         REQUIRE_FALSE(stv::sim_buff{});
 
-        stv::sim_buff buffer;
+        const stv::sim_buff buffer;
         REQUIRE_FALSE(buffer.data());
     }
 
     SECTION("Trim")
     {
-        std::string_view test_msg{"Hello World!"};
+        const std::string_view test_msg{"Hello World!"};
 
-        stv::sim_buff    buffer{test_msg.size()};
+        stv::sim_buff          buffer{test_msg.size()};
         std::copy(test_msg.begin(), test_msg.end(),
                   reinterpret_cast<char *>(buffer.begin()));
 
@@ -60,7 +60,8 @@ TEST_CASE(
 
         SECTION("Head")
         {
-            std::string_view test_msg_after_first_trim_head{"ello World!"};
+            const std::string_view test_msg_after_first_trim_head{
+                "ello World!"};
             buffer.trim_head(1);
             REQUIRE(test_msg_after_first_trim_head.size() == buffer.size());
             REQUIRE(std::memcmp(buffer.data(),
@@ -68,7 +69,7 @@ TEST_CASE(
                                 buffer.size())
                     == 0);
 
-            std::string_view test_msg_after_second_trim_head{"World!"};
+            const std::string_view test_msg_after_second_trim_head{"World!"};
             buffer.trim_head(5);
             REQUIRE(test_msg_after_second_trim_head.size() == buffer.size());
             REQUIRE(std::memcmp(buffer.data(),
@@ -79,7 +80,8 @@ TEST_CASE(
 
         SECTION("Tail")
         {
-            std::string_view test_msg_after_first_trim_tail{"Hello World"};
+            const std::string_view test_msg_after_first_trim_tail{
+                "Hello World"};
             buffer.trim_tail(1);
             REQUIRE(test_msg_after_first_trim_tail.size() == buffer.size());
             REQUIRE(std::memcmp(buffer.data(),
@@ -87,7 +89,7 @@ TEST_CASE(
                                 buffer.size())
                     == 0);
 
-            std::string_view test_msg_after_second_trim_tail{"Hello"};
+            const std::string_view test_msg_after_second_trim_tail{"Hello"};
             buffer.trim_tail(6);
             REQUIRE(test_msg_after_second_trim_tail.size() == buffer.size());
             REQUIRE(std::memcmp(buffer.data(),
