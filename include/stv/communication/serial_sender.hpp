@@ -295,6 +295,15 @@ class serial_message_buffer_base:
                        std::forward<SetupParams>(setup_params)...);
     }
 
+    template<typename... SetupParams>
+    auto request(
+        std::size_t size, const SetupParams &...setup_params)
+    {
+        return request_impl<std::byte>(
+            span_type(static_cast<const std::byte *>(nullptr), size),
+            setup_params...);
+    }
+
     // Для std::vector и других контейнеров
     template<stv::contiguous_trivial_container_concept Container>
     auto request(
@@ -305,13 +314,14 @@ class serial_message_buffer_base:
     }
 
     template<typename UserData, typename... SetupParams>
+        requires(!std::integral<UserData>)
     auto request(
-        const UserData &user_data, SetupParams &&...setup_params)
+        const UserData &user_data, const SetupParams &...setup_params)
     {
         return request_impl<UserData>(
             span_type(reinterpret_cast<const std::byte *>(&user_data),
                       sizeof(UserData)),
-            std::forward<SetupParams>(setup_params)...);
+            setup_params...);
     }
 
     /// @brief Запрос области памяти под хранение структуры типа UserData.
@@ -419,7 +429,7 @@ template<typename TSimbuff, std::size_t QUEUE_SIZE = 10, typename... Decorators>
 class serial_message_buffer:
     public serial_message_buffer_base<etl::iqueue<TSimbuff>, Decorators...>
 {
-    using sim_buff_type    = TSimbuff;
+    using sim_buff_type   = TSimbuff;
     using queue_base_type = etl::iqueue<sim_buff_type>;
     using base_type =
         serial_message_buffer_base<queue_base_type, Decorators...>;
