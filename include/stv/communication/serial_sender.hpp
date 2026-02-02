@@ -324,12 +324,12 @@ class serial_message_buffer_base:
     /// '->'.
     template<typename UserData, typename... SetupParams>
     auto request(
-        SetupParams &&...setup_params)
+        const SetupParams &...setup_params)
     {
         return request_impl<UserData>(
             span_type(static_cast<const std::byte *>(nullptr),
                       sizeof(UserData)),
-            std::forward<SetupParams>(setup_params)...);
+            setup_params...);
     }
 
     template<typename InputIt>
