@@ -32,6 +32,7 @@
 #include <cassert>
 #include <concepts>
 #include <cstddef>
+#include <etl/utility.h>
 #include <iterator>
 #include <limits>
 #include <memory>
@@ -104,6 +105,8 @@ class composite_serial_message
     {
         return memory_.begin() + header_size_;
     }
+
+    [[nodiscard]] auto data() { return pload(); }
 
     [[nodiscard]] auto begin() { return memory_.begin(); }
 
@@ -223,6 +226,8 @@ class serial_message
     {
         return reinterpret_cast<user_type *>(composite_message_.pload());
     }
+
+    [[nodiscard]] auto data() { return composite_message_.data(); }
 
     [[nodiscard]] auto begin() { return composite_message_.begin(); }
 
