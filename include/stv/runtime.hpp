@@ -143,7 +143,7 @@ class runtime
     /// @brief Возвращает прошедшее с момента запуска системы время.
     ///
     /// @return Объект std::chrono.
-    STV_VIRTUAL auto get() -> value_type
+    virtual auto get() -> value_type
     {
         const auto lock = stv::lock_guard{get_mutex_ref()};
         return value_type{counter_};
