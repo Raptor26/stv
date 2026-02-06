@@ -8,6 +8,12 @@
 
 namespace stv {
 
+/// @brief Концепт проверяет, что переданный тип содержит метод run.
+template<typename TBase>
+concept runable_concept = requires(TBase base) {
+    { base.run() };
+};
+
 /// @brief Проверяет что переданный тип поддерживает общий для фильтров API.
 ///
 /// TBase Тип данных который нужно проверить на наличие необходимого API.

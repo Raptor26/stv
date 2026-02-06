@@ -248,6 +248,7 @@ struct callback_timer_context_init {
 /// @tparam TBase Тип класса, объект которого нужно привязать к таймеру. Должен
 /// иметь метод run().
 template<typename TDelegateInit, typename TBase>
+    requires(stv::runable_concept<TBase>)
 class callback_timer_context:
     virtual private stv::non_movable_non_copyable,
     public TBase
