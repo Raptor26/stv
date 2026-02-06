@@ -820,9 +820,9 @@ class igyr
     using value_type = T;
 
     /// @brief Type alias for the timestamp value type.
-    using timestamp_value = TIMESTAMP;
+    using timestamp_type = TIMESTAMP;
 
-    using gyr_type = stv::gyr<value_type, timestamp_value>;
+    using gyr_type = stv::gyr<value_type, timestamp_type>;
 
     /// @brief Reads gyroscope data from the sensor.
     ///
@@ -867,7 +867,7 @@ class gyr_getter_default final: public igyr<T>
     using typename igyr<T, TIMESTAMP>::value_type;
 
     /// @brief Type alias for the timestamp value type.
-    using typename igyr<T, TIMESTAMP>::timestamp_value;
+    using typename igyr<T, TIMESTAMP>::timestamp_type;
 
     /// @brief Default constructor.
     constexpr gyr_getter_default() = default;
@@ -956,13 +956,13 @@ class iacc
 /// @tparam T Data type for measurements (float, double). Defaults to float.
 /// @tparam TIMESTAMP Type for timestamp storage. Defaults to std::uint32_t.
 template<allowed_sensor_type T = float, typename TIMESTAMP = std::uint32_t>
-class acc_getter_default final: public iacc<T>
+class acc_getter_default final: public iacc<T, TIMESTAMP>
 {
     using base_type = iacc<T>;
 
   public:
     /// @brief Type alias for the timestamp value type.
-    using typename base_type::timestamp_value;
+    using typename base_type::timestamp_type;
 
     /// @brief Type alias for the measurement value type.
     using typename base_type::value_type;
@@ -1015,7 +1015,7 @@ class imag
     using value_type = T;
 
     /// @brief Type alias for the timestamp value type.
-    using timestamp_value = TIMESTAMP;
+    using timestamp_type = TIMESTAMP;
 
     using mag_type = stv::mag<T, TIMESTAMP>;
 
@@ -1063,7 +1063,7 @@ class mag_getter_default final: public stv::imag<T, TIMESTAMP>
 
   public:
     /// @brief Type alias for the timestamp value type.
-    using typename imag<T, TIMESTAMP>::timestamp_value;
+    using typename imag<T, TIMESTAMP>::timestamp_type;
 
     /// @brief Type alias for the measurement value type.
     using typename imag<T, TIMESTAMP>::value_type;
