@@ -84,6 +84,22 @@ class composite_serial_message
         }
     }
 
+    explicit composite_serial_message(
+        std::nullptr_t, queue_base_type &queue):
+        decorators_{},
+        // value-initialization (требует default-constructible декораторов)
+
+        payload_size_{0},
+        header_size_{0},
+        trailer_size_{0},
+        total_size_{0},
+        queue_{queue},
+        memory_{0} // Пустой контейнер → memory_.data() == nullptr
+    {
+        // Декораторы не используются, так как в деструкторе есть проверка
+        // if(memory_.begin())
+    }
+
     explicit operator bool() const { return memory_.data() != nullptr; }
 
     virtual ~composite_serial_message()
@@ -213,6 +229,12 @@ class serial_message
     {
     }
 
+    explicit serial_message(
+        std::nullptr_t, queue_base_type &queue):
+        composite_message_{nullptr, queue}
+    {
+    }
+
     virtual ~serial_message() = default;
 
     /// @brief Возвращает true если успешно выделена память под сообщение.
@@ -263,6 +285,39 @@ class serial_message_buffer_base:
     }
 
     virtual ~serial_message_buffer_base() = default;
+
+    template<typename UserData, typename... SetupParams>
+    auto request_null(
+        [[maybe_unused]] const SetupParams &...setup_params)
+    {
+        return serial_message<UserData, queue_base_type, Decorators...>(nullptr,
+                                                                        queue_);
+    }
+
+    auto request_null()
+    {
+        return serial_message<std::byte, queue_base_type, Decorators...>(
+            nullptr, queue_);
+    }
+
+    template<typename... SetupParams>
+    auto request_null(
+        [[maybe_unused]] std::size_t size,
+        [[maybe_unused]] const SetupParams &...setup_params)
+    {
+        return serial_message<std::byte, queue_base_type, Decorators...>(
+            nullptr, queue_);
+    }
+
+    template<stv::contiguous_trivial_container_concept Container>
+    auto request_null(
+        [[maybe_unused]] const Container &container)
+    {
+        using value_type = typename Container::value_type;
+        // return request_impl<value_type>(std::as_bytes(std::span{container}));
+        return serial_message<value_type, queue_base_type, Decorators...>(
+            nullptr, queue_);
+    }
 
     auto request(
         std::string_view str)
