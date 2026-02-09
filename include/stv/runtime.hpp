@@ -72,13 +72,14 @@ class runtime_setup
     mutex_condition_type mutex{};
 };
 
-template<typename TSetup = runtime_counter_type>
+template<typename TSetup>
 class runtime
 {
   public:
-    using value_type = typename TSetup::value_type;
-    using mutex_type = typename TSetup::mutex_type;
-    using setup_type = TSetup;
+    using setup_type   = TSetup;
+    using value_type   = typename setup_type::value_type;
+    using counter_type = value_type;
+    using mutex_type   = typename setup_type::mutex_type;
 
   private:
     /// @brief Счетчик времени с момента запуска системы.
@@ -143,7 +144,7 @@ class runtime
     /// @brief Возвращает прошедшее с момента запуска системы время.
     ///
     /// @return Объект std::chrono.
-    virtual auto get() -> value_type
+    virtual auto get() const -> value_type
     {
         const auto lock = stv::lock_guard{get_mutex_ref()};
         return value_type{counter_};
