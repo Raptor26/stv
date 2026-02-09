@@ -59,32 +59,43 @@ class deadline_timer_setup
 
     /// @brief Задержка deadline таймера. Если не равна 0, то таймер начинает
     /// отсчет сразу после создания.
-    counter_type         delay{0};
+    counter_type delay{0};
+
+    /// @brief Если флаг true, то метод deadline_timer::is_elapsed() возвращает
+    /// true если:
+    /// - таймер не запущен;
+    /// - таймер был запущен ранее, но уже истек указанный период.
+    bool                 is_elapsed_if_not_started{true};
 
     mutex_condition_type mutex{};
 };
 
 template<typename TSetup>
-class deadline_timer: public stv::non_movable_non_copyable
+class deadline_timer: virtual public stv::non_movable_non_copyable
 {
-    using setup_type   = TSetup;
+    using setup_type = TSetup;
+
+  public:
     using runtime_type = typename setup_type::runtime_type;
     using counter_type = typename setup_type::counter_type;
-    using mutex_type   = typename TSetup::mutex_type;
+
+  private:
+    using mutex_type = typename TSetup::mutex_type;
 
     /// @brief Указатель на runtime таймер.
-    runtime_type      *runtime_;
-    counter_type       deadline_{counter_type{0}};
-    bool               is_started_{false};
+    runtime_type *runtime_;
+    counter_type  deadline_{counter_type{0}};
+    bool          is_started_{false};
+
+    /// @brief Если флаг true, то метод deadline_timer::is_elapsed() возвращает
+    /// true если:
+    /// - таймер не запущен;
+    /// - таймер был запущен ранее, но уже истек указанный период.
+    bool               is_elapsed_if_not_started_;
+
     mutable mutex_type mutex_;
 
     auto               start() -> void { is_started_ = true; }
-
-    /// @brief Возвращает статус deadline таймера: активен или нет
-    ///
-    /// @return true - если таймер активен и deadline еще не истек, false в
-    /// противном случае.
-    [[nodiscard]] auto is_started() const { return is_started_; }
 
     auto get_mutex_ref() const -> std::remove_pointer_t<mutex_type> &
     {
@@ -102,7 +113,8 @@ class deadline_timer: public stv::non_movable_non_copyable
   public:
     explicit deadline_timer(
         const setup_type &setup):
-        runtime_(setup.runtime)
+        runtime_(setup.runtime),
+        is_elapsed_if_not_started_{setup.is_elapsed_if_not_started}
     {
         if constexpr(std::is_pointer_v<decltype(mutex_)>)
         {
@@ -130,14 +142,15 @@ class deadline_timer: public stv::non_movable_non_copyable
             const auto current_time = runtime_->get();
             const auto is_deadline_elapsed{
                 static_cast<bool>(current_time >= deadline_)};
-
-            if(is_deadline_elapsed)
-            {
-                this->stop();
-            }
             return is_deadline_elapsed;
         }
-        return true;
+
+        if(is_elapsed_if_not_started_)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     /// @brief Устанавливает задержку срабатывания и запускает таймер.
@@ -165,6 +178,16 @@ class deadline_timer: public stv::non_movable_non_copyable
         const auto lock = stv::lock_guard{get_mutex_ref()};
         is_started_     = false;
         deadline_       = counter_type{0};
+    }
+
+    /// @brief Возвращает статус deadline таймера: активен или нет
+    ///
+    /// @return true - если таймер активен и deadline еще не истек, false в
+    /// противном случае.
+    [[nodiscard]] auto is_started() const
+    {
+        const auto lock = stv::lock_guard{get_mutex_ref()};
+        return is_started_;
     }
 };
 

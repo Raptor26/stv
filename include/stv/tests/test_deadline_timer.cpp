@@ -75,6 +75,15 @@ TEST_CASE(
     Mock<runtime_type> runtime_mock;
     Fake(Method(runtime_mock, get));
 
+    SECTION(
+        "Check elapsed if not started with is_elapsed_if_not_started = false")
+    {
+        stv::deadline_timer deadline{
+            deadline_setup_type{.runtime = &runtime_mock.get(),
+                                .is_elapsed_if_not_started = false}};
+        REQUIRE_FALSE(deadline.is_elapsed());
+    }
+
     deadline_setup_type setup{.runtime = &runtime_mock.get()};
     stv::deadline_timer deadline{setup};
     REQUIRE(deadline);
