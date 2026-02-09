@@ -293,7 +293,7 @@ class qma6100:
     auto write_reg_then_check(
         const auto &reg)
     {
-        auto is_reg_written_success{false};
+        volatile auto is_reg_written_success{false};
         write(reg);
         if(read<std::remove_cvref_t<decltype(reg)>>() == reg)
         {
@@ -419,7 +419,7 @@ class qma6100:
     auto init(
         const qma6100_regs_setup &setup)
     {
-        const auto is_init_success =
+        volatile const auto is_init_success =
             stv::all_true(write_reg_then_check(setup.bw_reg),
                           write_reg_then_check(setup.fsr_reg),
                           write_reg_then_check(setup.int_en1_reg),
