@@ -52,7 +52,7 @@ TEST_CASE(
 
     // Инициализация класса фильтра скользящего среднего.
     // NOLINTNEXTLINE(misc-const-correctness)
-    stv::SimpleMovingAverage<TIMovingAverage, 20> moving_average{
+    stv::moving_average<TIMovingAverage, 20> moving_average{
         TMovingAverageSetup{.window_width = 10U}};
     assert(moving_average);
 
@@ -75,7 +75,7 @@ TEST_CASE(
 
     // Инициализация класса фильтра скользящего среднего.
     // NOLINTNEXTLINE(misc-const-correctness)
-    stv::SimpleMovingAverage<TIMovingAverage, 20> moving_average{
+    stv::moving_average<TIMovingAverage, 20> moving_average{
         TMovingAverageSetup{.window_width = 10U}};
     assert(moving_average);
 
@@ -100,7 +100,7 @@ TEST_CASE(
 
     // Инициализация класса фильтра скользящего среднего.
     // NOLINTNEXTLINE(misc-const-correctness)
-    stv::SimpleMovingAverage<TIMovingAverage, 20> moving_average{
+    stv::moving_average<TIMovingAverage, 20> moving_average{
         TMovingAverageSetup{.window_width = 10U}};
     assert(moving_average);
 
@@ -137,7 +137,7 @@ TEST_CASE(
 
     // Инициализация класса фильтра скользящего среднего.
     // NOLINTNEXTLINE(misc-const-correctness)
-    stv::SimpleMovingAverage<TIMovingAverage, 20> moving_average{
+    stv::moving_average<TIMovingAverage, 20> moving_average{
         TMovingAverageSetup{.window_width = 10U, .mutex = &custom_guard}};
     assert(moving_average);
 
@@ -155,7 +155,7 @@ TEST_CASE(
 
     CustomGuardV2 custom_guard_v2;
     // NOLINTNEXTLINE(misc-const-correctness)
-    stv::SimpleMovingAverage<TIMovingAverage, 20> moving_average_v2{
+    stv::moving_average<TIMovingAverage, 20> moving_average_v2{
         TMovingAverageSetup{.window_width = 10U, .mutex = &custom_guard_v2}};
     assert(moving_average_v2);
 }
@@ -175,7 +175,7 @@ TEST_CASE(
     // Инициализация класса фильтра скользящего среднего на куче через
     // std::unique_ptr.
     auto moving_average =
-        std::make_unique<stv::SimpleMovingAverage<TIMovingAverage, 20>>(
+        std::make_unique<stv::moving_average<TIMovingAverage, 20>>(
             TMovingAverageSetup{.window_width = 10U});
     assert(moving_average);        ///< true если память на куче выделена
     assert(moving_average.get()
@@ -247,7 +247,7 @@ TEMPLATE_PRODUCT_TEST_CASE(
     using TBase  = moving_average_base<TSetup>;
 
     SECTION(
-        "Object of the class that publicly inherits SimpleMovingAverage and "
+        "Object of the class that publicly inherits moving_average and "
         "uses protected <buffer> from base class")
     {
         std::recursive_mutex std_mutex{};
@@ -269,8 +269,8 @@ TEMPLATE_PRODUCT_TEST_CASE(
             attr.mutex = &empty_mutex;
         }
 
-        constexpr int                            window_width = 5;
-        SimpleMovingAverage<TBase, window_width> src_average{attr};
+        constexpr int                              window_width = 5;
+        moving_average<TBase, window_width> src_average{attr};
         REQUIRE(src_average);
         constexpr std::array<TData, window_width> samples{1, 1, 1, 1, 1};
 
@@ -283,7 +283,7 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
         WHEN("User copies source object to destination one")
         {
-            SimpleMovingAverage<TBase, window_width> dst_average{attr};
+            moving_average<TBase, window_width> dst_average{attr};
             REQUIRE(dst_average);
             dst_average = src_average;
             REQUIRE(dst_average);
@@ -306,7 +306,7 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
         WHEN("User copy assign source object to destination one")
         {
-            SimpleMovingAverage<TBase, window_width> dst_average{src_average};
+            moving_average<TBase, window_width> dst_average{src_average};
 
             THEN("<buffer> from <dst_average> should point to new memory "
                  "address")
@@ -328,7 +328,7 @@ TEMPLATE_PRODUCT_TEST_CASE(
         {
             auto src_buffer_span = src_average.buffer_;
 
-            SimpleMovingAverage<TBase, window_width> dst_average{
+            moving_average<TBase, window_width> dst_average{
                 std::move(src_average)};
 
             THEN("<buffer> from <dst_average> should point to new memory "
@@ -351,7 +351,7 @@ TEMPLATE_PRODUCT_TEST_CASE(
         {
             // Create another object because <src_average> was moved in previous
             // section.
-            SimpleMovingAverage<TBase, window_width> src{attr};
+            moving_average<TBase, window_width> src{attr};
 
             // Buffer is filled with some values for further checking.
             for(const auto &sample: samples)
@@ -362,7 +362,7 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
             auto src_buffer_span = src.buffer_;
 
-            SimpleMovingAverage<TBase, window_width> dst_average{attr};
+            moving_average<TBase, window_width> dst_average{attr};
 
             dst_average = std::move(src);
 
@@ -417,7 +417,7 @@ TEMPLATE_PRODUCT_TEST_CASE(
     {
         attr.window_width = window_width;
 
-        SimpleMovingAverage<TBase, window_width - 1> average(attr);
+        moving_average<TBase, window_width - 1> average(attr);
         REQUIRE_FALSE(average);
     }
 
@@ -457,16 +457,16 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
         attr_with_user_default.window_width = user_default_params.window_width;
 
-        const SimpleMovingAverage<TBase> average(attr_with_user_default);
+        const moving_average<TBase> average(attr_with_user_default);
 
         REQUIRE(average.get_default_setup() == user_default_params);
     }
 
     SECTION("filt without setup")
     {
-        SimpleMovingAverage<TBase> average(attr);
+        moving_average<TBase> average(attr);
 
-        const std::array<TData, 8> samples{
+        const std::array<TData, 8>   samples{
             static_cast<TData>(1), static_cast<TData>(2), static_cast<TData>(3),
             static_cast<TData>(4), static_cast<TData>(5), static_cast<TData>(6),
             static_cast<TData>(7), static_cast<TData>(8)};
@@ -483,7 +483,7 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
     SECTION("filt with setup")
     {
-        SimpleMovingAverage<TBase, window_width> average(attr);
+        moving_average<TBase, window_width> average(attr);
         //
         REQUIRE(average.setup(TSetup{.window_width = 3}));
 
@@ -536,12 +536,12 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
     SECTION("Change Window Width to Smaller One")
     {
-        constexpr std::size_t                    window_width_init  = 5;
-        constexpr std::size_t                    window_width_lower = 3;
+        constexpr std::size_t                      window_width_init  = 5;
+        constexpr std::size_t                      window_width_lower = 3;
 
-        SimpleMovingAverage<TBase, window_width> average(attr);
+        moving_average<TBase, window_width> average(attr);
 
-        TSetup                                   setup_params;
+        TSetup                                     setup_params;
         setup_params.window_width = window_width_init;
         REQUIRE(average.setup(setup_params));
 
@@ -582,12 +582,12 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
     SECTION("Change Window Width to Greater One")
     {
-        constexpr std::size_t                    window_width_init    = 3;
-        constexpr std::size_t                    window_width_greater = 5;
+        constexpr std::size_t                      window_width_init    = 3;
+        constexpr std::size_t                      window_width_greater = 5;
 
-        SimpleMovingAverage<TBase, window_width> average(attr);
+        moving_average<TBase, window_width> average(attr);
 
-        TSetup                                   setup_params;
+        TSetup                                     setup_params;
         setup_params.window_width = window_width_init;
         REQUIRE(average.setup(setup_params));
 
@@ -628,9 +628,9 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
     SECTION("reset To Default")
     {
-        SimpleMovingAverage<TBase, window_width> average(attr);
+        moving_average<TBase, window_width> average(attr);
 
-        TSetup                                   setup_params;
+        TSetup                                     setup_params;
         setup_params.window_width = window_width;
         REQUIRE(average.setup(setup_params));
 

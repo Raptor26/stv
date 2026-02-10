@@ -66,7 +66,7 @@
 ///         using FilterBase = moving_average_base<SetupParams>;
 ///
 ///         // Create filter with maximum buffer size of 20
-///         SimpleMovingAverage<FilterBase, 20> filter{
+///         moving_average<FilterBase, 20> filter{
 ///             SetupParams{.window_width = 5U}
 ///         };
 ///
@@ -98,7 +98,7 @@
 ///         std::recursive_mutex>;
 ///     using ThreadSafeFilter = moving_average_base<ThreadSafeSetup>;
 ///
-///     SimpleMovingAverage<ThreadSafeFilter, 10> thread_safe_filter{
+///     moving_average<ThreadSafeFilter, 10> thread_safe_filter{
 ///         ThreadSafeSetup{.window_width = 3U}
 ///     };
 ///     ```
@@ -115,7 +115,7 @@
 ///         CustomMutex, mutex_ext_tag>;
 ///     using ExtFilter = moving_average_base<ExtMutexSetup>;
 ///
-///     SimpleMovingAverage<ExtFilter, 15> ext_filter{
+///     moving_average<ExtFilter, 15> ext_filter{
 ///         ExtMutexSetup{.window_width = 4U, .mutex = &custom_mutex}
 ///     };
 ///     ```
@@ -128,7 +128,6 @@
 
 #include "GSL/gsl"
 #include "boost/leaf.hpp"
-#include "etl/mutex.h"
 #include "stv/concepts.hpp"
 #include "stv/mutex_guard.hpp"
 #include "stv/wrappers.hpp"
@@ -424,7 +423,7 @@ class moving_average_base
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
 
         sum_          += new_sample - buffer_[cnt_];
-        buffer_[cnt_]   = new_sample;
+        buffer_[cnt_]  = new_sample;
         auto filtered  = new_sample;
 
         if(!full(is_isr))
@@ -630,7 +629,7 @@ class moving_average_base
 };
 
 template<stv::filterable_concept TBase, std::size_t MAX_WINDOW_WIDTH = 20>
-using SimpleMovingAverage =
+using moving_average =
     stv::container_size_wrapper<TBase, MAX_WINDOW_WIDTH>;
 
 } // namespace stv
