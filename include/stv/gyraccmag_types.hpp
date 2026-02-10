@@ -76,7 +76,7 @@ class inertial_sens_storage_proxy
     [[nodiscard]] auto data() { return storage_.data(); }
 
     [[nodiscard]] auto operator[](
-        int idx)
+        std::size_t idx)
     {
         return storage_[idx];
     }
