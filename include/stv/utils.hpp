@@ -1,6 +1,11 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+#include <cmath>
+#include <numeric>
+#include <ranges>
+#include <type_traits>
+
 namespace stv {
 
 class non_copyable
@@ -107,6 +112,28 @@ auto one_true(
     Args... args)
 {
     return (... || args);
+}
+
+template<std::ranges::range Container>
+auto norm(
+    const Container &container)
+{
+    using value_type = std::ranges::range_value_t<Container>;
+    auto sum_sq      = std::accumulate(
+        std::begin(container), std::end(container), value_type{0},
+        [](const auto &acc, const auto &axis) { return acc + (axis * axis); });
+    return std::sqrt(sum_sq);
+}
+
+template<typename... Args>
+auto norm(
+    Args... args)
+{
+    static_assert(sizeof...(Args) > 0, "At least one argument required");
+    static_assert((std::is_arithmetic_v<Args> && ...),
+                  "All arguments must be arithmetic types");
+
+    return std::sqrt(((args * args) + ...));
 }
 
 } // namespace stv

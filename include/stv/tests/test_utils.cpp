@@ -46,3 +46,21 @@ TEST_CASE(
     REQUIRE(stv::one_true(false, false, true));
     REQUIRE_FALSE(stv::one_true(false, false, false));
 }
+
+TEST_CASE(
+    "Norm")
+{
+    std::array<float, 3> vector{1.0F, 2.0F, 2.0F};
+    constexpr float      expected_norm{3.F};
+
+    float                norm{0};
+
+    SECTION("Like container") { norm = stv::norm(vector); }
+
+    SECTION("Like scalar")
+    {
+        norm = stv::norm(vector.at(0), vector.at(1), vector.at(2));
+    }
+    REQUIRE_THAT(norm, Catch::Matchers::WithinRel(
+                           static_cast<double>(expected_norm), 0.01));
+}
