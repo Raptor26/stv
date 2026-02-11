@@ -127,9 +127,9 @@
 #define STVF_MOVING_AVERAGE_HPP
 
 #include "GSL/gsl"
-#include "boost/leaf.hpp"
 #include "stv/concepts.hpp"
 #include "stv/mutex_guard.hpp"
+#include "stv/utils.hpp"
 #include "stv/wrappers.hpp"
 #include <algorithm>
 #include <array>
@@ -205,19 +205,20 @@ class moving_average_setup
     /// @return true если window_width находится в допустимом диапазоне, false
     /// в противном случае.
     auto is_valid(
-        std::size_t max_window_width) const -> boost::leaf::result<void>
+        std::size_t max_window_width) const
     {
+        auto is_valid{true};
         if(window_width == 0)
         {
-            return boost::leaf::new_error(stv::zero_window_width{});
+            is_valid = false;
         }
 
         if(window_width > max_window_width)
         {
-            return boost::leaf::new_error(stv::max_window_width_limit_error{});
+            is_valid = false;
         }
 
-        return boost::leaf::result<void>{};
+        return is_valid;
     }
 };
 
@@ -303,16 +304,9 @@ class moving_average_base
     /// @note Член "правила 5" в С++.
     moving_average_base(const moving_average_base &other) = default;
 
-    explicit operator boost::leaf::result<void>() const noexcept(
+    explicit operator bool() const noexcept(
         noexcept(setup_default_.is_valid(buffer_.size()))
         && noexcept(setup_actual_.is_valid(buffer_.size())))
-    {
-        BOOST_LEAF_CHECK(setup_default_.is_valid(buffer_.size()));
-        BOOST_LEAF_CHECK(setup_actual_.is_valid(buffer_.size()));
-        return boost::leaf::result<void>{};
-    }
-
-    explicit operator bool() const noexcept
     {
         auto is_mutex_ptr_valid{true};
         if constexpr(std::is_pointer_v<decltype(mutex_)>)
@@ -322,8 +316,10 @@ class moving_average_base
                 is_mutex_ptr_valid = false;
             }
         }
-        return static_cast<bool>(static_cast<boost::leaf::result<void>>(*this))
-               && is_mutex_ptr_valid;
+
+        return stv::all_true(setup_default_.is_valid(buffer_.size()),
+                             setup_actual_.is_valid(buffer_.size()),
+                             is_mutex_ptr_valid);
     }
 
     /// @brief Установить параметры фильтра скользящего среднего во время
@@ -340,21 +336,24 @@ class moving_average_base
             noexcept(params.is_valid(buffer_.size()))
             && noexcept(
                 change_window_width_and_update_counter(params.window_width))
-            && noexcept(UpdateWindowWithInverse())) -> boost::leaf::result<void>
+            && noexcept(UpdateWindowWithInverse()))
     {
-        BOOST_LEAF_CHECK(params.is_valid(buffer_.size()));
+        auto success{params.is_valid(buffer_.size())};
 
-        const stv::lock_guard critical{get_mutex_ref(), is_isr};
+        if(success)
+        {
+            const stv::lock_guard critical{get_mutex_ref(), is_isr};
 
-        change_window_width_and_update_counter(params.window_width);
+            change_window_width_and_update_counter(params.window_width);
 
-        setup_actual_ = std::forward<U>(params);
+            setup_actual_ = std::forward<U>(params);
 
-        // Обновить обратную ширину окна для оптимизации времени
-        // вычислений.
-        UpdateWindowWithInverse();
+            // Обновить обратную ширину окна для оптимизации времени
+            // вычислений.
+            UpdateWindowWithInverse();
+        }
 
-        return boost::leaf::result<void>{};
+        return success;
     }
 
     /// @brief Получить конфигурацию фильтра по умолчанию.
@@ -629,8 +628,7 @@ class moving_average_base
 };
 
 template<stv::filterable_concept TBase, std::size_t MAX_WINDOW_WIDTH = 20>
-using moving_average =
-    stv::container_size_wrapper<TBase, MAX_WINDOW_WIDTH>;
+using moving_average = stv::container_size_wrapper<TBase, MAX_WINDOW_WIDTH>;
 
 } // namespace stv
 #endif /* STVF_MOVING_AVERAGE_HPP */

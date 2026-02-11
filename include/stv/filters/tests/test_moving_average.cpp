@@ -188,7 +188,6 @@ TEST_CASE(
     "setup, [stv][moving_average]")
 {
     using namespace stv;
-    using namespace boost;
 
     using TValue = float;
     using TSetup = moving_average_setup<TValue, stv::empty_mutex>;
@@ -246,9 +245,8 @@ TEMPLATE_PRODUCT_TEST_CASE(
     using TData  = TSetup::value_type;
     using TBase  = moving_average_base<TSetup>;
 
-    SECTION(
-        "Object of the class that publicly inherits moving_average and "
-        "uses protected <buffer> from base class")
+    SECTION("Object of the class that publicly inherits moving_average and "
+            "uses protected <buffer> from base class")
     {
         std::recursive_mutex std_mutex{};
         (void)std_mutex;
@@ -269,7 +267,7 @@ TEMPLATE_PRODUCT_TEST_CASE(
             attr.mutex = &empty_mutex;
         }
 
-        constexpr int                              window_width = 5;
+        constexpr int                       window_width = 5;
         moving_average<TBase, window_width> src_average{attr};
         REQUIRE(src_average);
         constexpr std::array<TData, window_width> samples{1, 1, 1, 1, 1};
@@ -360,7 +358,7 @@ TEMPLATE_PRODUCT_TEST_CASE(
                 (void)filtered;
             }
 
-            auto src_buffer_span = src.buffer_;
+            auto                                src_buffer_span = src.buffer_;
 
             moving_average<TBase, window_width> dst_average{attr};
 
@@ -388,7 +386,6 @@ TEMPLATE_PRODUCT_TEST_CASE(
      (fpm::fixed_16_16, std::recursive_mutex), (int, std::recursive_mutex *)))
 {
     using namespace stv;
-    using namespace boost;
     using TData  = TestType::value_type;
     using TSetup = TestType;
     using TBase  = moving_average_base<TSetup>;
@@ -464,9 +461,9 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
     SECTION("filt without setup")
     {
-        moving_average<TBase> average(attr);
+        moving_average<TBase>      average(attr);
 
-        const std::array<TData, 8>   samples{
+        const std::array<TData, 8> samples{
             static_cast<TData>(1), static_cast<TData>(2), static_cast<TData>(3),
             static_cast<TData>(4), static_cast<TData>(5), static_cast<TData>(6),
             static_cast<TData>(7), static_cast<TData>(8)};
@@ -536,12 +533,12 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
     SECTION("Change Window Width to Smaller One")
     {
-        constexpr std::size_t                      window_width_init  = 5;
-        constexpr std::size_t                      window_width_lower = 3;
+        constexpr std::size_t               window_width_init  = 5;
+        constexpr std::size_t               window_width_lower = 3;
 
         moving_average<TBase, window_width> average(attr);
 
-        TSetup                                     setup_params;
+        TSetup                              setup_params;
         setup_params.window_width = window_width_init;
         REQUIRE(average.setup(setup_params));
 
@@ -582,12 +579,12 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
     SECTION("Change Window Width to Greater One")
     {
-        constexpr std::size_t                      window_width_init    = 3;
-        constexpr std::size_t                      window_width_greater = 5;
+        constexpr std::size_t               window_width_init    = 3;
+        constexpr std::size_t               window_width_greater = 5;
 
         moving_average<TBase, window_width> average(attr);
 
-        TSetup                                     setup_params;
+        TSetup                              setup_params;
         setup_params.window_width = window_width_init;
         REQUIRE(average.setup(setup_params));
 
@@ -630,7 +627,7 @@ TEMPLATE_PRODUCT_TEST_CASE(
     {
         moving_average<TBase, window_width> average(attr);
 
-        TSetup                                     setup_params;
+        TSetup                              setup_params;
         setup_params.window_width = window_width;
         REQUIRE(average.setup(setup_params));
 
