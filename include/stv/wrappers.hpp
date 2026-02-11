@@ -49,6 +49,8 @@ class container_size_wrapper:
     using buffer_type =
         stv::memory_storage_proxy<typename TBase::value_type, SIZE>;
 
+    static_assert(SIZE > 0, "Template SIZE must be greater then 0");
+
   public:
     template<typename U>
         requires std::same_as<std::remove_cvref_t<U>, setup_type>
