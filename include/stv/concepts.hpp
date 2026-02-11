@@ -2,7 +2,6 @@
 #define CONCEPTS_HPP
 
 #include <chrono>
-#include <concepts>
 #include <ranges>
 #include <type_traits>
 
