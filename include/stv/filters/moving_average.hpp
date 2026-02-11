@@ -204,7 +204,7 @@ class moving_average_setup
     ///
     /// @return true если window_width находится в допустимом диапазоне, false
     /// в противном случае.
-    auto is_valid(
+    [[nodiscard]] auto is_valid(
         std::size_t max_window_width) const
     {
         auto is_valid{true};
