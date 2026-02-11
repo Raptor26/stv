@@ -64,15 +64,15 @@ struct qma6100_setup: public stv::qma6100_i2c_setup {
 ///          вызвать метод `init()` для настройки датчика. После успешной
 ///          инициализации можно периодически вызывать `read_raw()` для
 ///          получения акселерометрических данных.
-template<typename T = float, typename TTimeStamp = std::uint32_t>
+template<typename AccType>
 class qma6100:
     public stv::qma6100_i2c,
-    public stv::iacc<T, TTimeStamp>,
+    public stv::iacc<AccType>,
     virtual public stv::non_movable_non_copyable
 {
-    using base_type      = stv::iacc<float, std::uint32_t>;
-    using acc_type       = typename base_type::acc_type;
-    using timestamp_type = typename base_type::timestamp_type;
+    using acc_type       = AccType;
+    using base_type      = stv::iacc<acc_type>;
+    using timestamp_type = typename acc_type::timestamp_type;
 
     STV_NO_PADDING_NO_OPTIMIZE_BEGIN
 

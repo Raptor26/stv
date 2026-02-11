@@ -25,6 +25,7 @@
 
 #include "stv/drivers/qma6100.hpp"
 #include "stv/drivers/qma6100_regs.hpp"
+#include "stv/gyraccmag_types.hpp"
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
@@ -42,7 +43,8 @@ TEST_CASE(
     using namespace fakeit;
     using namespace stv;
 
-    using qma6100_type = stv::qma6100<float, std::uint32_t>;
+    using acc_type     = stv::acc<float, std::uint32_t>;
+    using qma6100_type = stv::qma6100<acc_type>;
 
     SECTION("Who am i")
     {
@@ -77,7 +79,7 @@ TEST_CASE(
     Fake(Method(i2c, write));
     Fake(Method(i2c, read));
     qma6100_setup setup{{.i2c = &i2c.get()}};
-    qma6100       driver{setup};
+    qma6100_type  driver{setup};
     REQUIRE(driver);
 
     SECTION("Init")

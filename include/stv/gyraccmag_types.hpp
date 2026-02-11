@@ -903,20 +903,17 @@ class gyr_getter_default final: public igyr<T>
 /// @brief Interface for accelerometer data acquisition.
 ///
 /// Defines the contract for classes that provide accelerometer data.
-///
-/// @tparam T Data type for measurements (float, double). Defaults to float.
-/// @tparam TIMESTAMP Type for timestamp storage. Defaults to std::uint32_t.
-template<allowed_sensor_type T = float, typename TIMESTAMP = std::uint32_t>
+template<typename Acc>
 class iacc
 {
   public:
+    using acc_type = Acc;
+
     /// @brief Type alias for the measurement value type.
-    using value_type = T;
+    using value_type = typename acc_type::value_type;
 
     /// @brief Type alias for the timestamp value type.
-    using timestamp_type = TIMESTAMP;
-
-    using acc_type = stv::acc<value_type, timestamp_type>;
+    using timestamp_type = typename acc_type::timestamp_type;
 
     /// @brief Reads accelerometer data from the sensor.
     ///
@@ -952,13 +949,10 @@ class iacc
 ///
 /// A concrete implementation of IAccGetter that provides default
 /// (zero-initialized) accelerometer measurements.
-///
-/// @tparam T Data type for measurements (float, double). Defaults to float.
-/// @tparam TIMESTAMP Type for timestamp storage. Defaults to std::uint32_t.
-template<allowed_sensor_type T = float, typename TIMESTAMP = std::uint32_t>
-class acc_getter_default final: public iacc<T, TIMESTAMP>
+template<typename Acc>
+class acc_getter_default final: public iacc<Acc>
 {
-    using base_type = iacc<T>;
+    using base_type = iacc<Acc>;
 
   public:
     /// @brief Type alias for the timestamp value type.
