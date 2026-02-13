@@ -54,7 +54,7 @@ class latch
     /// @brief Текущее состояние защелки.
     /// - `false`: защелка не сработала
     /// - `true`: защелка сработала и ожидает сброса
-    bool latched_{false};
+    mutable bool latched_{false};
 
   public:
     /// @brief Неявное приведение к `bool` для удобства проверки состояния.
@@ -63,7 +63,7 @@ class latch
     /// `true`), и `false` в противном случае.
     ///
     /// @return `true`, если защелка активна, иначе `false`.
-    explicit operator bool() { return read(); }
+    explicit operator bool() const { return read(); }
 
     /// @brief Обновляет состояние защелки на основе входного сигнала.
     ///
@@ -94,7 +94,7 @@ class latch
     ///
     /// @note Метод атомарно считывает и сбрасывает состояние, что делает его
     /// идеальным для обработки однократных событий без потерь.
-    bool read() { return std::exchange(latched_, false); }
+    bool read() const { return std::exchange(latched_, false); }
 };
 
 } // namespace stv
