@@ -5,8 +5,8 @@ project(test_stv)
 find_package(Catch2 REQUIRED)
 find_package(FakeIt REQUIRED)
 
-add_executable(${PROJECT_NAME} test_deadline_timer.cpp test_mutex.cpp
-                               test_runtime.cpp test_utils.cpp)
+add_executable(${PROJECT_NAME} test_deadline_timer.cpp test_latch.cpp
+                               test_mutex.cpp test_runtime.cpp test_utils.cpp)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Catch2::Catch2WithMain
                                               FakeIt::FakeIt-catch stv::stv)
