@@ -1,6 +1,6 @@
 /// @file deadline_timer.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -115,7 +115,7 @@ class deadline_timer: virtual public stv::non_movable_non_copyable
     /// @note Если set_delay() не был указан, то метод всегда вернет true.
     ///
     /// @return true если истек указанный при вызове set_delay() период времени.
-    [[nodiscard]] auto is_elapsed()
+    [[nodiscard]] auto is_elapsed() const
     {
         const auto lock = stv::lock_guard{get_mutex_ref()};
         if(is_started())
