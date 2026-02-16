@@ -1,6 +1,6 @@
 /// @file test_latch.cpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -8,6 +8,10 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
+// readability-function-cognitive-,
+// cppcoreguidelines-avoid-non-const-global-variables)
 
 TEST_CASE(
     "latch class tests", "[latch]")
@@ -69,3 +73,7 @@ TEST_CASE(
         }
     }
 }
+
+// NOLINTEND(*-magic-numbers, google-build-using-namespace,
+// readability-function-cognitive-,
+// cppcoreguidelines-avoid-non-const-global-variables)
