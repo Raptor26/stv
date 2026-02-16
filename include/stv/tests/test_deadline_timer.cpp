@@ -1,9 +1,10 @@
 /// @file test_deadline_timer.cpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
+#include "stv/deadline_timer.hpp"
 #include "stv/runtime.hpp"
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
@@ -23,7 +24,7 @@ TEST_CASE(
 
     using runtime_setup_type  = stv::runtime_setup<stv::runtime_counter_type>;
     using runtime_type        = stv::runtime<runtime_setup_type>;
-    using deadline_setup_type = deadline_timer_setup<runtime_type>;
+    using deadline_setup_type = stv::deadline_timer_setup<runtime_type>;
 
     SECTION("Default Ctor")
     {
