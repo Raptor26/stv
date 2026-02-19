@@ -1,6 +1,6 @@
 /// @file qma6100.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -274,7 +274,7 @@ class qma6100:
     auto write_reg_then_check(
         const auto &reg)
     {
-        volatile auto is_reg_written_success{false};
+        auto is_reg_written_success{false};
         write(reg);
         if(read<std::remove_cvref_t<decltype(reg)>>() == reg)
         {
@@ -400,7 +400,7 @@ class qma6100:
     auto init(
         const qma6100_regs_setup &setup)
     {
-        volatile const auto is_init_success =
+        const auto is_init_success =
             stv::all_true(write_reg_then_check(setup.bw_reg),
                           write_reg_then_check(setup.fsr_reg),
                           write_reg_then_check(setup.int_en1_reg),
