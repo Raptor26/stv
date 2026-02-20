@@ -1,6 +1,6 @@
 /// @file serial_sender.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -266,6 +266,15 @@ class serial_message_buffer_base:
     }
 
     virtual ~serial_message_buffer_base() = default;
+
+    template<typename UserData, typename... SetupParams>
+    auto request_null(
+        [[maybe_unused]] const UserData &user_data,
+        [[maybe_unused]] const SetupParams &...setup_params)
+    {
+        return serial_message<UserData, queue_base_type, Decorators...>(nullptr,
+                                                                        queue_);
+    }
 
     template<typename UserData, typename... SetupParams>
     auto request_null(
