@@ -1,6 +1,6 @@
 /// @file serial_parser.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -369,7 +369,7 @@ class serial_route_setup
 };
 
 template<typename TSetup>
-class serial_parser_route: public stv::non_copyable, public stv::non_movable
+class serial_parser_route: virtual public stv::non_movable_non_copyable
 {
     using setup_type = TSetup;
     using queue_type = typename setup_type::queue_type;
