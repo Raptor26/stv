@@ -243,7 +243,7 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     {
         bool           is_need_continue{false};
 
-        constexpr auto need_bytes_available_befor_start{
+        constexpr std::size_t need_bytes_available_befor_start{
             stv::start_frame_and_crc_16::header_size()};
 
         auto lwrb_raw_instance = lwrb_->get_instance();
@@ -256,7 +256,7 @@ class serial_parser: virtual private stv::non_movable_non_copyable
                 lwrb_peek(lwrb_raw_instance, 0, &storage, sizeof(storage));
             }
 
-            std::size_t skip_cnt{1};
+            lwrb_sz_t skip_cnt{1};
             if((storage.start_frame_first
                 == stv::start_frame_and_crc_16::first_byte)
                && (storage.start_frame_second
