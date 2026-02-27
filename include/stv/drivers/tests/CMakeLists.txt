@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.23)
 
-project(test_stv_qma6100)
+project(test_stv_drivers)
 
 find_package(Catch2 REQUIRED)
 find_package(FakeIt REQUIRED)
 
-add_executable(${PROJECT_NAME} test_qma6100_regs.cpp test_qma6100.cpp)
+add_executable(${PROJECT_NAME} test_mc3479.cpp test_qma6100_regs.cpp
+                               test_qma6100.cpp)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Catch2::Catch2WithMain
                                               FakeIt::FakeIt-catch stv::stv)
