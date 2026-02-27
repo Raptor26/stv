@@ -21,7 +21,7 @@ class i2c_interface: public stv::non_movable_non_copyable
 
     /// @brief Записывает значение в указанный регистр устройства.
     ///
-    /// @param[in] slave_addr Адрес ведомого устройства.
+    /// @param[in] slave_addr Адрес ведомого устройства в 7-ми битном формате.
     /// @param[in] reg_addr Адрес регистра для записи.
     /// @param[in] write_reg_value Значение для записи.
     ///
@@ -33,7 +33,7 @@ class i2c_interface: public stv::non_movable_non_copyable
 
     /// @brief Считывает указанное количество регистров начиная с адреса.
     ///
-    /// @param[in] slave_addr Адрес ведомого устройства.
+    /// @param[in] slave_addr Адрес ведомого устройства в 7-ми битном формате.
     /// @param[in] reg_addr Адрес первого регистра для чтения.
     /// @param[out] dst Указатель на буфер для записи данных.
     /// @param[in] len Количество регистров для чтения.
