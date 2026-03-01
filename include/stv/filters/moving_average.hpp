@@ -163,18 +163,14 @@ class moving_average_setup
     /// @return true, если параметры равны, иначе false.
     auto operator==(
         const moving_average_setup &other) const -> bool
-    {
-        return (this->window_width == other.window_width);
-    }
+    { return (this->window_width == other.window_width); }
 
     /// @brief Оператор сравнения на неравенство.
     /// @param[in] other Другой объект параметров.
     /// @return true, если параметры не равны, иначе false.
     auto operator!=(
         const moving_average_setup &other) const -> bool
-    {
-        return !(*this == other);
-    }
+    { return !(*this == other); }
 
     /// @brief Возвращает true если window_width находится в допустимом
     /// диапазоне.
@@ -340,9 +336,7 @@ class moving_average_base
     ///
     /// @return Значения по умолчанию для параметров фильтра.
     [[nodiscard]] auto get_default_setup() const noexcept -> setup_type
-    {
-        return setup_default_;
-    }
+    { return setup_default_; }
 
     /// @brief Получить фактические параметры настройки фильтра.
     [[nodiscard]] auto get_setup(
@@ -401,9 +395,11 @@ class moving_average_base
     {
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
 
-        sum_          += new_sample - buffer_[cnt_];
-        buffer_[cnt_]  = new_sample;
-        auto filtered  = new_sample;
+        // NOLINTNEXTLINE(*-avoid-unchecked-container-access)
+        sum_ += new_sample - buffer_[cnt_];
+        // NOLINTNEXTLINE(*-avoid-unchecked-container-access)
+        buffer_[cnt_] = new_sample;
+        auto filtered = new_sample;
 
         if(!full(is_isr))
         {
@@ -514,8 +510,9 @@ class moving_average_base
         {
             // Вычислить индекс элемента, который должен быть удален из
             // суммы.
-            auto idx  = (cnt_ + i) % old_width;
-            sum_     -= buffer_[idx];
+            auto idx = (cnt_ + i) % old_width;
+            // NOLINTNEXTLINE(*-avoid-unchecked-container-access)
+            sum_ -= buffer_[idx];
         }
 
         // Обновить буфер, оставляя только последние элементы.
@@ -537,6 +534,7 @@ class moving_average_base
             auto idx = ((last_element_idx - i) % old_width);
 
             // Обновить буфер
+            // NOLINTNEXTLINE(*-avoid-unchecked-container-access)
             buffer_[new_max_element_idx - i] = buffer_[idx];
         }
 

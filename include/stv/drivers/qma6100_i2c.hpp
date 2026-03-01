@@ -65,11 +65,13 @@ class qma6100_i2c:
     {
     }
 
+    virtual ~qma6100_i2c() = default;
+
     /// @brief Проверка корректности инициализации объекта.
     ///
     /// @details Позволяет использовать объект в условиях (if/while).
     /// @return true, если указатель на интерфейс I2C (i2c_) не равен nullptr.
-    explicit operator bool() const { return i2c_ != nullptr; }
+    virtual explicit operator bool() const { return i2c_ != nullptr; }
 
     /// @brief Чтение последовательности байтов из регистров устройства.
     ///
@@ -80,9 +82,7 @@ class qma6100_i2c:
     /// @return Результат операции чтения (зависит от реализации i2c_interface).
     auto read(
         qma6100_reg_type reg_addr, void *dst, std::size_t len) const
-    {
-        return i2c_->read(i2c_addr_, reg_addr, dst, len);
-    }
+    { return i2c_->read(i2c_addr_, reg_addr, dst, len); }
 
     /// @brief Чтение одного байта из указанного регистра устройства.
     ///
@@ -105,9 +105,7 @@ class qma6100_i2c:
     /// регистра по адресу U::addr.
     template<typename U>
     [[nodiscard]] auto read()
-    {
-        return U{read(U::addr)};
-    }
+    { return U{read(U::addr)}; }
 
     /// @brief Запись одного байта в указанный регистр устройства.
     ///
@@ -116,9 +114,7 @@ class qma6100_i2c:
     /// @return Результат операции записи (зависит от реализации i2c_interface).
     auto write(
         qma6100_reg_type reg_addr, qma6100_reg_type value)
-    {
-        return i2c_->write(i2c_addr_, reg_addr, value);
-    }
+    { return i2c_->write(i2c_addr_, reg_addr, value); }
 
     /// @brief Запись структурного типа в соответствующий регистр устройства.
     ///
@@ -130,9 +126,7 @@ class qma6100_i2c:
     /// @return Результат операции записи (зависит от реализации i2c_interface).
     auto write(
         const auto &reg)
-    {
-        return write(reg.addr, static_cast<qma6100_reg_type>(reg));
-    }
+    { return write(reg.addr, static_cast<qma6100_reg_type>(reg)); }
 };
 
 } // namespace stv

@@ -139,9 +139,7 @@ class mc3479:
     ///
     /// @return Значение mc3479_device_status_reg, прочитанное из датчика.
     auto read_dev_status_red()
-    {
-        return mc3479_i2c::read(mc3479_device_status_reg{});
-    }
+    { return mc3479_i2c::read(mc3479_device_status_reg{}); }
 
     /// @brief Записать регистр и проверить, что чтение совпало с записью.
     /// @details
@@ -244,9 +242,7 @@ class mc3479:
     /// @return Нормированные данные в формате AccType.
     auto normalize(
         const auto &raw)
-    {
-        return acc_type{raw.x * lsb_, raw.y * lsb_, raw.z * lsb_, timestamp_};
-    }
+    { return acc_type{raw.x * lsb_, raw.y * lsb_, raw.z * lsb_, timestamp_}; }
 
   public:
     /// @brief Создать экземпляр драйвера MC3479.
@@ -259,18 +255,14 @@ class mc3479:
     explicit mc3479(
         const mc3479_setup &setup):
         stv::mc3479_i2c{setup}
-    {
-        (void)setup;
-    }
+    { (void)setup; }
 
     /// @brief Проверка готовности драйвера/транспорта.
     /// @details
     /// Возвращает true, если базовый I2C-слой корректно инициализирован и
     /// готов к операциям чтения/записи.
-    explicit operator bool() const
-    {
-        return stv::all_true(stv::mc3479_i2c::operator bool());
-    }
+    explicit operator bool() const override
+    { return stv::all_true(stv::mc3479_i2c::operator bool()); }
 
     /// @brief Проверить наличие MC3479 на шине I2C по Chip ID.
     /// @details

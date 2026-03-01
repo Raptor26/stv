@@ -1,6 +1,6 @@
 /// @file gyraccmag_types.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -41,9 +41,11 @@ class inertial_sens_storage_proxy
     inertial_sens_storage_proxy(
         T x_axis, T y_axis, T z_axis)
     {
+        // NOLINTBEGIN(*-avoid-unchecked-container-access)
         storage_[0] = x_axis;
         storage_[1] = y_axis;
         storage_[2] = z_axis;
+        // NOLINTEND(*-avoid-unchecked-container-access)
     }
 
     [[nodiscard]] auto begin() { return storage_.begin(); }
@@ -58,9 +60,7 @@ class inertial_sens_storage_proxy
 
     [[nodiscard]] auto operator[](
         std::size_t idx)
-    {
-        return storage_[idx];
-    }
+    { return storage_[idx]; }
 
     void swap(
         inertial_sens_storage_proxy &other) noexcept
@@ -73,9 +73,7 @@ class inertial_sens_storage_proxy
     friend void swap(
         inertial_sens_storage_proxy &rhs,
         inertial_sens_storage_proxy &lhs) noexcept
-    {
-        rhs.swap(lhs);
-    }
+    { rhs.swap(lhs); }
 };
 
 /// @brief Represents a 3D vector, typically used for sensor measurements.
@@ -119,25 +117,19 @@ struct inertial_vector: public inertial_sens_storage_proxy<T> {
     ///
     /// @return A reference to the X-axis component.
     [[nodiscard]] auto give_x() -> decltype(auto)
-    {
-        return base_type::operator[](0);
-    }
+    { return base_type::operator[](0); }
 
     /// @brief Gets the Y-axis component (non-const version).
     ///
     /// @return A reference to the Y-axis component.
     [[nodiscard]] auto give_y() -> decltype(auto)
-    {
-        return base_type::operator[](1);
-    }
+    { return base_type::operator[](1); }
 
     /// @brief Gets the Z-axis component (non-const version).
     ///
     /// @return A reference to the Z-axis component.
     [[nodiscard]] auto give_z() -> decltype(auto)
-    {
-        return base_type::operator[](2);
-    }
+    { return base_type::operator[](2); }
 
     // NOLINTBEGIN(readability-identifier-length,
     // bugprone-easily-swappable-parameters)
@@ -203,15 +195,11 @@ struct inertial_vector: public inertial_sens_storage_proxy<T> {
 
     void swap(
         inertial_vector &other) noexcept
-    {
-        base_type::swap(other);
-    }
+    { base_type::swap(other); }
 
     friend void swap(
         inertial_vector &first, inertial_vector &second) noexcept
-    {
-        first.swap(second);
-    }
+    { first.swap(second); }
 
     /// @brief Addition operator.
     ///
@@ -302,17 +290,13 @@ struct inertial_vector: public inertial_sens_storage_proxy<T> {
     /// @return True if any component differs, false otherwise.
     constexpr auto operator!=(
         const inertial_vector &other) const noexcept
-    {
-        return !(*this == other);
-    }
+    { return !(*this == other); }
 
     /// @brief Boolean conversion operator.
     ///
     /// @return True if all axes are valid (see IsAxisesValid), false otherwise.
     constexpr explicit operator bool() const noexcept
-    {
-        return is_axises_valid();
-    }
+    { return is_axises_valid(); }
 
     /// @brief Validates sensor axis values.
     ///
@@ -357,9 +341,7 @@ template<allowed_sensor_type T, typename Frame>
 constexpr auto operator+(
     const inertial_vector<T, Frame> &lhs,
     const inertial_vector<T, Frame> &rhs) noexcept -> inertial_vector<T, Frame>
-{
-    return lhs.operator+(rhs);
-}
+{ return lhs.operator+(rhs); }
 
 /// @brief Subtraction operator for Vector.
 ///
@@ -372,9 +354,7 @@ template<allowed_sensor_type T, typename Frame>
 constexpr auto operator-(
     const inertial_vector<T, Frame> &lhs,
     const inertial_vector<T, Frame> &rhs) noexcept -> inertial_vector<T, Frame>
-{
-    return lhs.operator-(rhs);
-}
+{ return lhs.operator-(rhs); }
 
 /// @brief Support scalar * vector.
 ///
@@ -388,9 +368,7 @@ constexpr auto operator-(
 template<typename U, allowed_sensor_type K, typename FrameFriend>
 constexpr auto operator*(
     U scalar, const inertial_vector<K, FrameFriend> &vec) noexcept
-{
-    return vec * scalar;
-}
+{ return vec * scalar; }
 
 // NOLINTBEGIN(*-special-member-functions)
 
@@ -502,9 +480,7 @@ struct inertial_sensor_common: public stv::inertial_vector<T, Frame> {
 
     friend void swap(
         inertial_sensor_common &first, inertial_sensor_common &second) noexcept
-    {
-        first.swap(second);
-    }
+    { first.swap(second); }
 
     /// @brief Equality comparison operator (compares timestamps only).
     ///
@@ -512,9 +488,7 @@ struct inertial_sensor_common: public stv::inertial_vector<T, Frame> {
     /// @return True if timestamps are equal, false otherwise.
     constexpr auto operator==(
         const inertial_sensor_common<T> &other) const noexcept
-    {
-        return packstamp == other.packstamp;
-    }
+    { return packstamp == other.packstamp; }
 
     /// @brief Inequality comparison operator (compares timestamps only).
     ///
@@ -522,9 +496,7 @@ struct inertial_sensor_common: public stv::inertial_vector<T, Frame> {
     /// @return True if timestamps differ, false otherwise.
     constexpr auto operator!=(
         const inertial_sensor_common<T> &other) const noexcept
-    {
-        return !(*this == other);
-    }
+    { return !(*this == other); }
 
     /// @brief Addition operator.
     ///
@@ -566,18 +538,14 @@ struct inertial_sensor_common: public stv::inertial_vector<T, Frame> {
     /// @return True if the timestamp is valid (non-zero) and axis values are
     ///         valid (see IsAxisesValid), false otherwise.
     constexpr explicit operator bool() const noexcept
-    {
-        return is_timestamp_valid() && this->is_axises_valid();
-    }
+    { return is_timestamp_valid() && this->is_axises_valid(); }
 
   private:
     /// @brief Validates timestamp value.
     ///
     /// @return True if the timestamp is non-zero, false otherwise.
     [[nodiscard]] constexpr auto is_timestamp_valid() const noexcept
-    {
-        return static_cast<TIMESTAMP>(packstamp) != static_cast<TIMESTAMP>(0);
-    }
+    { return static_cast<TIMESTAMP>(packstamp) != static_cast<TIMESTAMP>(0); }
 };
 
 // NOLINTEND(*-special-member-functions)
@@ -595,9 +563,7 @@ constexpr auto operator+(
     const inertial_sensor_common<T, TIMESTAMP, Frame> &lhs,
     const inertial_sensor_common<T, TIMESTAMP, Frame> &rhs) noexcept
     -> inertial_sensor_common<T, TIMESTAMP, Frame>
-{
-    return lhs.operator+(rhs);
-}
+{ return lhs.operator+(rhs); }
 
 /// @brief Subtraction operator for Sensor3AxisCommon.
 ///
@@ -613,9 +579,7 @@ constexpr auto operator-(
     const inertial_sensor_common<T, TIMESTAMP, Frame> &lhs,
     const inertial_sensor_common<T, TIMESTAMP, Frame> &rhs) noexcept
     -> inertial_sensor_common<T, TIMESTAMP, Frame>
-{
-    return lhs.operator-(rhs);
-}
+{ return lhs.operator-(rhs); }
 
 /// NOLINTBEGIN(*-special-member-functions)
 
@@ -749,9 +713,7 @@ struct gyr: public inertial_sensor_common<T, TIMESTAMP, Frame> {
     /// @param[in,out] second The second SensorGyr object.
     friend void swap(
         gyr &first, gyr &second) noexcept
-    {
-        first.swap(second);
-    }
+    { first.swap(second); }
 
     /// @brief Integration period for angular velocity measurements (seconds).
     ///
@@ -860,9 +822,7 @@ class gyr_getter_default final: public igyr<T>
     ///
     /// @return Default-initialized gyroscope measurement structure.
     [[nodiscard]] constexpr auto get_gyr() const -> gyr<T, TIMESTAMP> override
-    {
-        return gyr<T, TIMESTAMP>{};
-    }
+    { return gyr<T, TIMESTAMP>{}; }
 
     /// @name Rule of Five
     /// @{
@@ -954,9 +914,7 @@ class acc_getter_default final: public iacc<Acc>
     ///
     /// @return Default-initialized accelerometer measurement structure.
     [[nodiscard]] constexpr auto get_acc() const -> acc_type override
-    {
-        return acc_type{};
-    }
+    { return acc_type{}; }
 
     /// @name Rule of Five
     /// @{
@@ -1055,9 +1013,7 @@ class mag_getter_default final: public stv::imag<T, TIMESTAMP>
     ///
     /// @return Default-initialized magnetometer measurement structure.
     [[nodiscard]] constexpr auto get_mag() const -> mag_type override
-    {
-        return mag_type{};
-    }
+    { return mag_type{}; }
 
     /// @name Rule of Five
     /// @{

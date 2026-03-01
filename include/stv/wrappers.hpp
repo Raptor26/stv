@@ -1,6 +1,6 @@
 /// @file wrappers.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -28,6 +28,8 @@ class memory_storage_proxy
 
     [[nodiscard]] auto data() { return storage_.data(); }
 };
+
+/// NOLINTBEGIN(misc-multiple-inheritance)
 
 /// @brief Обертка контейнера, предоставляющая выделенную память.
 ///
@@ -100,10 +102,10 @@ class container_size_wrapper:
     = default;
 
     explicit operator bool() const
-    {
-        return static_cast<bool>(TBase::operator bool());
-    }
+    { return static_cast<bool>(TBase::operator bool()); }
 };
+
+/// NOLINTEND(misc-multiple-inheritance)
 
 } // namespace stv
 

@@ -253,17 +253,12 @@ class qma6100:
     /// @details Метод принимает необработанные данные и умножает каждую
     /// компоненту на текущий коэффициент LSB для получения значений в g.
     ///
-    /// @tparam T Тип структуры с необработанными данными (должна иметь поля
-    /// x, y, z).
-    ///
     /// @param[in] raw Структура с необработанными данными.
     ///
     /// @return Структура `normalize_t` с нормализованными значениями осей.
     auto normalize(
         const auto &raw)
-    {
-        return acc_type{raw.x * lsb_, raw.y * lsb_, raw.z * lsb_, timestamp_};
-    }
+    { return acc_type{raw.x * lsb_, raw.y * lsb_, raw.z * lsb_, timestamp_}; }
 
     /// @brief Записывает регистр в память датчика, а затем считывает его и
     /// сравнивает с тем что планировалось записать.
@@ -321,7 +316,7 @@ class qma6100:
     /// @note Оператор использует проверку состояния базового класса
     /// `stv::qma6100_i2c`. Для полноценной проверки работоспособности
     /// рекомендуется также вызывать `is_detected()`.
-    explicit operator bool() const
+    explicit operator bool() const override
     {
         auto is_valid{true};
         if(!stv::qma6100_i2c::operator bool())

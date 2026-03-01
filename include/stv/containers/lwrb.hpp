@@ -1,6 +1,6 @@
 /// @file lwrb.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -113,11 +113,10 @@ class lwrb_base:
         const void *src, std::size_t size, bool write_all_or_nothing,
         bool is_isr = false)
     {
-        const auto            flags{(write_all_or_nothing)
-                                        ? LWRB_FLAG_WRITE_ALL
-                                        : static_cast<std::uint16_t>(0)};
+        const auto flags{write_all_or_nothing ? LWRB_FLAG_WRITE_ALL
+                                              : static_cast<std::uint16_t>(0)};
 
-        lwrb_sz_t             write_bytes{0};
+        lwrb_sz_t  write_bytes{0};
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
         lwrb_write_ex(&lwrb_, src, static_cast<lwrb_sz_t>(size), &write_bytes,
                       flags);
@@ -129,8 +128,8 @@ class lwrb_base:
         void *dst, std::size_t size, bool read_all_or_nothing,
         bool is_isr = false)
     {
-        const auto flags{(read_all_or_nothing) ? LWRB_FLAG_READ_ALL
-                                               : static_cast<std::uint16_t>(0)};
+        const auto flags{read_all_or_nothing ? LWRB_FLAG_READ_ALL
+                                             : static_cast<std::uint16_t>(0)};
         lwrb_sz_t  read_bytes{0};
         (void)is_isr;
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
@@ -148,9 +147,7 @@ class lwrb_base:
     auto write(
         const void *src, std::size_t len, bool write_all_or_nothing = true,
         bool is_isr = false)
-    {
-        return write_helper(src, len, write_all_or_nothing, is_isr);
-    }
+    { return write_helper(src, len, write_all_or_nothing, is_isr); }
 
     template<typename TIter>
         requires std::input_or_output_iterator<TIter>
@@ -378,9 +375,7 @@ class lwrb_base:
     /// @return Фактическое количество байт, которое помечено как прочитанное.
     auto skip(
         const auto &to_skip, bool is_isr = false)
-    {
-        return skip(to_skip.size_bytes(), is_isr);
-    }
+    { return skip(to_skip.size_bytes(), is_isr); }
 
     auto advance(
         std::size_t len, bool is_isr = false)
@@ -397,7 +392,8 @@ class lwrb_base:
         const setup_type &setup, container_type buffer_span):
         storage_{buffer_span}
     {
-        lwrb_init(&lwrb_, storage_.data(), static_cast<lwrb_sz_t>(storage_.size_bytes()));
+        lwrb_init(&lwrb_, storage_.data(),
+                  static_cast<lwrb_sz_t>(storage_.size_bytes()));
 
         if constexpr(std::is_pointer_v<decltype(mutex_)>)
         {

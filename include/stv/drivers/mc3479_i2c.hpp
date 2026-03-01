@@ -210,7 +210,7 @@ class mc3479_i2c:
     /// @code{.cpp}
     /// if (!dev) { /* i2c не задан */ }
     /// @endcode
-    explicit operator bool() const { return i2c_ != nullptr; }
+    virtual explicit operator bool() const { return i2c_ != nullptr; }
 
     /// @brief Чтение последовательности байтов из регистров устройства (burst
     /// read).
@@ -237,9 +237,7 @@ class mc3479_i2c:
     ///   стороне пользователя или расширьте реализацию.
     auto read(
         mc3479_reg_type reg_addr, void *dst, std::size_t len) const
-    {
-        return i2c_->read(i2c_addr_, reg_addr, dst, len);
-    }
+    { return i2c_->read(i2c_addr_, reg_addr, dst, len); }
 
     /// @brief Чтение одного регистра (1 байт) по указанному адресу.
     ///
@@ -320,9 +318,7 @@ class mc3479_i2c:
     /// @endcode
     auto write(
         mc3479_reg_type reg_addr, mc3479_reg_type value)
-    {
-        return i2c_->write(i2c_addr_, reg_addr, reverse_bits(value));
-    }
+    { return i2c_->write(i2c_addr_, reg_addr, reverse_bits(value)); }
 
     /// @brief Запись типизированного регистра.
     ///
