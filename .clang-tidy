@@ -37,7 +37,8 @@ Checks: >
   -readability-implicit-bool-conversion,
   -readability-redundant-access-specifiers,
   -readability-magic-numbers,
-  -readability-redundant-typename
+  -readability-redundant-typename,
+  -readability-qualified-auto,
 CheckOptions:
   - key: readability-identifier-naming.PrivateMemberSuffix
     value: '_'
