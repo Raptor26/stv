@@ -87,10 +87,9 @@ TEST_CASE(
 
     SECTION("FSR")
     {
-        stv::qma6100_fsr_reg reg;
-
         SECTION("RANGE")
         {
+            stv::qma6100_fsr_reg reg;
             SECTION("RANGE == g_2")
             {
                 reg.range = stv::qma6100_fsr_reg::range_t::g_2;
@@ -134,6 +133,16 @@ TEST_CASE(
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
                             expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("RANGE REVERSE")
+        {
+            SECTION("RANGE == g_32")
+            {
+                stv::qma6100_fsr_reg reg{qma6100_reg_type{0x0F}};
+
+                REQUIRE(reg.range == stv::qma6100_fsr_reg::range_t::g_32);
             }
         }
     }
