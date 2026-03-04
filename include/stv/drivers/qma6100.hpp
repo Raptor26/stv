@@ -164,11 +164,11 @@ class qma6100:
     /// @return Масштабный коэффициент (LSB) в единицах g/bit.
     auto compute_lsb()
     {
-        constexpr auto lsb_2g  = .000244;
-        constexpr auto lsb_4g  = lsb_2g * 2;
-        constexpr auto lsb_8g  = lsb_4g * 2;
-        constexpr auto lsb_16g = lsb_8g * 2;
-        constexpr auto lsb_32g = lsb_16g * 2;
+        constexpr auto lsb_2g  = 0.000244F;
+        constexpr auto lsb_4g  = 0.000488F;
+        constexpr auto lsb_8g  = 0.000977F;
+        constexpr auto lsb_16g = 0.001950F;
+        constexpr auto lsb_32g = 0.003910F;
 
         const auto     reg = read<stv::qma6100_fsr_reg>();
 
