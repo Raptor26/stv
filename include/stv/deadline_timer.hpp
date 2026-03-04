@@ -61,7 +61,7 @@ class deadline_timer: virtual public stv::non_movable_non_copyable
     using counter_type = typename setup_type::counter_type;
 
   private:
-    using mutex_type = typename TSetup::mutex_type;
+    using mutex_type = typename setup_type::mutex_type;
 
     /// @brief Указатель на runtime таймер.
     runtime_type *runtime_;
