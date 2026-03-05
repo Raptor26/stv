@@ -1,9 +1,8 @@
 /// @file callback_timer.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
-
 
 /*
 /// ############################################################################
@@ -89,7 +88,7 @@ std::chrono::seconds(25)) { // Работаем 25 секунд
     // что вызовет деструктор MyTaskContext и отмену регистрации таймера.
     return 0;
 } */
- 
+
 #ifndef CALLBACK_TIMER_HPP
 #define CALLBACK_TIMER_HPP
 
@@ -123,9 +122,7 @@ class callback_timer:
   public:
     explicit callback_timer(
         decltype(period_) period)
-    {
-        set_period(period);
-    }
+    { set_period(period); }
 
     explicit operator bool()
     {
@@ -216,6 +213,8 @@ struct callback_timer_context_init {
 
     /// @brief Указывает, является ли операция непрерывной.
     bool is_continuous{true};
+
+    bool immediately{false};
 };
 
 /// @brief Класс для привязки объекта с методом run() к callback_timer.
@@ -271,7 +270,7 @@ class callback_timer_context:
             id_ = callback_timer_->register_timer(delegate_, period_.count(),
                                                   is_continuous_);
             assert(id_ != etl::timer::id::NO_TIMER);
-            callback_timer_->start(id_, false);
+            callback_timer_->start(id_, delegate.immediately);
         }
     }
 
