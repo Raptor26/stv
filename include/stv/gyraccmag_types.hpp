@@ -58,8 +58,15 @@ class inertial_sens_storage_proxy
 
     [[nodiscard]] auto data() { return storage_.data(); }
 
-    [[nodiscard]] auto operator[](
+    /// @brief Access element with bounds checking (conceptually) via array.
+    /// Returns reference to allow modification.
+    [[nodiscard]] T &operator[](
         std::size_t idx)
+    { return storage_[idx]; }
+
+    /// @brief Const version of operator[].
+    [[nodiscard]] constexpr const T &operator[](
+        std::size_t idx) const
     { return storage_[idx]; }
 
     void swap(
