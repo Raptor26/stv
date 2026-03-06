@@ -271,7 +271,7 @@ class qma6100:
     {
         auto is_reg_written_success{false};
         write(reg);
-        if(read<std::remove_cvref_t<decltype(reg)>>() == reg)
+        if(read<decltype(reg)>() == reg)
         {
             is_reg_written_success = true;
         }

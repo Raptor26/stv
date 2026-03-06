@@ -105,7 +105,10 @@ class qma6100_i2c:
     /// регистра по адресу U::addr.
     template<typename U>
     [[nodiscard]] auto read()
-    { return U{read(U::addr)}; }
+    {
+        using red_type = std::remove_cvref_t<U>;
+        return red_type{read(red_type::addr)};
+    }
 
     /// @brief Запись одного байта в указанный регистр устройства.
     ///
