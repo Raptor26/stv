@@ -923,7 +923,7 @@ class qma6100_pm_reg
         k_8_mult_mckl = 3,
     };
 
-    t_rstb_sinc_sel_t t_rstb_sinc_sel{t_rstb_sinc_sel_t::k_8_mult_mckl};
+    t_rstb_sinc_sel_t t_rstb_sinc_sel{t_rstb_sinc_sel_t::k_3_mult_mckl};
     // -------------------------------------------------------------------------
 
     enum struct mclk_sel_t : std::uint8_t {
@@ -966,6 +966,57 @@ class qma6100_pm_reg
             constexpr qma6100_reg_type mclk_sel_mask{0x0F};
             mclk_sel = static_cast<decltype(mclk_sel)>((reg >> mclk_sel_offset)
                                                        & mclk_sel_mask);
+        }
+    }
+};
+
+class qma6100_st_reg
+{
+    static constexpr int step_by_axix_offset{0};
+    static constexpr int selftest_sing_offset{2};
+    static constexpr int selftest_bit_offset{7};
+
+  public:
+    static constexpr stv::qma6100_reg_type addr{0x32};
+
+    enum struct selftest_bit_t : std::uint8_t {
+        normal  = 0,
+        enabled = 1,
+    };
+
+    enum struct selftest_sign_t : std::uint8_t {
+        negative = 0,
+        positive = 1,
+    };
+
+    selftest_bit_t  selftest_bit{selftest_bit_t::normal};
+    selftest_sign_t selftest_sign{selftest_sign_t::positive};
+
+    explicit qma6100_st_reg(
+        stv::qma6100_reg_type value = stv::qma6100_reg_type{0})
+    { parse(value); }
+
+    explicit operator stv::qma6100_reg_type() const
+    {
+        return static_cast<stv::qma6100_reg_type>(
+            (static_cast<std::uint8_t>(selftest_bit) << selftest_bit_offset)
+            | (static_cast<std::uint8_t>(selftest_sign)
+               << selftest_sing_offset));
+    }
+
+  private:
+    void parse(
+        stv::qma6100_reg_type reg)
+    {
+        {
+            constexpr qma6100_reg_type selftest_mask{0x80};
+            selftest_bit = static_cast<selftest_bit_t>(
+                (reg >> selftest_bit_offset) & selftest_mask);
+        }
+        {
+            constexpr qma6100_reg_type selftest_sign_mask{0x04};
+            selftest_sign = static_cast<selftest_sign_t>(
+                (reg >> selftest_sing_offset) & selftest_sign_mask);
         }
     }
 };

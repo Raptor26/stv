@@ -9,6 +9,7 @@
 
 #include "qma6100_i2c.hpp"
 #include "qma6100_regs.hpp"
+#include "stv/drivers/qma6100_types.hpp"
 #include "stv/gyraccmag_types.hpp"
 #include "stv/utils.hpp"
 #include <array>
@@ -405,6 +406,67 @@ class qma6100:
             write(qma6100_sfe_sr_addr, qma6100_reg_type{0x00}), success);
 
         return success;
+    }
+
+    // Функция для запуска self-test в вашем классе qma6100
+    template<typename TDelayFnMs>
+    auto run_self_test(
+        TDelayFnMs &delay_ms)
+    {
+        // 1. Сохраняем текущие значения
+        auto raw_before = read_raw();
+
+        // 2. Включаем self-test (положительный)
+        stv::qma6100_st_reg st_reg{};
+        st_reg.selftest_bit  = stv::qma6100_st_reg::selftest_bit_t::enabled;
+        st_reg.selftest_sign = stv::qma6100_st_reg::selftest_sign_t::positive;
+        write(st_reg);
+
+        // 3. Ждём минимум 3ms для стабилизации (согласно документации)
+        delay_ms(5);
+
+        // 4. Читаем значения с self-test
+        auto raw_st_pos = read_raw();
+
+        // 5. Включаем self-test (отрицательный)
+        st_reg.selftest_sign = stv::qma6100_st_reg::selftest_sign_t::negative;
+        write(st_reg);
+        delay_ms(5);
+
+        // 6. Читаем значения с self-test
+        auto raw_st_neg = read_raw();
+
+        // 7. Выключаем self-test
+        st_reg.selftest_bit = stv::qma6100_st_reg::selftest_bit_t::normal;
+        write(st_reg);
+
+        // 8. Возвращаем результат
+        struct selftest_result_t {
+            raw_t before;
+            raw_t st_positive;
+            raw_t st_negative;
+            bool  x_ok;
+            bool  y_ok;
+            bool  z_ok;
+        };
+
+        constexpr std::int16_t min_diff{500};
+
+        return selftest_result_t{
+            .before      = raw_before,
+            .st_positive = raw_st_pos,
+            .st_negative = raw_st_neg,
+            .x_ok        = std::abs(raw_st_pos.x - raw_st_neg.x) > min_diff,
+            .y_ok        = std::abs(raw_st_pos.y - raw_st_neg.y) > min_diff,
+            .z_ok        = std::abs(raw_st_pos.z - raw_st_neg.z) > min_diff,
+        };
+    }
+
+    auto is_self_test_success(
+        const auto &selftest_result)
+    {
+        return stv::all_true(selftest_result.x_ok, selftest_result.y_ok,
+                             selftest_result.z_ok);
     }
 
     /// @brief Устанавливает режим работы датчика.
