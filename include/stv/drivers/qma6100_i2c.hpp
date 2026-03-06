@@ -91,7 +91,7 @@ class qma6100_i2c:
     [[nodiscard]] auto read(
         qma6100_reg_type reg_addr) const
     {
-        qma6100_reg_type value; // NOLINT(*-init-variables)
+        qma6100_reg_type value{0}; // NOLINT(*-init-variables)
         read(reg_addr, reinterpret_cast<void *>(&value), sizeof(value));
         return value;
     }
