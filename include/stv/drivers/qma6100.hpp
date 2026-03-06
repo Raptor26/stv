@@ -377,6 +377,59 @@ class qma6100:
 
     [[nodiscard]] auto get_acc() const -> acc_type override { return acc_; }
 
+    template<typename TDelayFnMs>
+    auto software_reset(
+        TDelayFnMs &delay_ms)
+    {
+        (void)delay_ms;
+
+        auto success{true};
+
+        success = stv::all_true(
+            write(qma6100_sfe_sr_addr, qma6100_reg_type{0xB6}), success);
+        delay_ms(1);
+
+        for(std::size_t i{0}; i < 10; ++i)
+        {
+            const auto reg = read(qma6100_sfe_sr_addr);
+
+            if(reg == qma6100_reg_type{0xB6})
+            {
+                break;
+            }
+
+            delay_ms(1);
+        }
+
+        success = stv::all_true(
+            write(qma6100_sfe_sr_addr, qma6100_reg_type{0x00}), success);
+
+        return success;
+    }
+
+    /// @brief Устанавливает режим работы датчика.
+    ///
+    /// @param[in] mode Если 0, то режим standby, остальные значения - режим
+    /// active.
+    ///
+    /// @return Статус операции записи значения регистра.
+    auto set_mode(
+        std::size_t mode)
+    {
+        auto pm_reg = read<qma6100_pm_reg>();
+
+        if(mode == 0)
+        {
+            pm_reg.mode_bit = stv::qma6100_pm_reg::mode_bit_t::standby;
+        }
+        else
+        {
+            pm_reg.mode_bit = stv::qma6100_pm_reg::mode_bit_t::active;
+        }
+
+        return write_reg_then_check(pm_reg);
+    }
+
     /// @brief Выполняет инициализацию датчика QMA6100 с заданными
     /// параметрами.
     ///

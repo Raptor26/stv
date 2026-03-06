@@ -15,6 +15,10 @@ namespace stv {
 
 // NOLINTBEGIN(*hicpp-signed-bitwise, *-member*)
 
+// writing 0xB6, soft reset all of the registers.
+// After soft-reset, user should write 0x00 back
+static constexpr qma6100_reg_type qma6100_sfe_sr_addr{0x36};
+
 /// @brief Класс для работы с регистром полосы пропускания и фильтрации QMA6100.
 ///
 /// @details Этот класс инкапсулирует логику работы с регистром 0x10 (BANDWIDTH)
