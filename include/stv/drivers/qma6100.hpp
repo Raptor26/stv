@@ -442,12 +442,12 @@ class qma6100:
 
         // 8. Возвращаем результат
         struct selftest_result_t {
-            raw_t before;
-            raw_t st_positive;
-            raw_t st_negative;
-            bool  x_ok;
-            bool  y_ok;
-            bool  z_ok;
+            raw_t before{};
+            raw_t st_positive{};
+            raw_t st_negative{};
+            bool  x_ok{false};
+            bool  y_ok{false};
+            bool  z_ok{false};
         };
 
         constexpr std::int16_t min_diff{500};
