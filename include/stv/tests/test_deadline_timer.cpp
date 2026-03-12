@@ -11,6 +11,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <fakeit.hpp>
 #include <limits>
+#include <ratio>
 
 // NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
 // readability-function-cognitive-,
@@ -132,6 +133,94 @@ TEST_CASE(
                 .AlwaysReturn(start_time + elapsed_time);
             REQUIRE(deadline.is_elapsed());
         }
+    }
+}
+
+TEST_CASE(
+    "deadline overflow", "[stv]")
+{
+    using namespace fakeit;
+    using namespace stv;
+    using namespace std::chrono_literals;
+
+    SECTION("std::uint32_t, std::micro")
+    {
+        using counter_type = std::chrono::duration<std::uint32_t, std::micro>;
+        using runtime_setup_type  = stv::runtime_setup<counter_type>;
+        using runtime_type        = stv::runtime<runtime_setup_type>;
+        using deadline_setup_type = deadline_timer_setup<runtime_type>;
+
+        Mock<runtime_type> runtime_mock;
+        Fake(Method(runtime_mock, get));
+
+        stv::deadline_timer deadline{
+            deadline_setup_type{.runtime = &runtime_mock.get(),
+                                .is_elapsed_if_not_started = false}};
+
+        REQUIRE(deadline.set_delay(1h));
+        REQUIRE(deadline.set_delay(std::chrono::hours{1}));
+
+        REQUIRE_FALSE(deadline.set_delay(2h));
+        REQUIRE_FALSE(deadline.set_delay(std::chrono::hours{2}));
+
+        REQUIRE_FALSE(deadline.set_delay(std::chrono::days{1}));
+        REQUIRE_FALSE(deadline.set_delay(std::chrono::days{28}));
+
+        // Compile time.
+        static_assert(deadline.can_set_delay(1h), "Overflow detected");
+    }
+
+    SECTION("std::uint32_t, std::milli")
+    {
+        using counter_type = std::chrono::duration<std::uint32_t, std::milli>;
+        using runtime_setup_type  = stv::runtime_setup<counter_type>;
+        using runtime_type        = stv::runtime<runtime_setup_type>;
+        using deadline_setup_type = deadline_timer_setup<runtime_type>;
+
+        Mock<runtime_type> runtime_mock;
+        Fake(Method(runtime_mock, get));
+
+        stv::deadline_timer deadline{
+            deadline_setup_type{.runtime = &runtime_mock.get(),
+                                .is_elapsed_if_not_started = false}};
+
+        REQUIRE(deadline.set_delay(1h));
+        REQUIRE(deadline.set_delay(std::chrono::hours{1}));
+
+        REQUIRE(deadline.set_delay(2h));
+        REQUIRE(deadline.set_delay(std::chrono::hours{2}));
+
+        REQUIRE(deadline.set_delay(std::chrono::days{1}));
+        REQUIRE(deadline.set_delay(std::chrono::days{28}));
+
+        // Compile time.
+        static_assert(deadline.can_set_delay(2h), "Overflow detected");
+        static_assert(deadline.can_set_delay(std::chrono::hours{2}),
+                      "Overflow detected");
+    }
+
+    SECTION("std::uint64_t, sstd::micro")
+    {
+        using counter_type = std::chrono::duration<std::uint64_t, std::micro>;
+        using runtime_setup_type  = stv::runtime_setup<counter_type>;
+        using runtime_type        = stv::runtime<runtime_setup_type>;
+        using deadline_setup_type = deadline_timer_setup<runtime_type>;
+
+        Mock<runtime_type> runtime_mock;
+        Fake(Method(runtime_mock, get));
+
+        stv::deadline_timer deadline{
+            deadline_setup_type{.runtime = &runtime_mock.get(),
+                                .is_elapsed_if_not_started = false}};
+
+        REQUIRE(deadline.set_delay(1h));
+        REQUIRE(deadline.set_delay(std::chrono::hours{1}));
+
+        REQUIRE(deadline.set_delay(2h));
+        REQUIRE(deadline.set_delay(std::chrono::hours{2}));
+
+        REQUIRE(deadline.set_delay(std::chrono::days{1}));
+        REQUIRE(deadline.set_delay(std::chrono::days{28}));
     }
 }
 

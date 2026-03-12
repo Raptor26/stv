@@ -52,7 +52,7 @@ class deadline_timer_setup
 };
 
 template<typename TSetup>
-class deadline_timer: virtual public stv::non_movable_non_copyable
+class deadline_timer: public stv::non_movable_non_copyable
 {
     using setup_type = TSetup;
 
@@ -134,21 +134,62 @@ class deadline_timer: virtual public stv::non_movable_non_copyable
         return false;
     }
 
+    /// @brief Проверяет не возникнет ли переполнения счетчика при установке
+    /// указанного timeout.
+    ///
+    /// @param[in] delay Задержка, которую планируется использовать в
+    /// set_delay()
+    ///
+    /// @return true если переполнение не обнаружено, false в противном случае.
+    static constexpr bool can_set_delay(
+        const auto &delay)
+    {
+        using deadline_type        = counter_type;
+        using deadline_rep_type    = typename deadline_type::rep;
+        using deadline_period_type = typename deadline_type::period;
+        using compare_counter_type = std::uint64_t;
+
+        const auto timeout_with_compare_type =
+            std::chrono::duration<compare_counter_type, deadline_period_type>{
+                delay};
+
+        constexpr auto max_deadline_cnt =
+            std::numeric_limits<deadline_rep_type>::max();
+        constexpr auto max_compare_cnt =
+            std::numeric_limits<compare_counter_type>::max();
+
+        if constexpr(max_deadline_cnt < max_compare_cnt)
+        {
+            return timeout_with_compare_type.count()
+                   <= static_cast<compare_counter_type>(max_deadline_cnt);
+        }
+
+        return true;
+    }
+
     /// @brief Устанавливает задержку срабатывания и запускает таймер.
     ///
-    /// @param[in] delay Задержка относительно момента вызова по истечении
-    /// которой метод is_elapsed() вернет true.
+    /// @param[in] delay Задержка относительно момента вызова по
+    /// истечении которой метод is_elapsed() вернет true.
     auto set_delay(
-        const counter_type &delay) -> void
+        const auto &delay)
     {
-        if(delay.count()
-           != static_cast<std::remove_cvref_t<decltype(delay)>::rep>(0))
+        auto is_set_delay{false};
+
+        if(can_set_delay(delay))
         {
-            const auto lock         = stv::lock_guard{get_mutex_ref()};
-            const auto current_time = runtime_->get();
-            deadline_               = current_time + delay;
-            this->start();
+            if(delay.count()
+               != static_cast<std::remove_cvref_t<decltype(delay)>::rep>(0))
+            {
+                const auto lock         = stv::lock_guard{get_mutex_ref()};
+                const auto current_time = runtime_->get();
+                deadline_               = current_time + delay;
+                this->start();
+                is_set_delay = true;
+            }
         }
+
+        return is_set_delay;
     }
 
     /// @brief Принудительно останавливает deadline таймер.
