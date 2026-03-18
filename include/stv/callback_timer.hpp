@@ -229,9 +229,7 @@ struct callback_timer_context_init {
 /// иметь метод run().
 template<typename TDelegateInit, typename TBase>
     requires(stv::runable_concept<TBase>)
-class callback_timer_context:
-    virtual private stv::non_movable_non_copyable,
-    public TBase
+class callback_timer_context: public TBase
 {
     using delegate_init_type = TDelegateInit;
     using base_type          = TBase;
