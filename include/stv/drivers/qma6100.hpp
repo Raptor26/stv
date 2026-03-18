@@ -270,7 +270,7 @@ class qma6100:
     auto write_reg_then_check(
         const auto &reg)
     {
-        auto is_reg_written_success{false};
+        volatile auto is_reg_written_success{false};
         write(reg);
         if(read<decltype(reg)>() == reg)
         {
