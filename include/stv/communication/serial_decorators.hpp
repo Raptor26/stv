@@ -249,6 +249,7 @@ struct head_route {
         uint16_t pload_size{std::numeric_limits<decltype(pload_size)>::min()};
     };
 
+    // NOLINTNEXTLINE(*-multiple-inheritance)
     struct head_route_setup_with_pload_t:
         public pload_size_t,
         public head_route_setup_t {
