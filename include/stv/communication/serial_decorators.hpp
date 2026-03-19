@@ -1,6 +1,6 @@
 /// @file serial_decorators.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -70,7 +70,7 @@ struct empty_serial_decorator {
 /// сообщения.
 class start_frame_and_crc_16
 {
-    using frame_size_type = std::uint8_t;
+    using frame_size_type = std::uint16_t;
     using crc_type        = std::uint16_t;
 
   public:
@@ -213,9 +213,7 @@ struct head_route {
     }
 
     static constexpr size_t header_size()
-    {
-        return sizeof(head_route_setup_with_pload_t);
-    }
+    { return sizeof(head_route_setup_with_pload_t); }
 
     static constexpr size_t trailer_size() { return 0; }
 
@@ -225,8 +223,9 @@ struct head_route {
         const pload_span &pload) const
     {
         (void)total;
-        auto *header = reinterpret_cast<head_route_setup_with_pload_t *>(dst);
-        *header = static_cast<std::remove_pointer_t<decltype(header)>>(setup_);
+        auto *header   = reinterpret_cast<head_route_setup_with_pload_t *>(dst);
+        header->dst_id = setup_.dst_id;
+        header->pack_id = setup_.pack_id;
         header->pload_size =
             static_cast<decltype(header->pload_size)>(pload.size_bytes());
 
@@ -246,8 +245,13 @@ struct head_route {
 
     STV_NO_PADDING_NO_OPTIMIZE_BEGIN
 
-    struct head_route_setup_with_pload_t: public head_route_setup_t {
-        uint8_t pload_size{std::numeric_limits<decltype(pload_size)>::min()};
+    struct pload_size_t {
+        uint16_t pload_size{std::numeric_limits<decltype(pload_size)>::min()};
+    };
+
+    struct head_route_setup_with_pload_t:
+        public pload_size_t,
+        public head_route_setup_t {
     };
 
     STV_NO_PADDING_NO_OPTIMIZE_END
