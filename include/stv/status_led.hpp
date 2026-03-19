@@ -1,6 +1,6 @@
 /// @file status_led.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -31,6 +31,8 @@ enum class status_led_states {
     kError = 0,
 
     kNormal,
+
+    kFast,
 
     kDisable,
 
@@ -167,13 +169,9 @@ class status_led: public status_led_api
 
     [[nodiscard]] auto get_mode() const
         -> decltype(current_blink_mode_) override
-    {
-        return current_blink_mode_;
-    }
+    { return current_blink_mode_; }
 
   private:
-    void error() { led_->toggle(); }
-
     void normal() { led_->toggle(); }
 
     void disable() { led_->disable(); }
@@ -194,11 +192,14 @@ class status_led: public status_led_api
     std::array<delegate_t,
                static_cast<std::size_t>(status_led_states::kMaxNumber)>
         delegates_ = {{{callback_timer_type::callback_type::template create<
-                            status_led, &status_led::error>(*this),
+                            status_led, &status_led::normal>(*this),
                         std::chrono::milliseconds{100}, true},
                        {callback_timer_type::callback_type::template create<
                             status_led, &status_led::normal>(*this),
                         std::chrono::seconds{1}, true},
+                       {callback_timer_type::callback_type::template create<
+                            status_led, &status_led::normal>(*this),
+                        std::chrono::milliseconds{300}, true},
                        {callback_timer_type::callback_type::template create<
                             status_led, &status_led::disable>(*this),
                         std::chrono::milliseconds{100}, false}}};
