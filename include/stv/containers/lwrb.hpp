@@ -142,7 +142,12 @@ class lwrb_base:
   public:
     virtual ~lwrb_base() = default;
 
-    auto reset() -> void { lwrb_reset(&lwrb_); }
+    auto reset(
+        bool is_isr = false) -> void
+    {
+        const stv::lock_guard critical{get_mutex_ref(), is_isr};
+        lwrb_reset(&lwrb_);
+    }
 
     auto write(
         const void *src, std::size_t len, bool write_all_or_nothing = true,
