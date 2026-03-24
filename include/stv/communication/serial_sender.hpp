@@ -92,7 +92,10 @@ class composite_serial_message
             setup_all_trailers(memory_.begin() + header_size_ + payload_size_,
                                memory_.begin(), total_size_);
 
-            queue_.push(std::move(memory_));
+            if(!queue_.full())
+            {
+                queue_.push(std::move(memory_));
+            }
         }
     }
 
