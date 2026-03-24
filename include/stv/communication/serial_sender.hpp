@@ -482,7 +482,7 @@ class serial_message_buffer:
     using base_type =
         serial_message_buffer_base<queue_base_type, Decorators...>;
 
-    etl::queue<sim_buff_type, 22> queue_;
+    etl::queue<sim_buff_type, QUEUE_SIZE> queue_;
 
   public:
     explicit serial_message_buffer(
