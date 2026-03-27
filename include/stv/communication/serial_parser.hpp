@@ -163,6 +163,13 @@ class serial_parser: virtual private stv::non_movable_non_copyable
         }
     }
 
+    void set_next_message_size(
+        std::size_t next_message_size)
+    {
+        const stv::lock_guard critical{get_mutex_ref()};
+        next_message_size_ = next_message_size;
+    }
+
   public:
     explicit serial_parser(
         const setup_type &setup):
@@ -221,9 +228,7 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     /// @return Ссылка на очередь, которая может содержать распарсенные
     /// сообщения.
     auto queue_instance() -> std::remove_pointer_t<decltype(queue_)> &
-    {
-        return *queue_;
-    }
+    { return *queue_; }
 
   private:
     auto set_state(
@@ -256,31 +261,30 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     /// противном случае.
     auto start_frame_and_size_state()
     {
-        bool           is_need_continue{false};
+        bool                  is_need_continue{false};
 
         constexpr std::size_t need_bytes_available_befor_start{
             stv::start_frame_and_crc_16::header_size()};
 
-        auto lwrb_raw_instance = lwrb_->get_instance();
         while(lwrb_->get_full() >= need_bytes_available_befor_start)
         {
             stv::start_frame_and_crc_16::start_frame_t storage{};
 
             {
-                const stv::lock_guard critical{get_mutex_ref()};
-                lwrb_peek(lwrb_raw_instance, 0, &storage, sizeof(storage));
+                lwrb_->peek(typename lwrb_base_type::container_type{
+                    reinterpret_cast<std::byte *>(&storage), sizeof(storage)});
             }
 
-            lwrb_sz_t skip_cnt{1};
+            std::size_t skip_cnt{1};
             if((storage.start_frame_first
                 == stv::start_frame_and_crc_16::first_byte)
                && (storage.start_frame_second
                    == stv::start_frame_and_crc_16::second_byte))
             {
                 set_state(states::wait_message_ready);
-                next_message_size_ = storage.frame_size;
-                is_need_continue   = true;
-                skip_cnt           = 0;
+                set_next_message_size(storage.frame_size);
+                is_need_continue = true;
+                skip_cnt         = 0;
             }
 
             // Нужно пометить считанные байты как прочитанные. Если
@@ -336,7 +340,7 @@ class serial_parser: virtual private stv::non_movable_non_copyable
             }
 
             set_state(states::start_frame_and_size);
-            next_message_size_ = 0;
+            set_next_message_size(next_message_size_);
         }
 
         if(lwrb_->get_full()
@@ -413,16 +417,12 @@ class serial_parser_route: virtual public stv::non_movable_non_copyable
         const setup_type &setup):
         queue_to_read_{setup.queue_to_read},
         hash_to_write_{setup.hash_to_write}
-    {
-        (void)setup;
-    }
+    { (void)setup; }
 
     virtual ~serial_parser_route() = default;
 
     explicit operator bool() const
-    {
-        return stv::all_true(queue_to_read_, hash_to_write_);
-    }
+    { return stv::all_true(queue_to_read_, hash_to_write_); }
 
     ///
     auto run()
@@ -433,7 +433,7 @@ class serial_parser_route: virtual public stv::non_movable_non_copyable
             decltype(auto) msg = queue_to_read_->front();
 
             const auto    *router_ptr = reinterpret_cast<
-                   const stv::head_route::head_route_setup_with_pload_t *>(
+                const stv::head_route::head_route_setup_with_pload_t *>(
                 msg.data());
 
             // Используем итератор чтобы избежать выброса исключений.

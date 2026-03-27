@@ -382,6 +382,22 @@ class lwrb_base:
         const auto &to_skip, bool is_isr = false)
     { return skip(to_skip.size_bytes(), is_isr); }
 
+    /// @brief Подсматривает указанное количество байт без удаления из
+    /// кольцевого буфера.
+    ///
+    /// @param[in] dst Область памяти, в которую нужно записать читанные из
+    /// кольцевого буфера байты.
+    /// @param[in] skip_count количество байт, которое нужно пропустить перед
+    /// чтением данных из буфера.
+    ///
+    /// @return Количество подсмотренных байт.
+    auto peek(
+        container_type dst, std::size_t skip_count = 0, bool is_isr = false)
+    {
+        const stv::lock_guard critical{get_mutex_ref(), is_isr};
+        return lwrb_peek(&lwrb_, skip_count, dst.data(), dst.size_bytes());
+    }
+
     auto advance(
         std::size_t len, bool is_isr = false)
     {
