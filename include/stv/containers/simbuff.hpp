@@ -1,6 +1,6 @@
 /// @file simbuff.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -8,6 +8,7 @@
 #define SIMBUFF_HPP
 
 #include "stv/mutex_guard.hpp"
+#include <cstddef>
 #include <memory>
 #include <type_traits>
 
@@ -22,17 +23,17 @@ class sim_buff
     ALLOCATOR allocator_;
     using alloc_traits = std::allocator_traits<ALLOCATOR>;
 
-    static_assert(sizeof(typename std::allocator_traits<ALLOCATOR>::value_type)
-                      == sizeof(std::byte),
-                  "ALLOCATOR must allocate memory per byte");
-
   public:
     using value_type        = std::byte;
-    using pointer           = std::byte *;
-    using reference         = std::byte &;
+    using pointer           = value_type *;
+    using reference         = value_type &;
     using iterator          = pointer;
-    using const_iterator    = const pointer;
+    using const_iterator    = const value_type *;
     using iterator_category = std::random_access_iterator_tag;
+
+    static_assert(sizeof(typename std::allocator_traits<ALLOCATOR>::value_type)
+                      == sizeof(value_type),
+                  "ALLOCATOR must allocate memory per byte");
 
     // -------------------------------------------------------------------------
 
@@ -85,9 +86,7 @@ class sim_buff
         data_ptr_{other.data_ptr_},
         offset_head_{other.offset_head_},
         offset_tail_{other.offset_tail_}
-    {
-        other.data_ptr_ = nullptr;
-    }
+    { other.data_ptr_ = nullptr; }
 
     auto operator=(const sim_buff &other) -> sim_buff & = delete;
 
@@ -109,26 +108,18 @@ class sim_buff
 
     // -------------------------------------------------------------------------
     [[nodiscard]] auto begin() noexcept
-    {
-        return reinterpret_cast<iterator>(data());
-    }
+    { return reinterpret_cast<iterator>(data()); }
 
     [[nodiscard]] auto begin() const noexcept
-    {
-        return reinterpret_cast<const_iterator>(data());
-    }
+    { return reinterpret_cast<const_iterator>(data()); }
 
     [[nodiscard]] auto cbegin() const noexcept { return begin(); }
 
     [[nodiscard]] auto end() noexcept
-    {
-        return reinterpret_cast<iterator>(begin() + size());
-    }
+    { return reinterpret_cast<iterator>(begin() + size()); }
 
     [[nodiscard]] auto end() const noexcept
-    {
-        return reinterpret_cast<const_iterator>(begin() + size());
-    }
+    { return reinterpret_cast<const_iterator>(begin() + size()); }
 
     [[nodiscard]] auto cend() const noexcept { return end(); }
 
@@ -148,14 +139,25 @@ class sim_buff
 
     // -------------------------------------------------------------------------
 
-    /// @brief Возвращает адрес выделенной области памяти.
-    /// @return Указатель типа void.
-    template<typename USER_DATA_TYPE = std::uint8_t>
+    /// @brief Возвращает адрес выделенной области памяти (не-const версия).
+    template<typename USER_DATA_TYPE = value_type>
+    [[nodiscard]] auto data() noexcept
+    {
+        using return_type =
+            std::remove_pointer_t<std::remove_reference_t<USER_DATA_TYPE>> *;
+        return reinterpret_cast<return_type>(data_ptr_ + offset_head_);
+    }
+
+    // Исправление 3: Перегрузка data() для const объектов с возвратом const
+    // указателя
+    /// @brief Возвращает адрес выделенной области памяти (const версия).
+    template<typename USER_DATA_TYPE = value_type>
     [[nodiscard]] auto data() const noexcept
     {
-        return reinterpret_cast<
-            std::remove_pointer_t<std::remove_reference_t<USER_DATA_TYPE>> *>(
-            data_ptr_ + offset_head_);
+        using return_type =
+            const std::remove_pointer_t<std::remove_reference_t<USER_DATA_TYPE>>
+                *;
+        return reinterpret_cast<return_type>(data_ptr_ + offset_head_);
     }
 
     // -------------------------------------------------------------------------
@@ -163,9 +165,7 @@ class sim_buff
     /// @brief Возвращает размер выделенной области памяти в байтах с учетом
     /// вызова методов trim*().
     [[nodiscard]] auto size() const noexcept
-    {
-        return size_in_bytes_ - offset_head_ - offset_tail_;
-    }
+    { return size_in_bytes_ - offset_head_ - offset_tail_; }
 
     /// @brief Возвращает размер выделенной области памяти в байтах с учетом
     /// вызова методов trim*().
