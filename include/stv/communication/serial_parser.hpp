@@ -275,7 +275,6 @@ class serial_parser: virtual private stv::non_movable_non_copyable
                     reinterpret_cast<std::byte *>(&storage), sizeof(storage)});
             }
 
-            std::size_t skip_cnt{1};
             if((storage.start_frame_first
                 == stv::start_frame_and_crc_16::first_byte)
                && (storage.start_frame_second
@@ -284,14 +283,15 @@ class serial_parser: virtual private stv::non_movable_non_copyable
                 set_state(states::wait_message_ready);
                 set_next_message_size(storage.frame_size);
                 is_need_continue = true;
-                skip_cnt         = 0;
             }
-
-            // Нужно пометить считанные байты как прочитанные. Если
-            // заголовок успешно считан, то весь заголовок будет помечен как
-            // считанный, в противном случае помечается только 1 байт чтобы
-            // продолжить чтение внутри while() со следующего байта.
-            lwrb_->skip(skip_cnt);
+            else
+            {
+                // Если заголовок не найден, то будет пропущен один байт чтобы
+                // на следующей итерации цикла вновь попробовать найти
+                // заголовок. Если заголовок найден, то байты н не будут
+                // пропущены, это позволит на следующем этапе
+                lwrb_->skip(1U);
+            }
 
             if(is_need_continue)
             {
