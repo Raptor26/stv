@@ -1,6 +1,6 @@
 /// @file test_serial_parser.cpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -62,9 +62,7 @@ class custom_allocator
     static auto           get_allocator_cnt() { return alloc_cnt; }
 
     static constexpr auto get_mem_ptr()
-    {
-        return memory_to_serial_parser.data();
-    }
+    { return memory_to_serial_parser.data(); }
 
     static auto data() { return memory_to_serial_parser.data(); }
 
@@ -223,6 +221,59 @@ TEST_CASE(
                             == 0);
                     parsed_msg_queue.pop();
                 }
+
+                {
+                    auto msg = std::move(parsed_msg_queue.front());
+                    REQUIRE(memcmp(test_message_two.data(), msg.data(),
+                                   test_message_two.size())
+                            == 0);
+                    parsed_msg_queue.pop();
+                }
+            }
+
+            SECTION("Parse chain of a messages if first invalid")
+            {
+                constexpr std::string_view test_message_one{"Hello"};
+                constexpr std::string_view test_message_two{"World"};
+
+                {
+                    auto msg = serial_message_buffer.request(test_message_one);
+
+                    // В деструкторе msg будет записан вызван декоратор, который
+                    // вычислит CRC.
+                }
+
+                {
+                    auto msg = serial_message_buffer.request(test_message_two);
+
+                    // В деструкторе msg будет записан вызван декоратор, который
+                    // вычислит CRC.
+                }
+
+                decltype(auto) queue_instance =
+                    serial_message_buffer.queue_instance();
+
+                {
+                    decltype(auto) msg = queue_instance.front();
+
+                    // Внесем ошибку в сообщение.
+                    auto iter  = msg.begin();
+                    iter      += 2;
+                    *iter      = std::byte{0xFF};
+                    lwrb.write(msg.begin(), msg.end());
+                    queue_instance.pop();
+                }
+
+                {
+                    decltype(auto) msg = queue_instance.front();
+                    lwrb.write(msg.begin(), msg.end());
+                    queue_instance.pop();
+                }
+
+                // В первом сообщении испорчен размер сообщения, поэтому парсер
+                // сброситься в поиск начала кадра.
+                REQUIRE_FALSE(parser.run());
+                REQUIRE(parser.run());
 
                 {
                     auto msg = std::move(parsed_msg_queue.front());
