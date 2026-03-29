@@ -102,9 +102,7 @@ class composite_serial_message
     std::byte *pload() { return memory_.begin() + header_size_; }
 
     [[nodiscard]] const std::byte *pload() const
-    {
-        return memory_.begin() + header_size_;
-    }
+    { return memory_.begin() + header_size_; }
 
     [[nodiscard]] auto data() { return pload(); }
 
@@ -150,7 +148,7 @@ class composite_serial_message
 
     template<typename Decorator>
     void setup_single_header(
-        Decorator &decorator, size_t &offset) const
+        Decorator &decorator, size_t &offset)
     {
         if constexpr(Decorator::header_size() > 0)
         {
@@ -202,8 +200,11 @@ class serial_message
     composite_serial_message_type composite_message_;
 
   public:
-    using value_type    = std::byte;
-    using iterator_type = std::byte *;
+    using value_type     = std::byte;
+    using pointer        = value_type *;
+    using reference      = value_type &;
+    using iterator_type  = value_type *;
+    using const_iterator = const value_type *;
 
     serial_message(
         queue_base_type &queue, const span_type &pload,
@@ -223,15 +224,11 @@ class serial_message
 
     /// @brief Возвращает true если успешно выделена память под сообщение.
     explicit operator bool() const
-    {
-        return static_cast<bool>(composite_message_);
-    }
+    { return static_cast<bool>(composite_message_); }
 
     /// @brief Возвращает указатель на полезную нагрузку сообщения.
     auto operator->()
-    {
-        return reinterpret_cast<user_type *>(composite_message_.pload());
-    }
+    { return reinterpret_cast<user_type *>(composite_message_.pload()); }
 
     [[nodiscard]] auto data() { return composite_message_.data(); }
 
@@ -331,9 +328,7 @@ class serial_message_buffer_base:
 
     auto request(
         const char *str)
-    {
-        return request(std::string_view{str});
-    }
+    { return request(std::string_view{str}); }
 
     template<typename... SetupParams>
     auto request(
@@ -398,9 +393,7 @@ class serial_message_buffer_base:
     template<typename InputIt>
     auto request(
         InputIt cbegin, InputIt cend)
-    {
-        return request(std::as_bytes(std::span{cbegin, cend}));
-    }
+    { return request(std::as_bytes(std::span{cbegin, cend})); }
 
     auto queue_instance() -> decltype(queue_) & { return queue_; }
 
