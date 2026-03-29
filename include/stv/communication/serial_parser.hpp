@@ -55,6 +55,10 @@ class serial_parser_setup
     /// байт сообщения.
     queue_type *queue{nullptr};
 
+    /// @brief МАксимальный размер одного сообщения, который парсер будет
+    /// считать допустимым.
+    std::size_t max_one_message_size{0};
+
     /// @brief Если указан внешний мьютекс, то mutex будет указателем на тип
     /// TMutex, в противном случае тип будет пустым.
     mutex_condition_type mutex{};
@@ -112,6 +116,10 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     /// байт сообщения.
     queue_type *queue_;
 
+    /// @brief МАксимальный размер одного сообщения, который парсер будет
+    /// считать допустимым.
+    const std::size_t max_one_message_size_;
+
     /// @brief Счетчик полученных сообщений.
     std::size_t parsed_cnt_{};
 
@@ -159,7 +167,13 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     explicit serial_parser(
         const setup_type &setup):
         lwrb_{setup.lwrb},
-        queue_{setup.queue}
+        queue_{setup.queue},
+        max_one_message_size_{
+            (setup.max_one_message_size
+             == 0) ///< значение по умолчанию
+                   // NOLINTNEXTLINE(*-avoid-nested-conditional-operator)
+                ? ((lwrb_ != nullptr) ? lwrb_->capacity() : 0)
+                : (setup.max_one_message_size)}
     {
         if constexpr(std::is_pointer_v<decltype(mutex_)>)
         {
@@ -181,7 +195,8 @@ class serial_parser: virtual private stv::non_movable_non_copyable
             }
         }
 
-        return stv::all_true(lwrb_, queue_, is_mutex_valid);
+        return stv::all_true(lwrb_, queue_, is_mutex_valid,
+                             max_one_message_size_ > 0);
     }
 
     /// @brief Метод анализирует поток байт. Если найдено сообщение, то вернет
@@ -291,7 +306,7 @@ class serial_parser: virtual private stv::non_movable_non_copyable
 
         // Если ожидается сообщение больше чем емкость буфера, то что-то пошло
         // не так, начнем поиск сообщения снова.
-        if(expect_total_message_size > lwrb_->capacity())
+        if(expect_total_message_size > max_one_message_size_)
         {
             // если start_frame_and_size_state() нашел начало фрейма, то он не
             // удаляет эти байты из буфера. Поэтому, если обнаружена ошибка, то
