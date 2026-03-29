@@ -266,6 +266,8 @@ class serial_parser: virtual private stv::non_movable_non_copyable
         constexpr std::size_t need_bytes_available_befor_start{
             stv::start_frame_and_crc_16::header_size()};
 
+        auto how_many_bytes_can_read_in_one_iteration{max_one_message_size_};
+
         while(lwrb_->get_full() >= need_bytes_available_befor_start)
         {
             stv::start_frame_and_crc_16::start_frame_t storage{};
@@ -297,6 +299,15 @@ class serial_parser: virtual private stv::non_movable_non_copyable
             {
                 break;
             }
+
+            if(how_many_bytes_can_read_in_one_iteration
+               == static_cast<
+                   decltype(how_many_bytes_can_read_in_one_iteration)>(0))
+            {
+                break;
+            }
+
+            --how_many_bytes_can_read_in_one_iteration;
         }
 
         return is_need_continue;
