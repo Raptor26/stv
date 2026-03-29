@@ -268,14 +268,11 @@ class serial_parser: virtual private stv::non_movable_non_copyable
                 skip_cnt           = 0;
             }
 
-            {
-                // Нужно пометить считанные байты как прочитанные. Если
-                // заголовок успешно считан, то весь заголовок будет помечен как
-                // считанный, в противном случае помечается только 1 байт чтобы
-                // продолжить чтение внутри while() со следующего байта.
-                const stv::lock_guard critical{get_mutex_ref()};
-                lwrb_skip(lwrb_raw_instance, skip_cnt);
-            }
+            // Нужно пометить считанные байты как прочитанные. Если
+            // заголовок успешно считан, то весь заголовок будет помечен как
+            // считанный, в противном случае помечается только 1 байт чтобы
+            // продолжить чтение внутри while() со следующего байта.
+            lwrb_->skip(skip_cnt);
 
             if(is_need_continue)
             {
@@ -291,6 +288,19 @@ class serial_parser: virtual private stv::non_movable_non_copyable
         bool       is_need_continue{false};
         const auto expect_total_message_size{
             stv::start_frame_and_crc_16::header_size() + next_message_size_};
+
+        // Если ожидается сообщение больше чем емкость буфера, то что-то пошло
+        // не так, начнем поиск сообщения снова.
+        if(expect_total_message_size > lwrb_->capacity())
+        {
+            // если start_frame_and_size_state() нашел начало фрейма, то он не
+            // удаляет эти байты из буфера. Поэтому, если обнаружена ошибка, то
+            // принудительно удалим из буфера начало фрейма чтобы на следующей
+            // итерации парсера не попасть в туже ловушку.
+            lwrb_->skip(sizeof(stv::start_frame_and_crc_16::start_frame_t));
+            set_state(states::start_frame_and_size);
+            return false;
+        }
 
         container_type msg{expect_total_message_size};
 
