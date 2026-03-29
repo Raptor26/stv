@@ -171,8 +171,6 @@ class lwrb_base:
 
     /// @brief Запись данных в буфер.
     ///
-    /// @tparam U Тип контейнера, из которого выполняется запись в буфер.
-    ///
     /// @param[in] src Источник данных для записи в буфер.
     /// @param[in] write_all_or_nothing Если равен true, то данные будут
     /// записаны в буфер только в том случае, если все содержимое контейнера src
@@ -181,14 +179,12 @@ class lwrb_base:
     /// false - в противном случае.
     ///
     /// @return Возвращает количество записанных в буфер байт.
-    template<typename U>
-        requires std::ranges::contiguous_range<U>
-                 && requires(U src) { src.size(); }
     auto write(
-        const U &src, bool write_all_or_nothing = true, bool is_isr = false)
+        const std::ranges::contiguous_range auto &src,
+        bool write_all_or_nothing = true, bool is_isr = false)
     {
         constexpr auto item_size =
-            sizeof(typename std::remove_cvref_t<U>::value_type);
+            sizeof(typename std::remove_cvref_t<decltype(src)>::value_type);
 
         return write_helper(
             src.data(),                    /// указатель на область памяти.
@@ -223,12 +219,12 @@ class lwrb_base:
     /// количество байт, чем указано в dst.
     ///
     /// @return Фактическое количество считанных байт.
-    template<typename U>
     auto read(
-        U &dst, bool read_all_or_nothing = false, bool is_isr = false)
+        std::ranges::contiguous_range auto &dst,
+        bool read_all_or_nothing = false, bool is_isr = false)
     {
         constexpr auto item_size =
-            sizeof(typename std::remove_cvref_t<U>::value_type);
+            sizeof(typename std::remove_cvref_t<decltype(dst)>::value_type);
 
         return read_helper(
             dst.data(),                   /// Указатель на область памяти.
@@ -379,7 +375,7 @@ class lwrb_base:
     ///
     /// @return Фактическое количество байт, которое помечено как прочитанное.
     auto skip(
-        const auto &to_skip, bool is_isr = false)
+        const container_type &to_skip, bool is_isr = false)
     { return skip(to_skip.size_bytes(), is_isr); }
 
     /// @brief Подсматривает указанное количество байт без удаления из
