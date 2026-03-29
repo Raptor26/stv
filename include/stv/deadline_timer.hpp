@@ -32,7 +32,7 @@ class deadline_timer_setup
 
   public:
     using runtime_type = TRuntime;
-    using counter_type = TRuntime::value_type;
+    using counter_type = typename TRuntime::value_type;
     using mutex_type   = TMutexOrPtr;
 
     /// @brief Указатель на runtime таймер.
@@ -65,8 +65,10 @@ class deadline_timer: public stv::non_movable_non_copyable
 
     /// @brief Указатель на runtime таймер.
     runtime_type *runtime_;
-    counter_type  deadline_{counter_type{0}};
+    counter_type  start_time_{counter_type{0}};
+    counter_type  delay_{counter_type{0}};
     bool          is_started_{false};
+    bool          is_deadline_elapsed_{false};
 
     /// @brief Если флаг true, то метод deadline_timer::is_elapsed() возвращает
     /// true если:
@@ -115,23 +117,25 @@ class deadline_timer: public stv::non_movable_non_copyable
     /// @note Если set_delay() не был указан, то метод всегда вернет true.
     ///
     /// @return true если истек указанный при вызове set_delay() период времени.
-    [[nodiscard]] auto is_elapsed() const
+    [[nodiscard]] auto is_elapsed()
     {
         const auto lock = stv::lock_guard{get_mutex_ref()};
-        if(is_started())
+
+        // Если уже истек указанный период времени, то повторно проверка не
+        // выполняется. Это позволяет всегда возвращать корректный статус
+        // таймера если он не запущен."
+        if(is_started() && !is_deadline_elapsed_)
         {
-            const auto current_time = runtime_->get();
-            const auto is_deadline_elapsed{
-                static_cast<bool>(current_time >= deadline_)};
-            return is_deadline_elapsed;
+            const auto now = runtime_->get();
+            is_deadline_elapsed_ =
+                static_cast<bool>((now - start_time_) >= delay_);
+        }
+        else if(is_elapsed_if_not_started_)
+        {
+            is_deadline_elapsed_ = true;
         }
 
-        if(is_elapsed_if_not_started_)
-        {
-            return true;
-        }
-
-        return false;
+        return is_deadline_elapsed_;
     }
 
     /// @brief Проверяет не возникнет ли переполнения счетчика при установке
@@ -149,19 +153,19 @@ class deadline_timer: public stv::non_movable_non_copyable
         using deadline_period_type = typename deadline_type::period;
         using compare_counter_type = std::uint64_t;
 
-        const auto timeout_with_compare_type =
-            std::chrono::duration<compare_counter_type, deadline_period_type>{
-                delay};
-
-        constexpr auto max_deadline_cnt =
+        constexpr auto max_deadline_val =
             std::numeric_limits<deadline_rep_type>::max();
-        constexpr auto max_compare_cnt =
+        constexpr auto max_compare_val =
             std::numeric_limits<compare_counter_type>::max();
 
-        if constexpr(max_deadline_cnt < max_compare_cnt)
+        if constexpr(max_deadline_val < max_compare_val)
         {
+            const auto timeout_with_compare_type =
+                std::chrono::duration<compare_counter_type,
+                                      deadline_period_type>{delay};
+
             return timeout_with_compare_type.count()
-                   <= static_cast<compare_counter_type>(max_deadline_cnt);
+                   < static_cast<compare_counter_type>(max_deadline_val);
         }
 
         return true;
@@ -181,11 +185,12 @@ class deadline_timer: public stv::non_movable_non_copyable
             if(delay.count()
                != static_cast<std::remove_cvref_t<decltype(delay)>::rep>(0))
             {
-                const auto lock         = stv::lock_guard{get_mutex_ref()};
-                const auto current_time = runtime_->get();
-                deadline_               = current_time + delay;
+                const auto lock = stv::lock_guard{get_mutex_ref()};
+                start_time_     = runtime_->get();
+                delay_          = delay;
                 this->start();
-                is_set_delay = true;
+                is_set_delay         = true;
+                is_deadline_elapsed_ = false;
             }
         }
 
@@ -197,9 +202,11 @@ class deadline_timer: public stv::non_movable_non_copyable
     /// @note После остановки таймера метод is_elapsed() вернет true.
     auto stop() -> void
     {
-        const auto lock = stv::lock_guard{get_mutex_ref()};
-        is_started_     = false;
-        deadline_       = counter_type{0};
+        const auto lock      = stv::lock_guard{get_mutex_ref()};
+        is_started_          = false;
+        delay_               = counter_type{0};
+        start_time_          = counter_type{0};
+        is_deadline_elapsed_ = is_elapsed_if_not_started_;
     }
 
     /// @brief Возвращает статус deadline таймера: активен или нет

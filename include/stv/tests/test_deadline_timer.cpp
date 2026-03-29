@@ -9,6 +9,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <chrono>
 #include <fakeit.hpp>
 #include <limits>
 #include <ratio>
@@ -125,12 +126,33 @@ TEST_CASE(
                 - raw_time_offset};
 
             When(Method(runtime_mock, get))
-                .Return(start_time, start_time + (elapsed_time - 100ms));
-            deadline.set_delay(elapsed_time);
+                .Return(start_time, start_time,
+                        start_time + (elapsed_time - 100ms));
+            REQUIRE(deadline.set_delay(elapsed_time));
+            REQUIRE_FALSE(deadline.is_elapsed());
             REQUIRE_FALSE(deadline.is_elapsed());
 
             When(Method(runtime_mock, get))
                 .AlwaysReturn(start_time + elapsed_time);
+            REQUIRE(deadline.is_elapsed());
+        }
+
+        SECTION("Set max timeout and check is elapsed with overflow")
+        {
+            constexpr runtime_counter_type timeout{
+                std::numeric_limits<runtime_counter_type::rep>::max() - 1};
+            constexpr runtime_counter_type::rep raw_time_offset{10};
+            constexpr runtime_counter_type      start_time{
+                std::numeric_limits<runtime_counter_type::rep>::max()
+                - raw_time_offset};
+
+            When(Method(runtime_mock, get))
+                .Return(start_time, start_time, start_time + (timeout - 100ms));
+            REQUIRE(deadline.set_delay(timeout));
+            REQUIRE_FALSE(deadline.is_elapsed());
+            REQUIRE_FALSE(deadline.is_elapsed());
+
+            When(Method(runtime_mock, get)).AlwaysReturn(start_time + timeout);
             REQUIRE(deadline.is_elapsed());
         }
     }
@@ -199,7 +221,7 @@ TEST_CASE(
                       "Overflow detected");
     }
 
-    SECTION("std::uint64_t, sstd::micro")
+    SECTION("std::uint64_t, std::micro")
     {
         using counter_type = std::chrono::duration<std::uint64_t, std::micro>;
         using runtime_setup_type  = stv::runtime_setup<counter_type>;
