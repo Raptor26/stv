@@ -68,7 +68,7 @@ class deadline_timer: public stv::non_movable_non_copyable
     counter_type  start_time_{counter_type{0}};
     counter_type  delay_{counter_type{0}};
     bool          is_started_{false};
-    bool          is_deadline_elapsed_{false};
+    mutable bool  is_deadline_elapsed_{false};
 
     /// @brief Если флаг true, то метод deadline_timer::is_elapsed() возвращает
     /// true если:
@@ -117,7 +117,7 @@ class deadline_timer: public stv::non_movable_non_copyable
     /// @note Если set_delay() не был указан, то метод всегда вернет true.
     ///
     /// @return true если истек указанный при вызове set_delay() период времени.
-    [[nodiscard]] auto is_elapsed()
+    [[nodiscard]] auto is_elapsed() const
     {
         const auto lock = stv::lock_guard{get_mutex_ref()};
 
