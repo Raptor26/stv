@@ -391,7 +391,8 @@ class lwrb_base:
         container_type dst, std::size_t skip_count = 0, bool is_isr = false)
     {
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
-        return lwrb_peek(&lwrb_, skip_count, dst.data(), dst.size_bytes());
+        return lwrb_peek(&lwrb_, static_cast<lwrb_sz_t>(skip_count), dst.data(),
+                         static_cast<lwrb_sz_t>(dst.size_bytes()));
     }
 
     auto advance(
