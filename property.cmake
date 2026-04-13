@@ -46,6 +46,7 @@ function(stv_add_pedantic_compile_options_and_features TARGET_NAME)
             -Wnon-virtual-dtor
             -Woverloaded-virtual
             -fstrict-aliasing
+            -Wno-c2y-extensions
             >
             $<$<CXX_COMPILER_ID:Clang,AppleClang>:
             -Wdocumentation
