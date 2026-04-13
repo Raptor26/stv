@@ -357,7 +357,11 @@ class serial_message_buffer_base:
     }
 
     template<typename UserData, typename... SetupParams>
-        requires(!std::integral<UserData>)
+        requires(
+            !std::integral<UserData>
+            && !std::same_as<std::remove_cvref_t<UserData>, std::string_view>
+            && !std::same_as<std::remove_cvref_t<UserData>, const char *>
+            && !std::same_as<std::remove_cvref_t<UserData>, char *>)
     auto request(
         const UserData &user_data, const SetupParams &...setup_params)
     {
