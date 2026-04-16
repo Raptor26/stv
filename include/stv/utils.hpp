@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <concepts>
 #include <cstring>
 #include <numeric>
 #include <ranges>
@@ -324,11 +325,20 @@ auto norm(
 /// @}
 
 [[nodiscard]] auto clamp_with_result(
+    std::floating_point auto &val, const std::floating_point auto &min,
+    const std::floating_point auto &max)
+{
+    const auto old_val = val;
+    val                = std::clamp(val, min, max);
+    return std::abs(val - old_val) > static_cast<decltype(old_val)>(0.001);
+}
+
+[[nodiscard]] auto clamp_with_result(
     auto &val, const auto &min, const auto &max)
 {
     const auto old_val = val;
     val                = std::clamp(val, min, max);
-    return std::memcmp(&old_val, &val, sizeof(val)) != 0;
+    return old_val != val;
 }
 
 } // namespace stv

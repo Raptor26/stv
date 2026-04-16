@@ -49,37 +49,36 @@ TEST_CASE(
 {
     SECTION("With clamp")
     {
-        float val{10.0F};
-        float val_min{-1.0F};
-        float val_max{9.99F};
+        float       val{10.0F};
+        const float val_min{-1.0F};
+        const float val_max{9.99F};
 
         REQUIRE(stv::clamp_with_result(val, val_min, val_max));
     }
 
     SECTION("With clamp")
     {
-        float val{-2.0F};
-        float val_min{-1.0F};
-        float val_max{9.99F};
+        float       val{-2.0F};
+        const float val_min{-1.0F};
+        const float val_max{9.99F};
 
         REQUIRE(stv::clamp_with_result(val, val_min, val_max));
     }
 
-
     SECTION("Without clamp")
     {
-        float val{10.0F};
-        float val_min{-1.0F};
-        float val_max{11.99F};
+        float       val{10.0F};
+        const float val_min{-1.0F};
+        const float val_max{11.99F};
 
         REQUIRE_FALSE(stv::clamp_with_result(val, val_min, val_max));
     }
 
     SECTION("Without clamp")
     {
-        float val{10.0F};
-        float val_min{-1.0F};
-        float val_max{10.0F};
+        float       val{10.0F};
+        const float val_min{-1.0F};
+        const float val_max{10.0F};
 
         REQUIRE_FALSE(stv::clamp_with_result(val, val_min, val_max));
     }
