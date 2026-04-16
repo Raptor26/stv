@@ -14,7 +14,9 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+#include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <numeric>
 #include <ranges>
 #include <type_traits>
@@ -232,9 +234,7 @@ class non_movable_non_copyable
 template<typename... Args>
 auto all_true(
     Args... args)
-{
-    return (... && args);
-}
+{ return (... && args); }
 
 /// @brief Проверка истинности хотя бы одного аргумента (логическое ИЛИ).
 /// @details Функция использует fold expression для вычисления логического
@@ -254,9 +254,7 @@ auto all_true(
 template<typename... Args>
 auto one_true(
     Args... args)
-{
-    return (... || args);
-}
+{ return (... || args); }
 
 /// @}
 
@@ -324,6 +322,14 @@ auto norm(
 }
 
 /// @}
+
+[[nodiscard]] auto clamp_with_result(
+    auto &val, const auto &min, const auto &max)
+{
+    const auto old_val = val;
+    val                = std::clamp(val, min, max);
+    return std::memcmp(&old_val, &val, sizeof(val)) != 0;
+}
 
 } // namespace stv
 

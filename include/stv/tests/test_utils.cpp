@@ -1,6 +1,6 @@
 /// @file test_utils.cpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -39,9 +39,48 @@ TEST_CASE(
     SECTION("Like container") { norm = stv::norm(vector); }
 
     SECTION("Like scalar")
-    {
-        norm = stv::norm(vector.at(0), vector.at(1), vector.at(2));
-    }
+    { norm = stv::norm(vector.at(0), vector.at(1), vector.at(2)); }
     REQUIRE_THAT(norm, Catch::Matchers::WithinRel(
                            static_cast<double>(expected_norm), 0.01));
+}
+
+TEST_CASE(
+    "clamp_with_result", "[stv][utils]")
+{
+    SECTION("With clamp")
+    {
+        float val{10.0F};
+        float val_min{-1.0F};
+        float val_max{9.99F};
+
+        REQUIRE(stv::clamp_with_result(val, val_min, val_max));
+    }
+
+    SECTION("With clamp")
+    {
+        float val{-2.0F};
+        float val_min{-1.0F};
+        float val_max{9.99F};
+
+        REQUIRE(stv::clamp_with_result(val, val_min, val_max));
+    }
+
+
+    SECTION("Without clamp")
+    {
+        float val{10.0F};
+        float val_min{-1.0F};
+        float val_max{11.99F};
+
+        REQUIRE_FALSE(stv::clamp_with_result(val, val_min, val_max));
+    }
+
+    SECTION("Without clamp")
+    {
+        float val{10.0F};
+        float val_min{-1.0F};
+        float val_max{10.0F};
+
+        REQUIRE_FALSE(stv::clamp_with_result(val, val_min, val_max));
+    }
 }
