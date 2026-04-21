@@ -1,6 +1,6 @@
 /// @file concepts.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -71,15 +71,9 @@ concept contiguous_trivial_container_concept =
        };
 ;
 
-#ifndef __APPLE__
 template<typename T>
 // NOLINTNEXTLINE(readability-identifier-naming)
 inline constexpr bool is_duration_v = std::chrono::__is_duration_v<T>;
-#else
-template<typename T>
-// NOLINTNEXTLINE(readability-identifier-naming)
-inline constexpr bool is_duration_v = true;
-#endif
 
 /// @brief Концепт проверяет, что тип T является контейнером с непрерывно
 /// выделенной памятью.
