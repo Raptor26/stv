@@ -14,6 +14,7 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+#include "stv/concepts.hpp"
 #include <algorithm>
 #include <cmath>
 #include <concepts>
@@ -324,21 +325,21 @@ auto norm(
 
 /// @}
 
+template<typename T>
 [[nodiscard]] auto clamp_with_result(
-    std::floating_point auto &val, const std::floating_point auto &min,
-    const std::floating_point auto &max)
+    T &val, const T &min, const T &max)
 {
-    const auto old_val = val;
-    val                = std::clamp(val, min, max);
-    return std::abs(val - old_val) > static_cast<decltype(old_val)>(0.001);
-}
+    const T old_val = val;
+    val             = std::clamp(val, min, max);
 
-[[nodiscard]] auto clamp_with_result(
-    auto &val, const auto &min, const auto &max)
-{
-    const auto old_val = val;
-    val                = std::clamp(val, min, max);
-    return old_val != val;
+    if constexpr(std::is_floating_point_v<T>)
+    {
+        return std::abs(val - old_val) > static_cast<T>(0.001);
+    }
+    else
+    {
+        return old_val != val;
+    }
 }
 
 } // namespace stv
