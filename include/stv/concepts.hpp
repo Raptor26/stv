@@ -86,6 +86,26 @@ concept contiguous_container_concept =
         src.end();
     };
 
+// Шаблонная структура для определения специализации std::span (по умолчанию
+// false)
+template<typename T>
+struct is_span: std::false_type {
+};
+
+// Частичная специализация для std::span<U, Extent>
+template<typename U, std::size_t Extent>
+struct is_span<std::span<U, Extent>>: std::true_type {
+};
+
+// Переменная-помощник (C++17)
+template<typename T>
+inline constexpr bool is_span_v = is_span<T>::value;
+
+// Концепт, проверяющий, что тип является std::span
+template<typename T>
+concept span_concept = is_span_v<T>;
+// -----------------------------------------------------------------------------
+
 } // namespace stv
 
 #endif /* CONCEPTS_HPP */
