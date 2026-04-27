@@ -43,7 +43,8 @@ class composite_serial_message
     container_type                  memory_;
 
   public:
-    using span_type = std::span<const std::byte>;
+    using const_span_type = std::span<const std::byte>;
+    using span_type       = std::span<std::byte>;
 
     composite_serial_message(
         queue_base_type &queue, const pload_span &pload,
@@ -107,7 +108,7 @@ class composite_serial_message
 
     auto pload_data()
     {
-        return std::span{std::to_address(pload()),
+        return span_type{std::to_address(pload()),
                          std::to_address(pload() + payload_size_)};
     }
 
@@ -202,7 +203,8 @@ class serial_message
     using user_type       = UserData;
     using composite_serial_message_type =
         stv::composite_serial_message<queue_base_type, Decorators...>;
-    using span_type = typename composite_serial_message_type::span_type;
+    using const_span_type =
+        typename composite_serial_message_type::const_span_type;
 
     composite_serial_message_type composite_message_;
 
@@ -214,7 +216,7 @@ class serial_message
     using const_iterator = const value_type *;
 
     serial_message(
-        queue_base_type &queue, const span_type &pload,
+        queue_base_type &queue, const const_span_type &pload,
         Decorators... decorators):
         composite_message_{queue, pload,
                            std::forward<Decorators>(decorators)...}
