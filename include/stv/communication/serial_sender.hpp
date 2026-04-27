@@ -10,6 +10,7 @@
 #include "etl/queue.h"
 #include "serial_decorators.hpp"
 #include "stv/containers/simbuff.hpp"
+#include <array>
 #include <cassert>
 #include <concepts>
 #include <cstddef>
@@ -103,6 +104,12 @@ class composite_serial_message
 
     [[nodiscard]] const std::byte *pload() const
     { return memory_.begin() + header_size_; }
+
+    auto pload_data()
+    {
+        return std::span{std::to_address(pload()),
+                         std::to_address(pload() + payload_size_)};
+    }
 
     [[nodiscard]] auto data() { return pload(); }
 
@@ -231,6 +238,8 @@ class serial_message
     { return reinterpret_cast<user_type *>(composite_message_.pload()); }
 
     [[nodiscard]] auto data() { return composite_message_.data(); }
+
+    [[nodiscard]] auto pload_data() { return composite_message_.pload_data(); }
 
     [[nodiscard]] auto begin() { return composite_message_.begin(); }
 
