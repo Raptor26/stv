@@ -342,6 +342,34 @@ template<typename T>
     }
 }
 
+template<typename T, typename U>
+concept map_supported_types = std::common_with<T, U>;
+
+/// @brief Re-maps a number from one range to another. That is, a value of
+/// in_min would get mapped to out_min, a value of in_max to out_max, values
+/// in-between to values in-between, etc.
+///
+/// @param[in] input Input value.
+/// @param[in] in_min Minimum range value for x.
+/// @param[in] in_max Maximum range value for x.
+/// @param[in] out_min Minimum range for output value.
+/// @param[in] out_max Maximum range for output value.
+///
+/// @return Return mapped x value, from [in_min; in_max] range to [out_min;
+/// out_max].
+template<typename T_IN, typename T_OUT>
+    requires stv::map_supported_types<T_IN, T_OUT>
+constexpr auto map(
+    const T_IN input, const T_IN in_min, const T_IN in_max, const T_OUT out_min,
+    const T_OUT out_max) -> T_OUT
+{
+    using common_t = std::common_type_t<T_IN, T_OUT>;
+    return static_cast<T_OUT>((static_cast<common_t>(input - in_min)
+                               * static_cast<common_t>(out_max - out_min)
+                               / static_cast<common_t>(in_max - in_min))
+                              + static_cast<common_t>(out_min));
+}
+
 } // namespace stv
 
 #endif /* UTILS_HPP */

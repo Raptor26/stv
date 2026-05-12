@@ -107,7 +107,7 @@ class deadline_timer: public stv::non_movable_non_copyable
         set_delay(setup.delay);
     }
 
-    virtual ~deadline_timer() = default;
+    virtual ~deadline_timer() { stop(); }
 
     explicit operator bool() const { return stv::all_true(runtime_); }
 
