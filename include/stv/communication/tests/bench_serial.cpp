@@ -1,6 +1,6 @@
 /// @file bench_serial.cpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -18,6 +18,8 @@ static void request(
     using namespace stv;
 
     using sim_buff_type = stv::sim_buff<stv::empty_mutex>;
+    using queue_type    = etl::queue<sim_buff_type, 10>;
+    queue_type queue{};
 
     struct UserData {
         std::uint8_t i{11};
@@ -26,8 +28,8 @@ static void request(
         std::uint8_t z{44};
     };
 
-    auto serial_message_buffer = make_serial_message_buffer<sim_buff_type, 10>(
-        stv::start_frame_and_crc_16{}, stv::head_route{});
+    auto serial_message_buffer = make_serial_message_buffer(
+        queue, stv::start_frame_and_crc_16{}, stv::head_route{});
 
     for(auto unused: state)
     {

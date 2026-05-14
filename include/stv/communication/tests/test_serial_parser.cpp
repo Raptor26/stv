@@ -79,19 +79,18 @@ TEST_CASE(
     using queue_base_type = etl::iqueue<sim_buffer_type>;
     using queue_type      = etl::queue<sim_buffer_type, 10>;
     queue_type parsed_msg_queue;
+    queue_type serial_msg_queue;
 
     using lwrb_setup_type = stv::lwrb_setup<stv::empty_mutex>;
     using lwrb_base_type  = stv::lwrb_base<lwrb_setup_type>;
     constexpr std::size_t                       lwrb_buffer_size{128};
     stv::lwrb<lwrb_base_type, lwrb_buffer_size> lwrb{lwrb_setup_type{}};
-
     SECTION("Serial Parser")
     {
         /// @brief Объект используется для создания сообщений требуемой для
         /// проверки парсера структуры.
-        auto serial_message_buffer =
-            make_serial_message_buffer<sim_buffer_type, 10>(
-                stv::start_frame_and_crc_16{});
+        auto serial_message_buffer = make_serial_message_buffer(
+            serial_msg_queue, stv::start_frame_and_crc_16{});
 
         using serial_parser_setup_type =
             stv::serial_parser_setup<lwrb_base_type, queue_type>;
@@ -293,9 +292,10 @@ TEST_CASE(
             stv::serial_route_setup<queue_base_type, hash_type>;
         using serial_route_type =
             stv::serial_parser_route<serial_route_setup_type>;
+        queue_type queue{};
 
-        auto serial_message_buffer =
-            make_serial_message_buffer<sim_buffer_type, 10>(stv::head_route{});
+        auto       serial_message_buffer =
+            make_serial_message_buffer(queue, stv::head_route{});
 
         etl::unordered_map<int, queue_base_type *, 10U> hash_table;
         constexpr int                                   parsed_msg_queue_id{10};

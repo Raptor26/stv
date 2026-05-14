@@ -481,33 +481,33 @@ class serial_message_buffer_base:
     }
 };
 
-template<typename TSimbuff, std::size_t QUEUE_SIZE = 10, typename... Decorators>
+template<typename TQueue, typename... Decorators>
 class serial_message_buffer:
-    public serial_message_buffer_base<etl::iqueue<TSimbuff>, Decorators...>
+    public serial_message_buffer_base<etl::iqueue<typename TQueue::value_type>,
+                                      Decorators...>
 {
-    using sim_buff_type   = TSimbuff;
+    using queue_item_type = TQueue::value_type;
+    using sim_buff_type   = queue_item_type;
     using queue_base_type = etl::iqueue<sim_buff_type>;
     using base_type =
         serial_message_buffer_base<queue_base_type, Decorators...>;
 
-    etl::queue<sim_buff_type, QUEUE_SIZE> queue_;
-
   public:
     explicit serial_message_buffer(
-        Decorators &&...decorators):
-        base_type{queue_, std::forward<Decorators>(decorators)...}
+        queue_base_type &queue, Decorators &&...decorators):
+        base_type{queue, std::forward<Decorators>(decorators)...}
     {
     }
 
     ~serial_message_buffer() override = default;
 };
 
-template<typename TSimBuff, std::size_t QUEUE_SIZE, typename... Decorators>
+template<typename TQueue, typename... Decorators>
 auto make_serial_message_buffer(
-    Decorators &&...decorators)
+    TQueue &queue, Decorators &&...decorators)
 {
-    return serial_message_buffer<TSimBuff, QUEUE_SIZE, Decorators...>(
-        std::forward<Decorators>(decorators)...);
+    return serial_message_buffer<TQueue, Decorators...>(
+        queue, std::forward<Decorators>(decorators)...);
 }
 
 } // namespace stv

@@ -1,6 +1,6 @@
 /// @file test_serial_sender.cpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -66,6 +66,7 @@ SCENARIO(
 
     using custom_allocator = custom_allocator<std::byte>;
     using sim_buffer_type  = stv::sim_buff<stv::empty_mutex, custom_allocator>;
+    using queue_type       = etl::queue<sim_buffer_type, 10>;
 
     STV_NO_PADDING_NO_OPTIMIZE_BEGIN
 
@@ -82,9 +83,9 @@ SCENARIO(
 
     GIVEN("raw data without any decorators")
     {
-        auto serial_message_buffer =
-            make_serial_message_buffer<sim_buffer_type, 10>(
-                stv::empty_serial_decorator{});
+        queue_type queue{};
+        auto       serial_message_buffer =
+            make_serial_message_buffer(queue, stv::empty_serial_decorator{});
 
         WHEN("Request empty span")
         {
@@ -172,8 +173,9 @@ SCENARIO(
 
     GIVEN("Serial message buffer with route only")
     {
-        auto serial_message_buffer =
-            make_serial_message_buffer<sim_buffer_type, 10>(stv::head_route{});
+        queue_type queue{};
+        auto       serial_message_buffer =
+            make_serial_message_buffer(queue, stv::head_route{});
 
         std::fill(memory.begin(), memory.end(), std::byte(0));
 
@@ -187,10 +189,10 @@ SCENARIO(
         constexpr std::size_t route_offset{0};
 
         constexpr std::byte  *pload_addr{custom_allocator::get_mem_ptr()
-                                        + pload_offset};
+                                         + pload_offset};
 
         constexpr std::byte  *route_addr{custom_allocator::get_mem_ptr()
-                                        + route_offset};
+                                         + route_offset};
 
         WHEN("Check strings")
         {
@@ -254,9 +256,9 @@ SCENARIO(
 
     GIVEN("Serial message buffer with route")
     {
-        auto serial_message_buffer =
-            make_serial_message_buffer<sim_buffer_type, 10>(
-                start_frame_and_crc_16{}, stv::head_route{});
+        queue_type queue{};
+        auto       serial_message_buffer = make_serial_message_buffer(
+            queue, start_frame_and_crc_16{}, stv::head_route{});
 
         std::fill(memory.begin(), memory.end(), std::byte(0));
 
@@ -425,7 +427,7 @@ TEST_CASE(
 
     SECTION("Ctor")
     {
-        auto serial_message_buffer = make_serial_message_buffer<queue_type>(
+        auto serial_message_buffer = make_serial_message_buffer(
             start_frame_and_crc_16{}, stv::head_route{});
 
         {
