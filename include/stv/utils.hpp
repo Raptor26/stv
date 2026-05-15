@@ -15,6 +15,7 @@
 #define UTILS_HPP
 
 #include <cmath>
+#include <concepts>
 #include <numeric>
 #include <ranges>
 #include <type_traits>
@@ -232,9 +233,7 @@ class non_movable_non_copyable
 template<typename... Args>
 auto all_true(
     Args... args)
-{
-    return (... && args);
-}
+{ return (... && args); }
 
 /// @brief Проверка истинности хотя бы одного аргумента (логическое ИЛИ).
 /// @details Функция использует fold expression для вычисления логического
@@ -254,9 +253,7 @@ auto all_true(
 template<typename... Args>
 auto one_true(
     Args... args)
-{
-    return (... || args);
-}
+{ return (... || args); }
 
 /// @}
 
@@ -321,6 +318,54 @@ auto norm(
                   "All arguments must be arithmetic types");
 
     return std::sqrt(((args * args) + ...));
+}
+
+template<std::floating_point T>
+constexpr bool is_equal(
+    const T first, const T second,
+    const T epsilon = std::numeric_limits<T>::epsilon()) noexcept
+{ return std::abs(first - second) < epsilon; }
+
+template<typename T>
+    requires(!std::floating_point<T> && std::integral<T>)
+constexpr bool is_equal(
+    const T first, const T second) noexcept
+{ return first == second; }
+
+template<typename T>
+    requires(!std::floating_point<T>)
+constexpr bool is_equal(
+    const T &first, const T &second) noexcept
+{ return first == second; }
+
+/// @brief Re-maps a number from one range to another. That is, a value of
+/// in_min would get mapped to out_min, a value of in_max to out_max, values
+/// in-between to values in-between, etc.
+///
+/// @tparam T_IN: Type of input range. Compile, since C++17, can deduced this
+/// type.
+/// @tparam T_OUT: Type of output range. Compile, since C++17, can deduced this
+/// type.
+///
+/// @param[in] x: Input value.
+/// @param[in] in_min: Minimum range value for x.
+/// @param[in] in_max: Maximum range value for x.
+/// @param[in] out_min: Minimum range for output value.
+/// @param[in] out_max: Maximum range for output value.
+///
+/// @return Return mapped x value, from [in_min; in_max] range to [out_min;
+/// out_max].
+template<typename T_IN, typename T_OUT>
+    requires std::common_with<T_IN, T_OUT>
+constexpr auto map(
+    const T_IN input, const T_IN in_min, const T_IN in_max, const T_OUT out_min,
+    const T_OUT out_max) -> T_OUT
+{
+    using common_t = std::common_type_t<T_IN, T_OUT>;
+    return (static_cast<common_t>(input - in_min)
+            * static_cast<common_t>(out_max - out_min)
+            / static_cast<common_t>(in_max - in_min))
+           + static_cast<common_t>(out_min);
 }
 
 /// @}
