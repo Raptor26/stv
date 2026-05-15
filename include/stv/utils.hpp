@@ -14,6 +14,8 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+#include "stv/concepts.hpp"
+#include <algorithm>
 #include <cmath>
 #include <concepts>
 #include <numeric>
@@ -369,6 +371,26 @@ constexpr auto map(
 }
 
 /// @}
+
+template<typename T>
+[[nodiscard]] auto clamp_with_result(
+    T &val, const T &min, const T &max)
+{
+    const T old_val = val;
+    val             = std::clamp(val, min, max);
+
+    if constexpr(std::is_floating_point_v<T>)
+    {
+        return std::abs(val - old_val) > static_cast<T>(0.001);
+    }
+    else
+    {
+        return old_val != val;
+    }
+}
+
+template<typename T, typename U>
+concept map_supported_types = std::common_with<T, U>;
 
 } // namespace stv
 
