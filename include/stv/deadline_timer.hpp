@@ -204,7 +204,6 @@ class deadline_timer: public stv::non_movable_non_copyable
     {
         const auto lock      = stv::lock_guard{get_mutex_ref()};
         is_started_          = false;
-        delay_               = counter_type{0};
         start_time_          = counter_type{0};
         is_deadline_elapsed_ = is_elapsed_if_not_started_;
     }
@@ -217,6 +216,32 @@ class deadline_timer: public stv::non_movable_non_copyable
     {
         const auto lock = stv::lock_guard{get_mutex_ref()};
         return is_started_;
+    }
+
+    /// @brief Возвращает оставшееся время до истечения таймера обратного
+    /// отсчета.
+    ///
+    /// @return Количество времени до завершения обратного отсчета.
+    [[nodiscard]] auto get_remaining_time() const
+    {
+        const auto lock = stv::lock_guard{get_mutex_ref()};
+
+        const auto elapsed_time = (runtime_->get() - start_time_);
+
+        // Если таймер не запущен, то всегда возвращаем установленную величину
+        // задержки.
+        if(!is_started())
+        {
+            return static_cast<counter_type>(delay_);
+        }
+
+        // Вычисление оставшегося времени если таймер не истек
+        if(elapsed_time <= delay_)
+        {
+            return delay_ - elapsed_time;
+        }
+
+        return static_cast<counter_type>(0);
     }
 };
 

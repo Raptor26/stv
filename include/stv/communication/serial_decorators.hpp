@@ -251,8 +251,8 @@ struct head_route {
 
     // NOLINTNEXTLINE(*-multiple-inheritance)
     struct head_route_setup_with_pload_t:
-        public pload_size_t,
-        public head_route_setup_t {
+        public head_route_setup_t,
+        public pload_size_t {
     };
 
     STV_NO_PADDING_NO_OPTIMIZE_END

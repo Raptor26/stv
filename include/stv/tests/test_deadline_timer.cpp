@@ -155,6 +155,54 @@ TEST_CASE(
             When(Method(runtime_mock, get)).AlwaysReturn(start_time + timeout);
             REQUIRE(deadline.is_elapsed());
         }
+
+        SECTION("Check remaining time")
+        {
+            constexpr runtime_counter_type timeout{10s};
+            constexpr runtime_counter_type start_time{0s};
+
+            When(Method(runtime_mock, get))
+                .Return(start_time, start_time + 1s, start_time + 5s,
+                        start_time + timeout, start_time + timeout + 1s);
+
+            SECTION("Downcount mode")
+            {
+                REQUIRE(deadline.set_delay(timeout));
+                REQUIRE(deadline.get_remaining_time() == 9s);
+                REQUIRE(deadline.get_remaining_time() == 5s);
+                REQUIRE(deadline.get_remaining_time() == 0s);
+                REQUIRE(deadline.get_remaining_time() == 0s);
+            }
+
+            SECTION("Force stop")
+            {
+                REQUIRE(deadline.set_delay(timeout));
+                REQUIRE(deadline.get_remaining_time() == 9s);
+                deadline.stop();
+                REQUIRE(deadline.get_remaining_time() == timeout);
+                REQUIRE(deadline.get_remaining_time() == timeout);
+                REQUIRE(deadline.get_remaining_time() == timeout);
+            }
+        }
+
+        SECTION("Check remaining time with overflow")
+        {
+            constexpr runtime_counter_type      timeout{20s};
+            constexpr runtime_counter_type::rep raw_time_offset{10};
+            constexpr runtime_counter_type      start_time{
+                std::numeric_limits<runtime_counter_type::rep>::max()
+                - raw_time_offset};
+
+            When(Method(runtime_mock, get))
+                .Return(start_time, start_time, start_time + (timeout - 6s));
+
+            SECTION("Downcount mode")
+            {
+                REQUIRE(deadline.set_delay(timeout));
+                REQUIRE(deadline.get_remaining_time() == timeout);
+                REQUIRE(deadline.get_remaining_time() == 6s);
+            }
+        }
     }
 }
 
