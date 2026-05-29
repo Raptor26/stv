@@ -16,6 +16,7 @@
 #include <iostream>
 #include <queue>
 #include <span>
+#include <variant>
 
 // NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
 // readability-function-cognitive-,
@@ -252,6 +253,35 @@ SCENARIO(
             REQUIRE(route->dst_id == 111);
             REQUIRE(route->pack_id == 222);
         }
+    }
+    GIVEN("Serial message buffer with route")
+    {
+        queue_type queue{};
+        auto       serial_message_buffer = make_serial_message_buffer(
+            queue, start_frame_and_crc_16{}, stv::head_route{});
+
+        std::fill(memory.begin(), memory.end(), std::byte(0));
+
+        THEN("Send message without pload")
+        {
+            stv::head_route::head_route_setup_t route_setup{.dst_id  = 111,
+                                                            .pack_id = 222};
+
+            auto msg = serial_message_buffer.request(
+                static_cast<std::size_t>(0), route_setup);
+            REQUIRE(msg);
+        }
+
+        // Проверка маршрутизации. ---------------------------------------------
+        const auto *route =
+            // NOLINTNEXTLINE(*-reinterpret-cast)
+            reinterpret_cast<stv::head_route::head_route_setup_with_pload_t *>(
+                custom_allocator::get_mem_ptr()
+                + start_frame_and_crc_16::header_size());
+
+        REQUIRE(route->dst_id == 111);
+        REQUIRE(route->pack_id == 222);
+        REQUIRE(route->pload_size == 0);
     }
 
     GIVEN("Serial message buffer with route")
