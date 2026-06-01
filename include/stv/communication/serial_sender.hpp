@@ -332,8 +332,7 @@ class serial_message_buffer_base:
         std::string_view str, SetupParams &&...setup_params)
     {
         return request_impl<decltype(str)::value_type>(
-            span_type(reinterpret_cast<const std::byte *>(str.data()),
-                      str.size()),
+            std::as_bytes(std::span(str.data(), str.size())),
             std::forward<SetupParams>(setup_params)...);
     }
 
@@ -351,11 +350,11 @@ class serial_message_buffer_base:
 
     template<typename... SetupParams>
     auto request(
-        std::unsigned_integral auto size, const SetupParams &...setup_params)
+        std::unsigned_integral auto size, SetupParams &&...setup_params)
     {
         return request_impl<std::byte>(
             span_type(static_cast<const std::byte *>(nullptr), size),
-            setup_params...);
+            std::forward<SetupParams>(setup_params)...);
     }
 
     // Для std::vector и других контейнеров
@@ -367,19 +366,39 @@ class serial_message_buffer_base:
         return request_impl<value_type>(std::as_bytes(std::span{container}));
     }
 
+    template<stv::contiguous_trivial_container_concept Container,
+             typename... SetupParams>
+    auto request(
+        const Container &container, SetupParams &&...setup_params)
+    {
+        using value_type = typename Container::value_type;
+        return request_impl<value_type>(
+            std::as_bytes(std::span{container}),
+            std::forward<SetupParams>(setup_params)...);
+    }
+
+    template<typename... SetupParams>
+    auto request(
+        std::span<const std::byte> span, SetupParams &&...setup_params)
+    {
+        return request_impl<std::byte>(
+            span, std::forward<SetupParams>(setup_params)...);
+    }
+
     template<typename UserData, typename... SetupParams>
         requires(
             !std::integral<UserData>
             && !std::same_as<std::remove_cvref_t<UserData>, std::string_view>
             && !std::same_as<std::remove_cvref_t<UserData>, const char *>
-            && !std::same_as<std::remove_cvref_t<UserData>, char *>)
+            && !std::same_as<std::remove_cvref_t<UserData>, char *>
+            && !stv::contiguous_trivial_container_concept<UserData>)
     auto request(
-        const UserData &user_data, const SetupParams &...setup_params)
+        const UserData &user_data, SetupParams &&...setup_params)
     {
         return request_impl<UserData>(
             span_type(reinterpret_cast<const std::byte *>(&user_data),
                       sizeof(UserData)),
-            setup_params...);
+            std::forward<SetupParams>(setup_params)...);
     }
 
     /// @brief Запрос области памяти под хранение структуры типа UserData.
@@ -397,12 +416,12 @@ class serial_message_buffer_base:
     /// '->'.
     template<typename UserData, typename... SetupParams>
     auto request(
-        const SetupParams &...setup_params)
+        SetupParams &&...setup_params)
     {
         return request_impl<UserData>(
             span_type(static_cast<const std::byte *>(nullptr),
                       sizeof(UserData)),
-            setup_params...);
+            std::forward<SetupParams>(setup_params)...);
     }
 
     template<typename InputIt>
@@ -459,7 +478,7 @@ class serial_message_buffer_base:
 
     template<typename Param>
     void apply_param_to_decorators(
-        auto &tuple_of_decorators, Param &param)
+        auto &tuple_of_decorators, Param &&param)
     {
         std::apply(
             [&param, this](auto &...decorators) {
