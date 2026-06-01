@@ -377,12 +377,19 @@ class serial_message_buffer_base:
             std::forward<SetupParams>(setup_params)...);
     }
 
-    template<typename... SetupParams>
+    template<typename T>
     auto request(
-        std::span<const std::byte> span, SetupParams &&...setup_params)
+        std::span<const T> span)
     {
-        return request_impl<std::byte>(
-            span, std::forward<SetupParams>(setup_params)...);
+        return request_impl<std::remove_const_t<T>>(std::as_bytes(span));
+    }
+
+    template<typename T, typename... SetupParams>
+    auto request(
+        std::span<const T> span, SetupParams &&...setup_params)
+    {
+        return request_impl<std::remove_const_t<T>>(
+            std::as_bytes(span), std::forward<SetupParams>(setup_params)...);
     }
 
     template<typename UserData, typename... SetupParams>

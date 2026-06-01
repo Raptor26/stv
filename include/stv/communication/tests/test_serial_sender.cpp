@@ -170,6 +170,34 @@ SCENARIO(
                         == 0);
             }
         }
+
+        WHEN("Check span and iterator overloads")
+        {
+            std::array<std::byte, 4> source{std::byte{0x01}, std::byte{0x02},
+                                            std::byte{0x03}, std::byte{0x04}};
+
+            THEN("request from iterators allows mutation")
+            {
+                auto msg = serial_message_buffer.request(source.cbegin(),
+                                                         source.cend());
+                REQUIRE(msg);
+                msg.operator->()[0] = std::byte{0xAB};
+                msg.operator->()[1] = std::byte{0xCD};
+                msg.operator->()[2] = std::byte{0xEF};
+                msg.operator->()[3] = std::byte{0x00};
+            }
+
+            THEN("request from span allows mutation")
+            {
+                auto msg = serial_message_buffer.request(
+                    std::span<const std::byte>{source});
+                REQUIRE(msg);
+                msg.operator->()[0] = std::byte{0xAB};
+                msg.operator->()[1] = std::byte{0xCD};
+                msg.operator->()[2] = std::byte{0xEF};
+                msg.operator->()[3] = std::byte{0x00};
+            }
+        }
     }
 
     GIVEN("Serial message buffer with route only")
@@ -377,6 +405,54 @@ SCENARIO(
     }
 
     REQUIRE(custom_allocator::get_allocator_cnt() == 0);
+}
+
+TEMPLATE_TEST_CASE(
+    "Serial container request preserves value type mutability", "[stv][serial]",
+    std::byte, std::int16_t, std::uint32_t, float)
+{
+    using namespace stv;
+
+    using custom_allocator = custom_allocator<std::byte>;
+    using sim_buffer_type  = stv::sim_buff<stv::empty_mutex, custom_allocator>;
+    using queue_type       = etl::queue<sim_buffer_type, 10>;
+
+    queue_type queue{};
+    auto       serial_message_buffer =
+        make_serial_message_buffer(queue, stv::empty_serial_decorator{});
+
+    std::array<TestType, 4> source{
+        static_cast<TestType>(1), static_cast<TestType>(2),
+        static_cast<TestType>(3), static_cast<TestType>(4)};
+
+    SECTION("from container")
+    {
+        auto msg = serial_message_buffer.request(source);
+        REQUIRE(msg);
+        REQUIRE(
+            msg.pload_data().size_bytes()
+            == sizeof(TestType) * source.size());
+
+        msg.operator->()[0] = static_cast<TestType>(0xAB);
+        msg.operator->()[1] = static_cast<TestType>(0xCD);
+        msg.operator->()[2] = static_cast<TestType>(0xEF);
+        msg.operator->()[3] = static_cast<TestType>(0);
+    }
+
+    SECTION("from span")
+    {
+        auto msg = serial_message_buffer.request(
+            std::span<const TestType>{source});
+        REQUIRE(msg);
+        REQUIRE(
+            msg.pload_data().size_bytes()
+            == sizeof(TestType) * source.size());
+
+        msg.operator->()[0] = static_cast<TestType>(0xAB);
+        msg.operator->()[1] = static_cast<TestType>(0xCD);
+        msg.operator->()[2] = static_cast<TestType>(0xEF);
+        msg.operator->()[3] = static_cast<TestType>(0);
+    }
 }
 
 // NOLINTNEXTLINE(readability-avoid-unconditional-preprocessor-if)
