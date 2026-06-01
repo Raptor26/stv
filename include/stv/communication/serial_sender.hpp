@@ -351,7 +351,7 @@ class serial_message_buffer_base:
 
     template<typename... SetupParams>
     auto request(
-        std::size_t size, const SetupParams &...setup_params)
+        std::unsigned_integral auto size, const SetupParams &...setup_params)
     {
         return request_impl<std::byte>(
             span_type(static_cast<const std::byte *>(nullptr), size),
