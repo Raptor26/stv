@@ -292,11 +292,10 @@ SCENARIO(
 
         THEN("Send message without pload")
         {
-            stv::head_route::head_route_setup_t route_setup{.dst_id  = 111,
-                                                            .pack_id = 222};
-
             auto msg = serial_message_buffer.request(
-                static_cast<std::size_t>(0), route_setup);
+                static_cast<std::size_t>(0),
+                stv::head_route::head_route_setup_t{.dst_id  = 111,
+                                                    .pack_id = 222});
             REQUIRE(msg);
         }
 
@@ -322,10 +321,9 @@ SCENARIO(
 
         THEN("Create custom message with route")
         {
-            stv::head_route::head_route_setup_t route_setup{.dst_id  = 111,
-                                                            .pack_id = 222};
-
-            auto msg = serial_message_buffer.request<user_data_t>(route_setup);
+            auto msg = serial_message_buffer.request<user_data_t>(
+                stv::head_route::head_route_setup_t{.dst_id  = 111,
+                                                    .pack_id = 222});
             REQUIRE(msg);
 
             msg->i = 11;
@@ -429,9 +427,8 @@ TEMPLATE_TEST_CASE(
     {
         auto msg = serial_message_buffer.request(source);
         REQUIRE(msg);
-        REQUIRE(
-            msg.pload_data().size_bytes()
-            == sizeof(TestType) * source.size());
+        REQUIRE(msg.pload_data().size_bytes()
+                == sizeof(TestType) * source.size());
 
         msg.operator->()[0] = static_cast<TestType>(0xAB);
         msg.operator->()[1] = static_cast<TestType>(0xCD);
@@ -441,12 +438,11 @@ TEMPLATE_TEST_CASE(
 
     SECTION("from span")
     {
-        auto msg = serial_message_buffer.request(
-            std::span<const TestType>{source});
+        auto msg =
+            serial_message_buffer.request(std::span<const TestType>{source});
         REQUIRE(msg);
-        REQUIRE(
-            msg.pload_data().size_bytes()
-            == sizeof(TestType) * source.size());
+        REQUIRE(msg.pload_data().size_bytes()
+                == sizeof(TestType) * source.size());
 
         msg.operator->()[0] = static_cast<TestType>(0xAB);
         msg.operator->()[1] = static_cast<TestType>(0xCD);
