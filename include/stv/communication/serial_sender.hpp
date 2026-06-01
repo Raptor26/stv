@@ -485,7 +485,7 @@ class serial_message_buffer_base:
 
     template<typename Param>
     void apply_param_to_decorators(
-        auto &tuple_of_decorators, Param &&param)
+        auto &tuple_of_decorators, const Param &param)
     {
         std::apply(
             [&param, this](auto &...decorators) {
@@ -500,7 +500,7 @@ class serial_message_buffer_base:
     void apply_to_single_decorator(
         Decorator &decorator, const Param &param)
     {
-        if constexpr(std::is_constructible_v<Decorator, Param>)
+        if constexpr(std::is_constructible_v<Decorator, const Param &>)
         {
             decorator = Decorator(param);
         }
