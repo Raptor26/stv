@@ -1,6 +1,6 @@
 /// @file type_traits.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -46,6 +46,21 @@ template<typename TMutex, typename TMutexTag>
 using mutex_type_v =
     std::conditional_t<std::is_same_v<TMutexTag, stv::mutex_ext_tag>, TMutex *,
                        TMutex>;
+
+// -----------------------------------------------------------------------------
+
+// Основной шаблон — для всех типов кроме std::array
+template<typename>
+struct is_std_array: std::false_type {
+};
+
+// Частичная специализация — только для std::array<T, N>
+template<typename T, std::size_t N>
+struct is_std_array<std::array<T, N>>: std::true_type {
+};
+
+template<typename T>
+inline constexpr bool is_std_array_v = is_std_array<T>::value;
 // -----------------------------------------------------------------------------
 
 } // namespace stv

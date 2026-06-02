@@ -7,6 +7,7 @@
 #ifndef CONCEPTS_HPP
 #define CONCEPTS_HPP
 
+#include "stv/type_traits.hpp"
 #include <chrono>
 #include <ranges>
 #include <type_traits>
@@ -104,7 +105,16 @@ inline constexpr bool is_span_v = is_span<T>::value;
 // Концепт, проверяющий, что тип является std::span
 template<typename T>
 concept span_concept = is_span_v<T>;
+
 // -----------------------------------------------------------------------------
+
+// --- Concept (строгий, точное совпадение типа) ---
+template<typename T>
+concept array_concept = is_std_array_v<T>;
+
+// --- Concept (мягкий, игнорирует ссылки и const/volatile) ---
+template<typename T>
+concept array_like_concept = is_std_array_v<std::remove_cvref_t<T>>;
 
 } // namespace stv
 
