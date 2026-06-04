@@ -12,18 +12,20 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cstddef>
+#include <cstring>
 #include <etl/queue.h>
 #include <iostream>
+#include <memory>
 #include <queue>
 #include <span>
+#include <type_traits>
 #include <variant>
 
 // NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
 // readability-function-cognitive-,
 // cppcoreguidelines-avoid-non-const-global-variables)
 
-std::array<std::byte, 64> memory;
-static int                alloc_cnt;
+static int alloc_cnt;
 
 template<typename T>
 class custom_allocator
@@ -31,7 +33,7 @@ class custom_allocator
   public:
     using value_type = T;
 
-    custom_allocator() {}
+    custom_allocator() = default;
 
     template<typename U>
     custom_allocator(
@@ -42,22 +44,27 @@ class custom_allocator
     T *allocate(
         std::size_t n)
     {
-        (void)n;
         ++alloc_cnt;
-        return memory.data();
+        T *p = std::allocator<T>{}.allocate(n);
+        std::memset(p, 0, n * sizeof(T));
+        last_ptr_ = reinterpret_cast<std::byte *>(p);
+        return p;
     }
 
     void deallocate(
         T *p, std::size_t n)
     {
-        (void)p;
-        (void)n;
+        std::allocator<T>{}.deallocate(p, n);
         --alloc_cnt;
+        last_ptr_ = nullptr;
     }
 
-    static auto           get_allocator_cnt() { return alloc_cnt; }
+    static auto get_allocator_cnt() { return alloc_cnt; }
 
-    static constexpr auto get_mem_ptr() { return memory.data(); }
+    static auto get_mem_ptr() { return last_ptr_; }
+
+  private:
+    inline static std::byte *last_ptr_{nullptr};
 };
 
 SCENARIO(
@@ -131,8 +138,6 @@ SCENARIO(
 
         WHEN("Check strings")
         {
-            std::fill(memory.begin(), memory.end(), std::byte(0));
-
             THEN("char *")
             {
                 const char *pload{"char string"};
@@ -140,9 +145,9 @@ SCENARIO(
                     auto msg = serial_message_buffer.request(pload);
                 }
 
-                REQUIRE(std::strcmp(reinterpret_cast<char *>(
+                REQUIRE(std::memcmp(reinterpret_cast<char *>(
                                         custom_allocator::get_mem_ptr()),
-                                    pload)
+                                    pload, std::strlen(pload))
                         == 0);
             }
 
@@ -152,9 +157,9 @@ SCENARIO(
                 {
                     auto msg = serial_message_buffer.request(pload);
                 }
-                REQUIRE(std::strcmp(reinterpret_cast<char *>(
+                REQUIRE(std::memcmp(reinterpret_cast<char *>(
                                         custom_allocator::get_mem_ptr()),
-                                    pload.c_str())
+                                    pload.c_str(), pload.size())
                         == 0);
             }
 
@@ -164,9 +169,9 @@ SCENARIO(
                     auto msg = serial_message_buffer.request("raw string");
                 }
 
-                REQUIRE(std::strcmp(reinterpret_cast<char *>(
+                REQUIRE(std::memcmp(reinterpret_cast<char *>(
                                         custom_allocator::get_mem_ptr()),
-                                    "raw string")
+                                    "raw string", 10)
                         == 0);
             }
         }
@@ -206,8 +211,6 @@ SCENARIO(
         auto       serial_message_buffer =
             make_serial_message_buffer(queue, stv::head_route{});
 
-        std::fill(memory.begin(), memory.end(), std::byte(0));
-
         const stv::head_route::head_route_setup_t route_setup{.dst_id  = 111,
                                                               .pack_id = 222};
 
@@ -216,12 +219,6 @@ SCENARIO(
 
         constexpr std::size_t pload_offset{stv::head_route::header_size()};
         constexpr std::size_t route_offset{0};
-
-        constexpr std::byte  *pload_addr{custom_allocator::get_mem_ptr()
-                                         + pload_offset};
-
-        constexpr std::byte  *route_addr{custom_allocator::get_mem_ptr()
-                                         + route_offset};
 
         WHEN("Check strings")
         {
@@ -232,7 +229,10 @@ SCENARIO(
                         serial_message_buffer.request(pload_view, route_setup);
                 }
 
-                REQUIRE(std::strcmp(reinterpret_cast<char *>(pload_addr), pload)
+                REQUIRE(std::memcmp(
+                            reinterpret_cast<const char *>(
+                                custom_allocator::get_mem_ptr() + pload_offset),
+                            pload, pload_view.size())
                         == 0);
             }
 
@@ -243,12 +243,16 @@ SCENARIO(
                         serial_message_buffer.request(pload, route_setup);
                 }
 
-                REQUIRE(std::strcmp(reinterpret_cast<char *>(pload_addr), pload)
+                REQUIRE(std::memcmp(
+                            reinterpret_cast<const char *>(
+                                custom_allocator::get_mem_ptr() + pload_offset),
+                            pload, std::strlen(pload))
                         == 0);
             }
 
             const auto *route = reinterpret_cast<
-                stv::head_route::head_route_setup_with_pload_t *>(route_addr);
+                const stv::head_route::head_route_setup_with_pload_t *>(
+                custom_allocator::get_mem_ptr() + route_offset);
             REQUIRE(route->dst_id == 111);
             REQUIRE(route->pack_id == 222);
 
@@ -265,19 +269,24 @@ SCENARIO(
                                                              route_setup);
                 }
 
-                std::memcmp(container_pload.data(), pload_addr,
-                            container_pload.size());
+                REQUIRE(std::memcmp(
+                            container_pload.data(),
+                            custom_allocator::get_mem_ptr() + pload_offset,
+                            container_pload.size()
+                                * sizeof(decltype(container_pload)::value_type))
+                        == 0);
 
                 const auto *route = reinterpret_cast<
-                    stv::head_route::head_route_setup_with_pload_t *>(
-                    route_addr);
+                    const stv::head_route::head_route_setup_with_pload_t *>(
+                    custom_allocator::get_mem_ptr() + route_offset);
                 REQUIRE(route->pload_size
                         == container_pload.size()
                                * sizeof(decltype(container_pload)::value_type));
             }
 
             const auto *route = reinterpret_cast<
-                stv::head_route::head_route_setup_with_pload_t *>(route_addr);
+                const stv::head_route::head_route_setup_with_pload_t *>(
+                custom_allocator::get_mem_ptr() + route_offset);
             REQUIRE(route->dst_id == 111);
             REQUIRE(route->pack_id == 222);
         }
@@ -287,8 +296,6 @@ SCENARIO(
         queue_type queue{};
         auto       serial_message_buffer = make_serial_message_buffer(
             queue, start_frame_and_crc_16{}, stv::head_route{});
-
-        std::fill(memory.begin(), memory.end(), std::byte(0));
 
         THEN("Send message without pload")
         {
@@ -316,8 +323,6 @@ SCENARIO(
         queue_type queue{};
         auto       serial_message_buffer = make_serial_message_buffer(
             queue, start_frame_and_crc_16{}, stv::head_route{});
-
-        std::fill(memory.begin(), memory.end(), std::byte(0));
 
         THEN("Create custom message with route")
         {
@@ -423,6 +428,10 @@ TEMPLATE_TEST_CASE(
         static_cast<TestType>(1), static_cast<TestType>(2),
         static_cast<TestType>(3), static_cast<TestType>(4)};
 
+    std::array<TestType, 4> expected{
+        static_cast<TestType>(0xAB), static_cast<TestType>(0xCD),
+        static_cast<TestType>(0xEF), static_cast<TestType>(0)};
+
     SECTION("from container")
     {
         auto msg = serial_message_buffer.request(source);
@@ -430,10 +439,10 @@ TEMPLATE_TEST_CASE(
         REQUIRE(msg.pload_data().size_bytes()
                 == sizeof(TestType) * source.size());
 
-        msg.operator->()[0] = static_cast<TestType>(0xAB);
-        msg.operator->()[1] = static_cast<TestType>(0xCD);
-        msg.operator->()[2] = static_cast<TestType>(0xEF);
-        msg.operator->()[3] = static_cast<TestType>(0);
+        msg.operator->()[0] = expected.at(0);
+        msg.operator->()[1] = expected.at(1);
+        msg.operator->()[2] = expected.at(2);
+        msg.operator->()[3] = expected.at(3);
     }
 
     SECTION("from span")
@@ -444,11 +453,17 @@ TEMPLATE_TEST_CASE(
         REQUIRE(msg.pload_data().size_bytes()
                 == sizeof(TestType) * source.size());
 
-        msg.operator->()[0] = static_cast<TestType>(0xAB);
-        msg.operator->()[1] = static_cast<TestType>(0xCD);
-        msg.operator->()[2] = static_cast<TestType>(0xEF);
-        msg.operator->()[3] = static_cast<TestType>(0);
+        msg.operator->()[0] = expected.at(0);
+        msg.operator->()[1] = expected.at(1);
+        msg.operator->()[2] = expected.at(2);
+        msg.operator->()[3] = expected.at(3);
     }
+
+    REQUIRE(std::memcmp(expected.data(),
+                        queue.front().data()
+                            + stv::empty_serial_decorator::header_size(),
+                        sizeof(source))
+            == 0);
 }
 
 // NOLINTNEXTLINE(readability-avoid-unconditional-preprocessor-if)
