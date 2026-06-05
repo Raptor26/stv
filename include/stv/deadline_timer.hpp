@@ -209,6 +209,40 @@ class deadline_timer: public stv::non_movable_non_copyable
         is_deadline_elapsed_ = is_elapsed_if_not_started_;
     }
 
+    /// @brief Возвращает время, прошедшее с момента запуска таймера.
+    ///
+    /// @return Время с момента вызова set_delay(). Если таймер не запущен,
+    /// вернет 0.
+    [[nodiscard]] auto get_time_after_start() const -> counter_type
+    {
+        const auto lock = stv::lock_guard{get_mutex_ref()};
+        if (!is_started_)
+        {
+            return counter_type{0};
+        }
+        return runtime_->get() - start_time_;
+    }
+
+    /// @brief Возвращает оставшееся время до наступления deadline.
+    ///
+    /// @return Количество времени перед наступлением deadline. Если таймер не
+    /// запущен или deadline уже истек, вернет 0.
+    [[nodiscard]] auto get_time_before_deadline() const -> counter_type
+    {
+        const auto lock = stv::lock_guard{get_mutex_ref()};
+        if (!is_started_ || is_deadline_elapsed_)
+        {
+            return counter_type{0};
+        }
+        const auto now     = runtime_->get();
+        const auto elapsed = now - start_time_;
+        if (elapsed >= delay_)
+        {
+            return counter_type{0};
+        }
+        return delay_ - elapsed;
+    }
+
     /// @brief Возвращает статус deadline таймера: активен или нет
     ///
     /// @return true - если таймер активен и deadline еще не истек, false в
