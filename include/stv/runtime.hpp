@@ -1,6 +1,6 @@
 /// @file runtime.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -19,6 +19,21 @@
 namespace stv {
 
 using runtime_counter_type = std::chrono::duration<std::uint32_t, std::micro>;
+
+template<typename TValueType>
+class runtime_interface
+{
+  public:
+    using value_type = TValueType;
+
+    virtual ~runtime_interface() = default;
+
+    /// @brief Возвращает прошедшее с момента запуска системы время.
+    [[nodiscard]] virtual auto get() const -> value_type = 0;
+
+  protected:
+    runtime_interface() = default;
+};
 
 template<typename TCounter    = runtime_counter_type,
          typename TMutexOrPtr = stv::empty_mutex>
@@ -54,7 +69,7 @@ class runtime_setup
 };
 
 template<typename TSetup>
-class runtime
+class runtime: public runtime_interface<typename TSetup::value_type>
 {
   public:
     using setup_type   = TSetup;
@@ -98,7 +113,7 @@ class runtime
         }
     }
 
-    virtual ~runtime() = default;
+    ~runtime() override = default;
 
     explicit operator bool() const
     {
@@ -125,7 +140,7 @@ class runtime
     /// @brief Возвращает прошедшее с момента запуска системы время.
     ///
     /// @return Объект std::chrono.
-    virtual auto get() const -> value_type
+    auto get() const -> value_type override
     {
         const auto lock = stv::lock_guard{get_mutex_ref()};
         return value_type{counter_};

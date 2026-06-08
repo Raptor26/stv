@@ -254,6 +254,8 @@ class deadline_timer: public stv::non_movable_non_copyable
     }
 };
 
+
+
 } // namespace stv
 
 #endif /* DEADLINE_TIMER_HPP */
