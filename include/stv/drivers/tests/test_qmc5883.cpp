@@ -539,7 +539,8 @@ TEST_CASE(
 
         WHEN("Write overflow bit")
         {
-            raw_meas.status_reg = status_reg_with_ovf_bit.to_ulong();
+            raw_meas.status_reg =
+                static_cast<std::uint8_t>(status_reg_with_ovf_bit.to_ulong());
             THEN("Meas is not valid") { REQUIRE_FALSE(raw_meas); }
 
             AND_WHEN("Set all axis with valid values")

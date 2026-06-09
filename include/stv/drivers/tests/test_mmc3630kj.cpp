@@ -8,6 +8,7 @@
 #include "stv/drivers/mmc3630kj_regs.hpp"
 #include <array>
 #include <bitset>
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <fakeit.hpp>
 
@@ -559,9 +560,9 @@ SCENARIO(
                 THEN("Normalized data is zero at null field")
                 {
                     const auto mag = driver.read_normalized();
-                    REQUIRE(mag.give_x() == 0.0F);
-                    REQUIRE(mag.give_y() == 0.0F);
-                    REQUIRE(mag.give_z() == 0.0F);
+                    REQUIRE(mag.give_x() == Catch::Approx(0.0F));
+                    REQUIRE(mag.give_y() == Catch::Approx(0.0F));
+                    REQUIRE(mag.give_z() == Catch::Approx(0.0F));
                 }
             }
         }

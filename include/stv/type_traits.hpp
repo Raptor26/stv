@@ -7,6 +7,7 @@
 #ifndef TYPE_TRAITS_HPP
 #define TYPE_TRAITS_HPP
 
+#include <array>
 #include <type_traits>
 #include <variant>
 
