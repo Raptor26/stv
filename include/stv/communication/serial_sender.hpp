@@ -380,9 +380,7 @@ class serial_message_buffer_base:
     template<typename T>
     auto request(
         std::span<const T> span)
-    {
-        return request_impl<std::remove_const_t<T>>(std::as_bytes(span));
-    }
+    { return request_impl<std::remove_const_t<T>>(std::as_bytes(span)); }
 
     template<typename T, typename... SetupParams>
     auto request(
