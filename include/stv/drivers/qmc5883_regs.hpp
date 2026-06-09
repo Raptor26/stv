@@ -94,6 +94,8 @@ class qmc5883_ctrl1_reg
     enum struct mode_t : std::uint8_t {
         standby    = 0, ///< Режим ожидания.
         continuous = 1, ///< Непрерывный режим измерений.
+        reserve_1  = 2,
+        reserve_2  = 3,
     };
 
     /// @brief Режим работы.
@@ -106,7 +108,7 @@ class qmc5883_ctrl1_reg
         osr  = static_cast<osr_t>((reg >> osr_offset) & 0x03);
         rng  = static_cast<rng_t>((reg >> rng_offset) & 0x03);
         odr  = static_cast<odr_t>((reg >> odr_offset) & 0x03);
-        mode = static_cast<mode_t>(reg & 0x03);
+        mode = static_cast<mode_t>((reg >> mode_offset) & 0x03);
     }
 };
 

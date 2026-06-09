@@ -81,6 +81,7 @@
 #include <atomic>
 #include <cassert>
 #include <concepts>
+#include <functional>
 
 namespace stv {
 
