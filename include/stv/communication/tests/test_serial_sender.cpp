@@ -220,6 +220,12 @@ SCENARIO(
         constexpr std::size_t pload_offset{stv::head_route::header_size()};
         constexpr std::size_t route_offset{0};
 
+        constexpr std::byte  *pload_addr{custom_allocator::get_mem_ptr()
+                                         + pload_offset};
+
+        constexpr std::byte  *route_addr{custom_allocator::get_mem_ptr()
+                                         + route_offset};
+
         WHEN("Check strings")
         {
             THEN("string view")

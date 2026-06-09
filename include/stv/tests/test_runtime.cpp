@@ -1,6 +1,6 @@
 /// @file test_runtime.cpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -76,14 +76,10 @@ TEMPLATE_PRODUCT_TEST_CASE(
                 constexpr auto expected_elapsed_time_again =
                     stv::runtime_counter_type{2s};
                 SECTION("Set as stv::runtime_type")
-                {
-                    runtime.set_period(expected_elapsed_time_again);
-                }
+                { runtime.set_period(expected_elapsed_time_again); }
 
                 SECTION("Set as std::chrono literal")
-                {
-                    runtime.set_period(2000ms);
-                }
+                { runtime.set_period(2000ms); }
 
                 runtime.inc();
                 REQUIRE(runtime.get() == expected_elapsed_time_again);

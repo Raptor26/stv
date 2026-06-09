@@ -1,6 +1,6 @@
 /// @file qma6100_regs.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -46,9 +46,7 @@ class qma6100_bw_reg
     /// @param value Начальное сырое значение регистра (по умолчанию 0).
     explicit qma6100_bw_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     ///
@@ -157,9 +155,7 @@ class qma6100_fsr_reg
 
     explicit qma6100_fsr_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Преобразует конфигурацию в 8-битное значение регистра.
     ///
@@ -263,9 +259,7 @@ class qma6100_int_en1_reg
 
     explicit qma6100_int_en1_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     ///
@@ -357,9 +351,7 @@ class qma6100_int_map1_reg
 
     explicit qma6100_int_map1_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     ///
@@ -440,9 +432,7 @@ class qma6100_int_map3_reg
 
     explicit qma6100_int_map3_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     ///
@@ -529,9 +519,7 @@ class qma6100_intpin_conf_reg
 
     explicit qma6100_intpin_conf_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     ///
@@ -708,9 +696,7 @@ class qma6100_int_cfg_reg
 
     explicit qma6100_int_cfg_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     ///
@@ -897,9 +883,7 @@ class qma6100_pm_reg
 
     explicit qma6100_pm_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     bool operator==(
         const qma6100_pm_reg &other) const
