@@ -1,6 +1,6 @@
 /// @file test_serial_sender.cpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -187,10 +187,10 @@ SCENARIO(
         constexpr std::size_t route_offset{0};
 
         constexpr std::byte  *pload_addr{custom_allocator::get_mem_ptr()
-                                        + pload_offset};
+                                         + pload_offset};
 
         constexpr std::byte  *route_addr{custom_allocator::get_mem_ptr()
-                                        + route_offset};
+                                         + route_offset};
 
         WHEN("Check strings")
         {

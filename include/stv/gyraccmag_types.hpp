@@ -62,12 +62,18 @@ class inertial_sens_storage_proxy
     /// Returns reference to allow modification.
     [[nodiscard]] T &operator[](
         std::size_t idx)
-    { return storage_[idx]; }
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+        return storage_[idx];
+    }
 
     /// @brief Const version of operator[].
     [[nodiscard]] constexpr const T &operator[](
         std::size_t idx) const
-    { return storage_[idx]; }
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+        return storage_[idx];
+    }
 
     void swap(
         inertial_sens_storage_proxy &other) noexcept
@@ -944,25 +950,22 @@ class acc_getter_default final: public iacc<Acc>
 /// @brief Interface for magnetometer data acquisition.
 ///
 /// Defines the contract for classes that provide magnetometer data.
-///
-/// @tparam T Data type for measurements (float, double). Defaults to float.
-/// @tparam TIMESTAMP Type for timestamp storage. Defaults to std::uint32_t.
-template<allowed_sensor_type T = float, typename TIMESTAMP = std::uint32_t>
+template<typename MagType>
 class imag
 {
   public:
     /// @brief Type alias for the measurement value type.
-    using value_type = T;
+    using value_type = typename MagType::value_type;
 
     /// @brief Type alias for the timestamp value type.
-    using timestamp_type = TIMESTAMP;
+    using timestamp_type = typename MagType::timestamp_type;
 
-    using mag_type = stv::mag<T, TIMESTAMP>;
+    using mag_type = MagType;
 
     /// @brief Reads magnetometer data from the sensor.
     ///
     /// @return Filled magnetometer measurement structure.
-    [[nodiscard]] virtual auto get_mag() const -> mag<T, TIMESTAMP> = 0;
+    [[nodiscard]] virtual auto get_mag() const -> mag_type = 0;
 
     /// @brief Virtual destructor for proper inheritance handling.
     virtual ~imag() = default;
@@ -993,20 +996,17 @@ class imag
 ///
 /// A concrete implementation of IMagGetter that provides default
 /// (zero-initialized) magnetometer measurements.
-///
-/// @tparam T Data type for measurements (float, double). Defaults to float.
-/// @tparam TIMESTAMP Type for timestamp storage. Defaults to std::uint32_t.
-template<allowed_sensor_type T = float, typename TIMESTAMP = std::uint32_t>
-class mag_getter_default final: public stv::imag<T, TIMESTAMP>
+template<typename MagType = stv::mag<float, std::uint32_t>>
+class mag_getter_default final: public stv::imag<MagType>
 {
-    using base_type = stv::imag<T, TIMESTAMP>;
+    using base_type = stv::imag<MagType>;
 
   public:
     /// @brief Type alias for the timestamp value type.
-    using typename imag<T, TIMESTAMP>::timestamp_type;
+    using typename imag<MagType>::timestamp_type;
 
     /// @brief Type alias for the measurement value type.
-    using typename imag<T, TIMESTAMP>::value_type;
+    using typename imag<MagType>::value_type;
 
     using mag_type = typename base_type::mag_type;
 

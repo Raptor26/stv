@@ -34,15 +34,11 @@ TEST_CASE(
           public:
             static auto lock(
                 bool is_isr = false) noexcept -> void
-            {
-                (void)is_isr;
-            }
+            { (void)is_isr; }
 
             static auto unlock(
                 bool is_isr = false) noexcept -> void
-            {
-                (void)is_isr;
-            }
+            { (void)is_isr; }
         };
 
         empty_mutex_isr       empty_mutex;

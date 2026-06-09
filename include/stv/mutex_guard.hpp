@@ -1,6 +1,6 @@
 /// @file mutex_guard.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
-/// 
+///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
@@ -48,9 +48,7 @@ class lock_guard<TMutex> final: public std::lock_guard<TMutex>
     explicit lock_guard(
         TMutex &mutex, bool is_isr = false):
         std::lock_guard<TMutex>{mutex}
-    {
-        (void)is_isr;
-    }
+    { (void)is_isr; }
 };
 
 /// @brief Специализация RAII класса для использования совместно с мьютексами,
@@ -75,9 +73,7 @@ class lock_guard<TMutex> final:
         TMutex &mutex, bool is_isr = false):
         mutex_(mutex),
         is_isr_{is_isr}
-    {
-        mutex_.lock(is_isr_);
-    }
+    { mutex_.lock(is_isr_); }
 
     ~lock_guard() { mutex_.unlock(is_isr_); }
 };

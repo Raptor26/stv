@@ -216,7 +216,7 @@ class deadline_timer: public stv::non_movable_non_copyable
     [[nodiscard]] auto get_time_after_start() const -> counter_type
     {
         const auto lock = stv::lock_guard{get_mutex_ref()};
-        if (!is_started_)
+        if(!is_started_)
         {
             return counter_type{0};
         }
@@ -230,13 +230,13 @@ class deadline_timer: public stv::non_movable_non_copyable
     [[nodiscard]] auto get_time_before_deadline() const -> counter_type
     {
         const auto lock = stv::lock_guard{get_mutex_ref()};
-        if (!is_started_ || is_deadline_elapsed_)
+        if(!is_started_ || is_deadline_elapsed_)
         {
             return counter_type{0};
         }
         const auto now     = runtime_->get();
         const auto elapsed = now - start_time_;
-        if (elapsed >= delay_)
+        if(elapsed >= delay_)
         {
             return counter_type{0};
         }
@@ -253,8 +253,6 @@ class deadline_timer: public stv::non_movable_non_copyable
         return is_started_;
     }
 };
-
-
 
 } // namespace stv
 
