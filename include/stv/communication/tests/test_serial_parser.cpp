@@ -282,6 +282,63 @@ TEST_CASE(
                     parsed_msg_queue.pop();
                 }
             }
+
+            SECTION("False start frame does not consume valid next message")
+            {
+                // В потоке байт перед валидным сообщением встречается
+                // последовательность, похожая на начало кадра (0xAA 0xAA),
+                // за которой следует размер и достаточное количество байт.
+                // CRC для этой последовательности не сойдется. Если при
+                // этом байты были удалены из буфера через read(), то
+                // следующее валидное сообщение будет потеряно.
+
+                constexpr std::array<std::byte, 14> false_frame{
+                    std::byte{0xAA}, std::byte{0xAA}, std::byte{0x0C},
+                    std::byte{0x00}, std::byte{0x01}, std::byte{0x02},
+                    std::byte{0x03}, std::byte{0x04}, std::byte{0x05},
+                    std::byte{0x06}, std::byte{0x07}, std::byte{0x08},
+                    std::byte{0x09}, std::byte{0x0A}};
+
+                constexpr std::string_view test_message{"B"};
+
+                {
+                    auto msg = serial_message_buffer.request(test_message);
+                    (void)msg;
+                }
+
+                decltype(auto) queue_instance =
+                    serial_message_buffer.queue_instance();
+
+                REQUIRE(queue_instance.size() == 1);
+
+                // Записываем вначале мусор, чтобы парсер не сразу нашел
+                // валидный заголовок, а наткнулся на ложный кадр.
+                constexpr std::array<std::byte, 1> garbage{std::byte{0x00}};
+                lwrb.write(garbage);
+
+                lwrb.write(false_frame);
+
+                {
+                    decltype(auto) msg = queue_instance.front();
+                    lwrb.write(msg.begin(), msg.end());
+                    queue_instance.pop();
+                }
+
+                // Первый вызов должен обнаружить ложный заголовок, не съесть
+                // при этом валидное сообщение и в итоге его распарсить.
+                REQUIRE(parser.run());
+
+                REQUIRE(parsed_msg_queue.size() == 1);
+
+                {
+                    auto msg = std::move(parsed_msg_queue.front());
+                    REQUIRE(msg.size() == test_message.size());
+                    REQUIRE(memcmp(test_message.data(), msg.data(),
+                                   test_message.size())
+                            == 0);
+                    parsed_msg_queue.pop();
+                }
+            }
         }
     }
 

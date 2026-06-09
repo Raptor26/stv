@@ -334,20 +334,32 @@ class serial_parser: virtual private stv::non_movable_non_copyable
 
         container_type msg{expect_total_message_size};
 
-        constexpr auto read_all_or_nothing{true};
         constexpr auto is_isr{false};
-        const auto read_bytes = lwrb_->read(msg, read_all_or_nothing, is_isr);
+        const auto     peek_bytes = lwrb_->peek(
+            typename lwrb_base_type::container_type{msg.data(),
+                                                    msg.size_bytes()},
+            0, is_isr);
 
-        if(read_bytes == expect_total_message_size)
+        if(peek_bytes == expect_total_message_size)
         {
             if(stv::start_frame_and_crc_16::is_crc_valid(
                    stv::total_message_span{msg.begin(), msg.size()}))
             {
+                lwrb_->skip(expect_total_message_size, is_isr);
+
                 msg.trim_head(stv::start_frame_and_crc_16::header_size());
                 msg.trim_tail(stv::start_frame_and_crc_16::trailer_size());
 
                 queue_->push(std::move(msg));
                 ++parsed_cnt_;
+            }
+            else
+            {
+                // CRC не сошлась: ложный заголовок. Пропускаем только байты
+                // начала фрейма, чтобы на следующей итерации поиск продолжился
+                // со следующего байта после ложного старта кадра.
+                lwrb_->skip(sizeof(stv::start_frame_and_crc_16::start_frame_t),
+                            is_isr);
             }
 
             set_state(states::start_frame_and_size);
