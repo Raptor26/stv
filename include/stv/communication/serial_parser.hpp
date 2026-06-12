@@ -459,13 +459,16 @@ class serial_parser_route: virtual public stv::non_movable_non_copyable
                 const stv::head_route::head_route_setup_with_pload_t *>(
                 msg.data());
 
-            // Используем итератор чтобы избежать выброса исключений.
-            auto dst_buff_key_val_it = hash_to_write_->find(
-                static_cast<hash_type::key_type>(router_ptr->dst_id));
-            if(dst_buff_key_val_it != hash_to_write_->end())
+            if(router_ptr)
             {
-                dst_buff_key_val_it->second->push(std::move(msg));
-                ++message_routed_cnt;
+                // Используем итератор чтобы избежать выброса исключений.
+                auto dst_buff_key_val_it = hash_to_write_->find(
+                    static_cast<hash_type::key_type>(router_ptr->dst_id));
+                if(dst_buff_key_val_it != hash_to_write_->end())
+                {
+                    dst_buff_key_val_it->second->push(std::move(msg));
+                    ++message_routed_cnt;
+                }
             }
 
             // Независимо от того удалось переместить сообщение в очередь

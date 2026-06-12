@@ -390,6 +390,39 @@ TEST_CASE(
                     == 0);
                 queue_to_check->pop();
             }
+
+            SECTION("Skip empty message with null data")
+            {
+                // Добавляем пустое сообщение (data() == nullptr) в очередь
+                // Это проверяет защиту от nullptr после reinterpret_cast
+                sim_buffer_type empty_msg;
+                REQUIRE(empty_msg.data() == nullptr);
+                serial_message_buffer.queue_instance().push(
+                    std::move(empty_msg));
+
+                // Добавляем валидное сообщение после пустого
+                stv::head_route::head_route_setup_t route_setup{
+                    .dst_id  = parsed_msg_queue_id,
+                    .pack_id = 0,
+                };
+                {
+                    auto msg = serial_message_buffer.request(test_message,
+                                                             route_setup);
+                }
+
+                // route.run() должен пропустить пустое сообщение
+                // и обработать валидное
+                REQUIRE(route.run());
+                decltype(auto) queue_to_check =
+                    hash_table.at(parsed_msg_queue_id);
+                REQUIRE_FALSE(queue_to_check->empty());
+                auto msg = queue_to_check->front();
+                msg.trim_head(stv::head_route::header_size());
+                REQUIRE(
+                    memcmp(test_message.data(), msg.data(), test_message.size())
+                    == 0);
+                queue_to_check->pop();
+            }
         }
     }
 }
