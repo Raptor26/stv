@@ -280,6 +280,13 @@ class moving_average_base
     /// @note Член "правила 5" в С++.
     moving_average_base(const moving_average_base &other) = default;
 
+    /// @brief Проверяет, находится ли фильтр в корректном состоянии.
+    ///
+    /// @return true, если параметры по умолчанию и фактические параметры
+    /// валидны, а внешний мьютекс (если используется) не равен nullptr;
+    /// иначе false.
+    ///
+    /// @note Позволяет использовать объект фильтра в условных выражениях.
     explicit operator bool() const noexcept(
         noexcept(setup_default_.is_valid(buffer_.size()))
         && noexcept(setup_actual_.is_valid(buffer_.size())))
@@ -359,7 +366,7 @@ class moving_average_base
     }
 
     /// @brief Возвращает статус буфера.
-    /// @return true - если буфер заполен и filt() возвращает среднее
+    /// @return true - если буфер заполнен и filt() возвращает среднее
     /// арифметическое значение, false - если буфер еще не заполнен и
     /// filt() возвращает исходное значение.
     [[nodiscard]] auto full(
@@ -427,6 +434,15 @@ class moving_average_base
         return filtered;
     }
 
+    /// @brief Обрабатывает несколько отсчетов последовательно.
+    ///
+    /// @tparam TSamples Типы передаваемых отсчетов.
+    /// @param[in] samples Отсчеты для фильтрации.
+    ///
+    /// @return Результат фильтрации последнего отсчета.
+    ///
+    /// @note Каждый отсчет последовательно передается в
+    /// filt(value_type, bool).
     template<typename... TSamples>
     auto filt(
         TSamples... samples)
@@ -438,6 +454,17 @@ class moving_average_base
         return filtered;
     }
 
+    /// @brief Обрабатывает диапазон отсчетов.
+    ///
+    /// @tparam TInputIt Тип итератора входного диапазона.
+    /// @param[in] cbegin Итератор на начало диапазона.
+    /// @param[in] cend Итератор на конец диапазона.
+    /// @param[in] is_isr Флаг вызова из контекста прерывания.
+    ///
+    /// @return Результат фильтрации последнего элемента диапазона.
+    ///
+    /// @note Если диапазон пуст, возвращается value-инициализированное
+    /// значение.
     template<typename TInputIt>
     auto filt(
         TInputIt cbegin, TInputIt cend, bool is_isr = false)
@@ -448,14 +475,26 @@ class moving_average_base
         return filtered;
     }
 
+    /// @brief Возвращает итератор на начало внутреннего буфера.
+    /// @return Итератор на первый элемент буфера.
     [[nodiscard]] auto begin_storage() { return buffer_.begin(); }
 
+    /// @brief Возвращает константный итератор на начало внутреннего буфера.
+    /// @return Константный итератор на первый элемент буфера.
     [[nodiscard]] auto begin_storage() const { return buffer_.begin(); }
 
+    /// @brief Возвращает итератор на конец внутреннего буфера.
+    /// @return Итератор, следующий за последним элементом буфера.
     [[nodiscard]] auto end_storage() { return buffer_.end(); }
 
+    /// @brief Возвращает константный итератор на конец внутреннего буфера.
+    /// @return Константный итератор, следующий за последним элементом буфера.
     [[nodiscard]] auto end_storage() const { return buffer_.end(); }
 
+    /// @brief Возвращает указатель на данные внутреннего буфера.
+    /// @return Указатель на первый элемент буфера.
+    ///
+    /// @note Используется в основном для тестирования и диагностики.
     [[nodiscard]] auto data_storage() { return buffer_.data(); }
 
   protected:
