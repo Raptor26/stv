@@ -373,7 +373,7 @@ class moving_average_base
     void clear(
         bool is_isr = false)
         noexcept(
-            noexcept(setup()))
+            true)
     {
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
         cnt_            = 0;
