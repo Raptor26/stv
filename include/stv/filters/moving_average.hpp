@@ -448,6 +448,16 @@ class moving_average_base
         return filtered;
     }
 
+    [[nodiscard]] auto begin_storage() { return buffer_.begin(); }
+
+    [[nodiscard]] auto begin_storage() const { return buffer_.begin(); }
+
+    [[nodiscard]] auto end_storage() { return buffer_.end(); }
+
+    [[nodiscard]] auto end_storage() const { return buffer_.end(); }
+
+    [[nodiscard]] auto data_storage() { return buffer_.data(); }
+
   protected:
     /// @brief Защищенный конструктор для предотвращения прямого создания
     /// экземпляра.
