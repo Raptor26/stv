@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://github.com/ETLCPP/etl.git
 	branch = master
-	commit = b6e78b7c9cd8628da954eb5873990fd2468481a0
-	parent = c32341100fe87aab9559adb90ae2b7d718acbc59
+	commit = 777fb0c199b278e8bcb8f445e75b961cd805de59
+	parent = 88e5c61b96038c862505955b8f64a6aa816c3e86
 	method = merge
 	cmdver = 0.4.9

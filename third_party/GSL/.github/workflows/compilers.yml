@@ -30,14 +30,12 @@ jobs:
             cxx_version: 23
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Run CMake (configure, build, test)
         uses: ./.github/workflows/cmake
         with:
-          cmake_build_type: ${{ matrix.build_type }}
-          cmake_cxx_compiler: g++-${{ matrix.gcc_version }}
-          gsl_cxx_standard: ${{ matrix.cxx_version }}
+          cmake_preset: gcc-${{ matrix.cxx_version }}-${{ matrix.build_type == 'Debug' && 'debug' || 'release' }}
           
   clang:
     strategy:
@@ -53,14 +51,12 @@ jobs:
             cxx_version: 23
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
      
       - name: Run CMake (configure, build, test)
         uses: ./.github/workflows/cmake
         with:
-          cmake_build_type: ${{ matrix.build_type }}
-          cmake_cxx_compiler: clang++-${{ matrix.clang_version }}
-          gsl_cxx_standard: ${{ matrix.cxx_version }}
+          cmake_preset: clang-${{ matrix.cxx_version }}-${{ matrix.build_type == 'Debug' && 'debug' || 'release' }}
 
   xcode:
     strategy:
@@ -70,7 +66,7 @@ jobs:
         cxx_version: [ 14, 17, 20, 23 ]
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: select xcode version
         run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
@@ -78,10 +74,8 @@ jobs:
       - name: Run CMake (configure, build, test)
         uses: ./.github/workflows/cmake
         with:
-          cmake_build_type: ${{ matrix.build_type }}
-          cmake_cxx_compiler: clang++
-          gsl_cxx_standard: ${{ matrix.cxx_version }}
-          extra_cmake_args: '-DCMAKE_CXX_FLAGS="-isysroot \"$(xcode-select --print-path)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk\""'
+          cmake_preset: clang-${{ matrix.cxx_version }}-${{ matrix.build_type == 'Debug' && 'debug' || 'release' }}
+          extra_cmake_configure_args: '-DCMAKE_CXX_FLAGS="-isysroot \"$(xcode-select --print-path)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk\""'
 
   VisualStudio:
     strategy:
@@ -93,17 +87,13 @@ jobs:
         cxx_version: [ 14, 17, 20, 23 ]
     runs-on: ${{ matrix.image }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: microsoft/setup-msbuild@v2
+      - uses: actions/checkout@v6
+      - uses: microsoft/setup-msbuild@v3
 
       - name: Run CMake (configure, build, test)
         uses: ./.github/workflows/cmake
         with:
-          cmake_generator: ${{ matrix.generator }}
-          cmake_build_type: ${{ matrix.build_type }}
-          gsl_cxx_standard: ${{ matrix.cxx_version }}
-          extra_cmake_args: ${{ matrix.extra_args }}
-          build_cmd: msbuild GSL.sln
-          test_cmd: ctest . --output-on-failure --no-compress-output
-          shell: pwsh
-
+          cmake_preset: msvc-${{ matrix.cxx_version }}-${{ matrix.build_type == 'Debug' && 'debug' || 'release' }}
+          extra_cmake_configure_args: ${{ matrix.extra_args }}
+          extra_cmake_build_args: --config ${{ matrix.build_type }}
+          extra_ctest_args: -C ${{ matrix.build_type }}
