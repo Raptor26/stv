@@ -237,6 +237,66 @@ main(void) {
 #undef FIND_TEST
     }
 
+    printf("Peek test\r\n");
+    {
+        uint8_t peek_buff[8];
+        size_t peek_len;
+#define PEEK_TEST(_cond_)                                                                                              \
+    do {                                                                                                               \
+        if (!(_cond_)) {                                                                                               \
+            printf("Test failed on line %u\r\n", (unsigned)__LINE__);                                                  \
+            retval = -1;                                                                                               \
+        }                                                                                                              \
+    } while (0)
+
+        /* Prepare buffer and write data */
+        lwrb_reset(&buff);
+        lwrb_write(&buff, "ABCDEFGH", 8);
+
+        peek_len = lwrb_peek(&buff, 0, peek_buff, 8);
+        PEEK_TEST(peek_len == 8);
+        PEEK_TEST(memcmp(peek_buff, "ABCDEFGH", 8) == 0);
+
+        /* Invalid data */
+        peek_len = lwrb_peek(&buff, 0, peek_buff, 0);
+        PEEK_TEST(peek_len == 0); /* Should return 0 */
+        peek_len = lwrb_peek(NULL, 0, peek_buff, 3);
+        PEEK_TEST(peek_len == 0); /* Should return 0 */
+        peek_len = lwrb_peek(&buff, 0, NULL, 3);
+        PEEK_TEST(peek_len == 0); /* Should return 0 */
+
+        peek_len = lwrb_peek(&buff, 3, peek_buff, 5);
+        PEEK_TEST(peek_len == 5);
+        PEEK_TEST(memcmp(peek_buff, "DEFGH", 5) == 0);
+
+        /* Peek with offset equal to buffer size */
+        peek_len = lwrb_peek(&buff, 8, peek_buff, 5);
+        PEEK_TEST(peek_len == 0);
+        /* Peek with offset lower than the buffer size but size to read reaching total above the size */
+        peek_len = lwrb_peek(&buff, 5, peek_buff, 5);
+        PEEK_TEST(peek_len == 3); /* 3 bytes were read */
+        PEEK_TEST(memcmp(peek_buff, "FGH", 3) == 0);
+
+        /* Move read pointer and peek again */
+        lwrb_read(&buff, tmp, 5); /* Read 5 bytes, 3 are left remaining */
+
+        /* Try to read 8, but 3 is left inside */
+        peek_len = lwrb_peek(&buff, 0, peek_buff, 8);
+        PEEK_TEST(peek_len == 3);
+        PEEK_TEST(memcmp(peek_buff, "FGH", 3) == 0);
+
+        /* Try with offset to read 6, but 1 can be read then only */
+        peek_len = lwrb_peek(&buff, 2, peek_buff, 6);
+        PEEK_TEST(peek_len == 1);
+        PEEK_TEST(memcmp(peek_buff, "H", 1) == 0);
+
+        /* Should return 0 */
+        peek_len = lwrb_peek(&buff, 3, peek_buff, 6);
+        PEEK_TEST(peek_len == 0);
+
+#undef PEEK_TEST
+    }
+
     printf("Done!\r\n");
     return retval;
 }

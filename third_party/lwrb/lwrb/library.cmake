@@ -26,7 +26,7 @@ set(lwrb_ex_SRCS
 # Setup include directories
 set(lwrb_include_DIRS
     ${CMAKE_CURRENT_LIST_DIR}/src/include
-    ${LWPKT_CUSTOM_INC_DIR}
+    ${LWRB_CUSTOM_INC_DIR}
 )
 
 # Register library to the system
