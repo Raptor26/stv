@@ -33,7 +33,6 @@
 - **Тестирование**: Catch2 + FakeIt. Модульные тесты размещены рядом с кодом: `include/stv/<module>/tests/`.
 - **Зависимости** (все в `third_party/` как git-subtree/submodule):
   - `GSL` (Microsoft.GSL)
-  - `leaf` (Boost.Leaf)
   - `etl` (Embedded Template Library)
   - `fpm` (fixed-point math)
   - `lwrb` (lock-free ring buffer)

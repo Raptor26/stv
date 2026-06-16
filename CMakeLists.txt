@@ -19,7 +19,6 @@ endif()
 include(property.cmake)
 
 add_subdirectory(third_party/GSL SYSTEM)
-add_subdirectory(third_party/leaf SYSTEM)
 add_subdirectory(third_party/etl SYSTEM)
 add_subdirectory(third_party/fpm SYSTEM)
 add_subdirectory(third_party/lwrb SYSTEM)
@@ -47,7 +46,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/include/stv/)
 target_include_directories(${PROJECT_NAME}
                            INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include/")
 
-target_link_libraries(stv INTERFACE Microsoft.GSL::GSL Boost::leaf etl::etl fpm
+target_link_libraries(stv INTERFACE Microsoft.GSL::GSL etl::etl fpm
                                     lwrb_ex frozen::frozen)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
