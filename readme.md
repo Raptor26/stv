@@ -199,18 +199,18 @@ target_link_libraries(your_target PRIVATE stv::stv)
 
 ### Запуск
 
+Запуск тестов выполняется через CMake-пресеты:
+
 ```bash
-# После сборки
-./build/pc_unit_tests_gcc/include/stv/tests/test_stv
-./build/pc_unit_tests_gcc/include/stv/filters/tests/test_stv_filters
-./build/pc_unit_tests_gcc/include/stv/drivers/tests/test_qmc5883
-./build/pc_unit_tests_gcc/include/stv/drivers/tests/test_qma6100
-./build/pc_unit_tests_gcc/include/stv/drivers/tests/test_mmc56xx
-./build/pc_unit_tests_gcc/include/stv/drivers/tests/test_mmc3630kj
-./build/pc_unit_tests_gcc/include/stv/drivers/tests/test_mc3479
-./build/pc_unit_tests_gcc/include/stv/containers/tests/test_simbuff
-./build/pc_unit_tests_gcc/include/stv/containers/tests/test_lwrb
-./build/pc_unit_tests_gcc/include/stv/communication/tests/test_stv_communication
+# GCC
+ctest --preset pc_unit_tests_gcc
+
+# Clang
+ctest --preset pc_unit_tests_clang
+
+# С санитайзерами
+ctest --preset pc_unit_tests_sanitizers_gcc
+ctest --preset pc_unit_tests_sanitizers_clang
 ```
 
 Также собирается бенчмарк `test_stv_communication_bench` в `include/stv/communication/tests/`.
