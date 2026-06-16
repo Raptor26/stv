@@ -1,5 +1,5 @@
 {
-    "version": 10,
+    "version": 4,
     "cmakeMinimumRequired": {
         "major": 3,
         "minor": 23,
@@ -7,9 +7,8 @@
     },
     "configurePresets": [
         {
-            "name": "gcc_compiler",
+            "name": "compiler_gcc",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build/${presetName}",
             "hidden": true,
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "gcc",
@@ -17,9 +16,8 @@
             }
         },
         {
-            "name": "clang_compiler",
+            "name": "compiler_clang",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build/${presetName}",
             "hidden": true,
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "clang",
@@ -27,25 +25,137 @@
             }
         },
         {
-            "name": "pc_unit_tests",
-            "displayName": "Build unit tests on PC host",
-            "description": "Unit tests on PC host",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build/${presetName}",
+            "name": "mode_utest",
+            "hidden": true,
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_C_COMPILER": "gcc",
-                "CMAKE_CXX_COMPILER": "g++",
                 "UTEST": true
             }
         },
         {
-            "name": "pc_unit_tests_and_clang_tidy",
-            "displayName": "Build unit tests on PC host with clang tidy",
-            "description": "Unit tests on PC host with clang tidy",
-            "inherits": "pc_unit_tests",
+            "name": "check_clang_tidy",
+            "hidden": true,
             "cacheVariables": {
                 "CLANG_TIDY_ENABLE": true
+            }
+        },
+        {
+            "name": "check_asan",
+            "hidden": true,
+            "cacheVariables": {
+                "ASAN_ENABLE": true
+            }
+        },
+        {
+            "name": "pc_unit_tests_gcc",
+            "displayName": "Build unit tests on PC host with GCC",
+            "description": "Unit tests on PC host with GCC",
+            "inherits": [
+                "compiler_gcc",
+                "mode_utest"
+            ],
+            "binaryDir": "${sourceDir}/build/${presetName}"
+        },
+        {
+            "name": "pc_unit_tests_clang",
+            "displayName": "Build unit tests on PC host with Clang",
+            "description": "Unit tests on PC host with Clang",
+            "inherits": [
+                "compiler_clang",
+                "mode_utest"
+            ],
+            "binaryDir": "${sourceDir}/build/${presetName}"
+        },
+        {
+            "name": "pc_unit_tests_clang_tidy",
+            "displayName": "Build unit tests on PC host with Clang and clang-tidy",
+            "description": "Unit tests on PC host with Clang and clang-tidy",
+            "inherits": [
+                "compiler_clang",
+                "mode_utest",
+                "check_clang_tidy"
+            ],
+            "binaryDir": "${sourceDir}/build/${presetName}"
+        },
+        {
+            "name": "pc_unit_tests_sanitizers_gcc",
+            "displayName": "Build unit tests on PC host with GCC and sanitizers",
+            "description": "Unit tests on PC host with GCC and Address/UndefinedBehavior sanitizers",
+            "inherits": [
+                "compiler_gcc",
+                "mode_utest",
+                "check_asan"
+            ],
+            "binaryDir": "${sourceDir}/build/${presetName}"
+        },
+        {
+            "name": "pc_unit_tests_sanitizers_clang",
+            "displayName": "Build unit tests on PC host with Clang and sanitizers",
+            "description": "Unit tests on PC host with Clang and Address/UndefinedBehavior sanitizers",
+            "inherits": [
+                "compiler_clang",
+                "mode_utest",
+                "check_asan"
+            ],
+            "binaryDir": "${sourceDir}/build/${presetName}"
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "pc_unit_tests_gcc",
+            "configurePreset": "pc_unit_tests_gcc"
+        },
+        {
+            "name": "pc_unit_tests_clang",
+            "configurePreset": "pc_unit_tests_clang"
+        },
+        {
+            "name": "pc_unit_tests_clang_tidy",
+            "configurePreset": "pc_unit_tests_clang_tidy"
+        },
+        {
+            "name": "pc_unit_tests_sanitizers_gcc",
+            "configurePreset": "pc_unit_tests_sanitizers_gcc"
+        },
+        {
+            "name": "pc_unit_tests_sanitizers_clang",
+            "configurePreset": "pc_unit_tests_sanitizers_clang"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "pc_unit_tests_gcc",
+            "configurePreset": "pc_unit_tests_gcc",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "pc_unit_tests_clang",
+            "configurePreset": "pc_unit_tests_clang",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "pc_unit_tests_clang_tidy",
+            "configurePreset": "pc_unit_tests_clang_tidy",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "pc_unit_tests_sanitizers_gcc",
+            "configurePreset": "pc_unit_tests_sanitizers_gcc",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "pc_unit_tests_sanitizers_clang",
+            "configurePreset": "pc_unit_tests_sanitizers_clang",
+            "output": {
+                "outputOnFailure": true
             }
         }
     ]

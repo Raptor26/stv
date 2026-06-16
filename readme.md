@@ -1,4 +1,4 @@
-# AGENTS.md — `stv`
+# stv
 
 > Файл для AI-агентов, работающих с проектом `stv`. Содержит фактическую информацию об архитектуре, сборке, стиле кода и тестировании.
 > Проект: header-only C++23 библиотека для встраиваемых систем. Автор: Mickle Isaev. Лицензия: MIT. Версия: 0.2.0.
@@ -67,47 +67,61 @@ stv/
 
 ## Build and test commands
 
-### Конфигурация и сборка
+### Конфигурация, сборка и запуск тестов
 
 Используйте CMake-пресеты:
 
 ```bash
-# Обычная сборка unit-тестов (GCC, Debug)
-cmake --preset pc_unit_tests
-cmake --build --preset pc_unit_tests
+# GCC
+cmake --preset pc_unit_tests_gcc
+cmake --build --preset pc_unit_tests_gcc
+ctest --preset pc_unit_tests_gcc
 
-# Сборка с clang-tidy
-cmake --preset pc_unit_tests_and_clang_tidy
-cmake --build --preset pc_unit_tests_and_clang_tidy
+# Clang
+cmake --preset pc_unit_tests_clang
+cmake --build --preset pc_unit_tests_clang
+ctest --preset pc_unit_tests_clang
 ```
 
-> Пресеты наследуются: `pc_unit_tests_and_clang_tidy` наследует `pc_unit_tests` и добавляет `CLANG_TIDY_ENABLE=true`.
-
-### Запуск тестов
-
-Тестовые исполняемые файлы собираются внутри `build/<preset>/include/stv/<module>/tests/`:
+### clang-tidy
 
 ```bash
-# Базовые тесты
-./build/pc_unit_tests/include/stv/tests/test_stv
-
-# Тесты фильтров
-./build/pc_unit_tests/include/stv/filters/tests/test_stv_filters
-
-# Тесты коммуникаций
-./build/pc_unit_tests/include/stv/communication/tests/test_stv_communication
+cmake --preset pc_unit_tests_clang_tidy
+cmake --build --preset pc_unit_tests_clang_tidy
 ```
-
-`ctest` в текущей конфигурации не регистрирует тесты автоматически (Catch2-исполняемые файлы запускаются напрямую). При изменении `CMakeLists.txt` можно добавить ручную регистрацию, но сейчас ожидается прямой запуск бинарников.
 
 ### Санитайзеры
 
-В `include/stv/CMakeLists.txt` заданы флаги `ASAN_SANITIZER_FLAGS`, но по умолчанию ASAN не включён. Для включения передайте `-DASAN_ENABLE=ON`:
+Для запуска тестов с AddressSanitizer и UndefinedBehaviorSanitizer используйте dedicated-пресеты:
 
 ```bash
-cmake --preset pc_unit_tests -DASAN_ENABLE=ON
-cmake --build --preset pc_unit_tests
+# GCC + sanitizers
+cmake --preset pc_unit_tests_sanitizers_gcc
+cmake --build --preset pc_unit_tests_sanitizers_gcc
+ctest --preset pc_unit_tests_sanitizers_gcc
+
+# Clang + sanitizers
+cmake --preset pc_unit_tests_sanitizers_clang
+cmake --build --preset pc_unit_tests_sanitizers_clang
+ctest --preset pc_unit_tests_sanitizers_clang
 ```
+
+> Ручная передача `-DASAN_ENABLE=ON` больше не требуется при использовании preset'ов.
+
+### Standalone-режим
+
+Если `stv` собирается как верхнеуровневый проект (не через `add_subdirectory`), CMake автоматически:
+
+- Определяет макрос `STV_IS_STANDALONE`, который доступен в заголовках через `#ifdef STV_IS_STANDALONE`.
+- Включает `UTEST=ON` по умолчанию, чтобы тесты собирались без дополнительных флагов.
+
+```bash
+# В корне репозитория stv
+# Конфигурация автоматически определит standalone-режим и включит тесты
+cmake --preset pc_unit_tests_gcc
+```
+
+При использовании как вложенной библиотеки макрос `STV_IS_STANDALONE` не определяется, а тесты собираются только при явном `-DUTEST=ON`.
 
 ### Только потребление библиотеки
 
@@ -180,7 +194,7 @@ target_link_libraries(your_target PRIVATE stv::stv)
 
 - Тесты расположены в `include/stv/<module>/tests/` рядом с тестируемым кодом.
 - Каждый модуль собирает свои тесты через `CMakeLists.txt` внутри `tests/`.
-- Макрос `UNIT_TEST_ENABLE` (`-DUNIT_TEST_ENABLE`) включает тестовый режим:
+- Переменная `UTEST` (`-DUTEST=ON`) включает тестовый режим; при этом определяется макрос `UNIT_TEST_ENABLE`:
   - `STV_VIRTUAL` становится `virtual`, что позволяет мокировать методы через FakeIt.
   - Некоторые приватные поля в фильтрах становятся публичными (`#ifdef UNIT_TEST_ENABLE`).
 
@@ -188,16 +202,16 @@ target_link_libraries(your_target PRIVATE stv::stv)
 
 ```bash
 # После сборки
-./build/pc_unit_tests/include/stv/tests/test_stv
-./build/pc_unit_tests/include/stv/filters/tests/test_stv_filters
-./build/pc_unit_tests/include/stv/drivers/tests/test_qmc5883
-./build/pc_unit_tests/include/stv/drivers/tests/test_qma6100
-./build/pc_unit_tests/include/stv/drivers/tests/test_mmc56xx
-./build/pc_unit_tests/include/stv/drivers/tests/test_mmc3630kj
-./build/pc_unit_tests/include/stv/drivers/tests/test_mc3479
-./build/pc_unit_tests/include/stv/containers/tests/test_simbuff
-./build/pc_unit_tests/include/stv/containers/tests/test_lwrb
-./build/pc_unit_tests/include/stv/communication/tests/test_stv_communication
+./build/pc_unit_tests_gcc/include/stv/tests/test_stv
+./build/pc_unit_tests_gcc/include/stv/filters/tests/test_stv_filters
+./build/pc_unit_tests_gcc/include/stv/drivers/tests/test_qmc5883
+./build/pc_unit_tests_gcc/include/stv/drivers/tests/test_qma6100
+./build/pc_unit_tests_gcc/include/stv/drivers/tests/test_mmc56xx
+./build/pc_unit_tests_gcc/include/stv/drivers/tests/test_mmc3630kj
+./build/pc_unit_tests_gcc/include/stv/drivers/tests/test_mc3479
+./build/pc_unit_tests_gcc/include/stv/containers/tests/test_simbuff
+./build/pc_unit_tests_gcc/include/stv/containers/tests/test_lwrb
+./build/pc_unit_tests_gcc/include/stv/communication/tests/test_stv_communication
 ```
 
 Также собирается бенчмарк `test_stv_communication_bench` в `include/stv/communication/tests/`.
@@ -231,4 +245,4 @@ target_link_libraries(your_target PRIVATE stv::stv)
 - Проект — библиотека, не имеет собственного процесса развёртывания.
 - Версионирование ведётся через `.cz.json` (semver2).
 - Обновление версии: `cz bump` обновит `CHANGELOG.md` и тег.
-- Перед коммитом убедитесь, что проходит сборка с пресетом `pc_unit_tests_and_clang_tidy` и запускаются все тестовые бинарники.
+- Перед коммитом убедитесь, что проходит сборка с пресетом `pc_unit_tests_clang_tidy` и запускаются все тестовые бинарники.
