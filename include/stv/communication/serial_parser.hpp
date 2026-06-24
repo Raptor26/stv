@@ -369,6 +369,33 @@ class serial_parser: virtual private stv::non_movable_non_copyable
         next_message_size_ = next_message_size;
     }
 
+    /// @brief Вычисляет максимальный размер одного сообщения.
+    ///
+    /// @details
+    /// Если @c setup.max_one_message_size равен 0, используется емкость
+    /// кольцевого буфера @c setup.lwrb. В противном случае используется
+    /// значение из @c setup.
+    ///
+    /// @param[in] setup Структура с указателями на буфер и максимальным
+    ///     размером сообщения.
+    ///
+    /// @return Максимальный допустимый размер одного сообщения.
+    static std::size_t calculate_max_one_message_size(
+        const setup_type &setup)
+    {
+        if(setup.max_one_message_size != 0)
+        {
+            return setup.max_one_message_size;
+        }
+
+        if(setup.lwrb != nullptr)
+        {
+            return setup.lwrb->capacity();
+        }
+
+        return 0;
+    }
+
   public:
     /// @brief Конструирует парсер на основе параметров инициализации.
     ///
@@ -383,9 +410,7 @@ class serial_parser: virtual private stv::non_movable_non_copyable
         const setup_type &setup):
         lwrb_{setup.lwrb},
         queue_{setup.queue},
-        max_one_message_size_{(setup.max_one_message_size == 0)
-                                  ? ((lwrb_ != nullptr) ? lwrb_->capacity() : 0)
-                                  : (setup.max_one_message_size)}
+        max_one_message_size_{calculate_max_one_message_size(setup)}
     {
         if constexpr(std::is_pointer_v<decltype(mutex_)>)
         {
