@@ -37,3 +37,56 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     ${PROJECT_NAME}
     INTERFACE -Wno-gnu-statement-expression-from-macro-expansion)
 endif()
+
+# ------------------------------------------------------------------------------
+# Автоформатирование исходников stv через clang-format
+# ------------------------------------------------------------------------------
+#
+# Для каждого C/C++ файла создаётся stamp-файл в build-директории.
+# CMake сравнивает timestamp'ы: если исходник новее stamp — запускается
+# clang-format и обновляется stamp. Так форматируются только изменённые
+# файлы, а не все 60+ при каждой сборке.
+#
+# Форматирование привязано к цели stv через add_dependencies(), поэтому
+# выполняется ДО компиляции любого зависимого кода.
+# ------------------------------------------------------------------------------
+
+find_program(CLANG_FORMAT_EXE NAMES clang-format)
+
+if(CLANG_FORMAT_EXE)
+  # CONFIGURE_DEPENDS: CMake автоматически переконфигурируется,
+  # если появятся новые или удалятся старые файлы.
+  file(
+    GLOB_RECURSE _sources
+    CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/*.c")
+
+  set(_stamps)
+  foreach(src ${_sources})
+    # Относительный путь:
+    cmake_path(RELATIVE_PATH src BASE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" OUTPUT_VARIABLE rel)
+
+    # Stamp зеркалит структуру исходников: build/format_stamps/include/stv/*
+    set(stamp "${CMAKE_CURRENT_BINARY_DIR}/format_stamps/${rel}.stamp")
+    cmake_path(GET stamp PARENT_PATH stamp_dir)
+    file(MAKE_DIRECTORY "${stamp_dir}")
+
+    # Форматируем исходник, затем обновляем stamp
+    add_custom_command(
+      OUTPUT "${stamp}"
+      COMMAND "${CLANG_FORMAT_EXE}" -i --style=file "${src}"
+      COMMAND "${CMAKE_COMMAND}" -E touch "${stamp}"
+      DEPENDS "${src}"
+      COMMENT "Formatting ${rel}"
+      VERBATIM)
+
+    list(APPEND _stamps "${stamp}")
+  endforeach()
+
+  # Цель без ALL: собирается только по зависимости (через add_dependencies ниже)
+  add_custom_target(format_stv DEPENDS ${_stamps})
+  add_dependencies(${PROJECT_NAME} format_stv)
+endif()
