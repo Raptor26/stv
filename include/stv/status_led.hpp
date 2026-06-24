@@ -126,7 +126,7 @@ class status_led: public status_led_api
         return is_object_valid;
     }
 
-    /// @brief
+    /// @brief Установка режима работы световой индикации.
     /// @warning Не вызывайте данный метод из делегатов:
     /// - Error()
     /// - FatalError()
@@ -134,8 +134,8 @@ class status_led: public status_led_api
     /// - LowBat()
     /// - CriticalBattVoltage()
     /// - Normal()
-    /// @param[in] new_blink_mode: Режим работы световой индикации.
-    /// @return
+    /// @param[in] new_blink_mode Режим работы световой индикации.
+    /// @return true - если установлен новый режим световой индикации.
     auto set_mode(
         status_led_states new_blink_mode) -> bool override
     {
