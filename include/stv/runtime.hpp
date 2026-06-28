@@ -79,7 +79,7 @@ class runtime: public runtime_interface<typename TSetup::value_type>
 
   private:
     /// @brief Счетчик времени с момента запуска системы.
-    volatile value_type::rep counter_{static_cast<value_type::rep>(0)};
+    volatile value_type::rep counter_{static_cast<typename value_type::rep>(0)};
 
     /// @brief Период времени в мс на которе увеличивается счетчик при вызове
     /// runtime::inc().
