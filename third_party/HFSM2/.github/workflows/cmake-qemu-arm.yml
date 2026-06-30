@@ -1,0 +1,45 @@
+name: CMake QEMU ARM
+
+permissions:
+  contents: read
+  pull-requests: write
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      CC: arm-linux-gnueabihf-gcc
+      CXX: arm-linux-gnueabihf-g++
+      AR: arm-linux-gnueabihf-ar
+      LD: arm-linux-gnueabihf-ld
+      LDFLAGS: -L/usr/arm-linux-gnueabihf/lib
+      CMAKE_CROSSCOMPILING: True
+      QEMU_LD_PREFIX: /usr/arm-linux-gnueabihf
+      CMAKE_CROSSCOMPILING_EMULATOR: qemu-arm
+
+    strategy:
+      matrix:
+        BUILD_CONFIG: [ Release, Debug ]
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Install ARM GCC on ubuntu
+      run: |
+        sudo apt-get update
+        sudo apt-get install gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf qemu-user
+
+    - name: Configure
+      run: cmake -B ./build -DHFSM2_BUILD_TESTS=ON -DHFSM2_BUILD_EXAMPLES=ON -DCMAKE_BUILD_TYPE=${{ matrix.BUILD_CONFIG }}
+      working-directory: ${{ github.workspace }}
+
+    - name: Build
+      run: cmake --build ./build --config ${{ matrix.BUILD_CONFIG }}
+      working-directory: ${{ github.workspace }}

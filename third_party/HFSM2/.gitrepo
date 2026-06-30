@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/andrew-gresyk/HFSM2.git
+	branch = master
+	commit = d286577be5771f740c67a8061d0b7f4ee302e4b7
+	parent = c891ba015dec19955d8815eaad4297a76d10851b
+	method = merge
+	cmdver = 0.4.9
