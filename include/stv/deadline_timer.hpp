@@ -3,6 +3,104 @@
 ///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
+///
+/// NAME
+///     stv::deadline_timer
+///
+/// DESCRIPTION
+///     stv::deadline_timer реализует однократный таймер deadline для
+///     проверки истечения заданного интервала времени. Основные
+///     компоненты:
+///     - deadline_timer_setup<TRuntime, TMutexOrPtr>: конфигурация
+///       таймера, включающая указатель на runtime, начальную задержку,
+///       флаг поведения для незапущенного состояния и опциональный
+///       мьютекс.
+///     - deadline_timer<TSetup>: реализация таймера с защитой от
+///       состояния гонки данных и корректной обработкой переполнения
+///       счетчика.
+///
+///     Таймер использует внешний источник времени типа stv::runtime.
+///     Задержка задается методом set_delay() и запускает отсчет с
+///     момента вызова. Метод is_elapsed() возвращает true после
+///     истечения указанного периода. Если конструктору передано поле
+///     delay отличное от нуля, таймер запускается автоматически.
+///
+///     Поддерживаются следующие варианты синхронизации:
+///     - stv::empty_mutex: синхронизация отключена (однопоточный режим).
+///     - std::recursive_mutex и аналогичные: внутренняя блокировка.
+///     - Указатель на мьютекс: использование внешнего мьютекса.
+///
+///     Метод can_set_delay() выполняет статическую проверку
+///     возможности установки задержки без переполнения счетчика.
+///     Реализация корректно обрабатывает переполнение счетчика runtime
+///     при вычислении истекшего времени.
+///
+/// EXAMPLE
+///     Пример базового использования:
+///     ```cpp
+///     #include <stv/deadline_timer.hpp>
+///     #include <stv/runtime.hpp>
+///     #include <iostream>
+///
+///     int main() {
+///         using namespace std::chrono_literals;
+///
+///         // Настройка runtime с периодом инкремента 1 мс.
+///         stv::runtime_setup<stv::runtime_counter_type> setup{
+///             .increment_period = stv::runtime_counter_type{1ms}};
+///         stv::runtime runtime{setup};
+///
+///         // Конфигурация deadline таймера с задержкой 2 секунды.
+///         stv::deadline_timer_setup timer_setup{
+///             .runtime = &runtime,
+///             .delay   = stv::runtime_counter_type{2s}};
+///         stv::deadline_timer timer{timer_setup};
+///
+///         // Имитация прошедшего времени.
+///         for (int i = 0; i < 1500; ++i) {
+///             runtime.inc();
+///         }
+///
+///         if (timer.is_elapsed()) {
+///             std::cout << "Deadline elapsed\n";
+///         } else {
+///             std::cout << "Remaining: "
+///                       << timer.get_remaining_time().count()
+///                       << " us\n";
+///         }
+///
+///         return 0;
+///     }
+///     ```
+///
+///     Пример с ручным запуском и остановкой:
+///     ```cpp
+///     #include <stv/deadline_timer.hpp>
+///     #include <stv/runtime.hpp>
+///     #include <iostream>
+///
+///     int main() {
+///         using namespace std::chrono_literals;
+///
+///         stv::runtime_setup<stv::runtime_counter_type> setup{
+///             .increment_period = stv::runtime_counter_type{1ms}};
+///         stv::runtime runtime{setup};
+///
+///         stv::deadline_timer timer{stv::deadline_timer_setup{
+///             .runtime = &runtime}};
+///
+///         timer.set_delay(5s);
+///         while (!timer.is_elapsed()) {
+///             runtime.inc();
+///         }
+///         std::cout << "Timeout\n";
+///
+///         timer.stop();
+///         return 0;
+///     }
+///     ```
+///
+///     См. test_deadline_timer.cpp для автоматических тестов.
 
 #ifndef DEADLINE_TIMER_HPP
 #define DEADLINE_TIMER_HPP

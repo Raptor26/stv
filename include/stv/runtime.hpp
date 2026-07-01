@@ -3,6 +3,96 @@
 ///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
+/// NAME
+///     stv::runtime
+///
+/// DESCRIPTION
+///     stv::runtime предоставляет монотонный счетчик времени с момента
+///     запуска системы. Основные компоненты:
+///     - runtime_interface<T>: абстрактный интерфейс для
+///       получения прошедшего времени.
+///     - runtime_setup<TCounter, TMutexOrPtr>: конфигурация
+///       счетчика, включающая период инкремента и опциональный мьютекс.
+///     - runtime<TSetup>: реализация счетчика с защитой от
+///       состояния гонки данных.
+///
+///     Счетчик обновляется вызовом runtime::inc(). Метод предназначен
+///     для вызова из контекста прерывания, например из обработчика
+///     SysTick. Период инкремента задается полем increment_period
+///     структуры runtime_setup и может быть изменен во время работы
+///     методом set_period().
+///
+///     Поддерживаются следующие варианты синхронизации:
+///     - stv::empty_mutex: синхронизация отключена (однопоточный режим).
+///     - std::recursive_mutex и аналогичные: внутренняя блокировка.
+///     - Указатель на мьютекс: использование внешнего мьютекса.
+///
+///     По умолчанию время хранится как
+///     std::chrono::duration<std::uint32_t, std::micro> (микросекунды).
+///     Тип счетчика может быть изменен через шаблонный параметр TCounter.
+///
+/// EXAMPLE
+///     Пример базового использования:
+///     ```cpp
+///     #include <stv/runtime.hpp>
+///     #include <iostream>
+///     #include <mutex>
+///
+///     int main() {
+///         using namespace std::chrono_literals;
+///
+///         // Настройка периода инкремента 1 мс с внутренним
+///         // мьютексом.
+///         stv::runtime_setup setup{
+///             .increment_period = stv::runtime_counter_type{1ms}};
+///
+///         // Создание счетчика времени.
+///         stv::runtime runtime{setup};
+///         if (!runtime) {
+///             std::cerr << "Invalid runtime setup\n";
+///             return 1;
+///         }
+///
+///         // Имитация прерываний SysTick.
+///         for (int i = 0; i < 5; ++i) {
+///             runtime.inc();
+///         }
+///
+///         // Получение прошедшего времени.
+///         const auto elapsed = runtime.get();
+///         std::cout << "Elapsed: " << elapsed.count() << " us\n";
+///
+///         // Изменение периода инкремента.
+///         runtime.set_period(2ms);
+///         runtime.inc();
+///         std::cout << "After period update: " << runtime.get().count()
+///                   << " us\n";
+///
+///         return 0;
+///     }
+///     ```
+///
+///     Пример с внешним мьютексом:
+///     ```cpp
+///     #include <stv/runtime.hpp>
+///     #include <mutex>
+///
+///     int main() {
+///         using namespace std::chrono_literals;
+///
+///         std::recursive_mutex mutex;
+///         stv::runtime_setup<stv::runtime_counter_type,
+///                            std::recursive_mutex *>
+///             setup{.increment_period = stv::runtime_counter_type{1ms},
+///                   .mutex            = &mutex};
+///
+///         stv::runtime runtime{setup};
+///         runtime.inc();
+///         return 0;
+///     }
+///     ```
+///
+///     См. test_runtime.cpp для автоматических тестов.
 
 #ifndef RUNTIME_HPP
 #define RUNTIME_HPP

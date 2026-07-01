@@ -17,13 +17,13 @@ jobs:
       run:
         working-directory: build
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Create build directory
         run: mkdir -p build
         working-directory: .
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           java-version: 8
           distribution: zulu

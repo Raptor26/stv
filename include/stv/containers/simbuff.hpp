@@ -163,7 +163,13 @@ class sim_buff
         using return_type =
             const std::remove_pointer_t<std::remove_reference_t<USER_DATA_TYPE>>
                 *;
-        return reinterpret_cast<return_type>(data_ptr_ + offset_head_);
+
+        if(data_ptr_)
+        {
+            return reinterpret_cast<return_type>(data_ptr_ + offset_head_);
+        }
+
+        return return_type{nullptr};
     }
 
     // -------------------------------------------------------------------------

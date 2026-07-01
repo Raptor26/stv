@@ -34,7 +34,6 @@ function(stv_add_pedantic_compile_options_and_features TARGET_NAME)
             -Wformat=2
             -Wformat-overflow
             -Wformat-truncation
-            -Wundef
             -fno-common
             -Wconversion
             -Wswitch-enum
@@ -43,10 +42,13 @@ function(stv_add_pedantic_compile_options_and_features TARGET_NAME)
             -Wsign-conversion
             -Wcast-align
             -Wtype-limits
-            -Wnon-virtual-dtor
-            -Woverloaded-virtual
             -fstrict-aliasing
             -Wno-c2y-extensions
+            >
+            $<$<COMPILE_LANGUAGE:CXX>:
+            -Wnon-virtual-dtor
+            -Woverloaded-virtual
+            -Wundef
             >
             $<$<CXX_COMPILER_ID:Clang,AppleClang>:
             -Wdocumentation

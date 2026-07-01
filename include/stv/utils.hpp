@@ -186,6 +186,33 @@ class non_movable_non_copyable
 #endif
 /// @}
 
+/// @defgroup opt_macros Макросы управления оптимизацией
+/// @{
+
+/// @brief Макрос для отключения оптимизации отдельной функции.
+/// @details Позволяет запретить компилятору оптимизировать конкретную
+/// функцию, не меняя уровень оптимизации всего модуля. Используется для
+/// критичных ко времени исполнения участков, отладки или функций, чьё
+/// поведение может меняться при агрессивной оптимизации.
+///
+/// @par Поведение в зависимости от компилятора:
+/// - Clang: разворачивается в `__attribute__((optnone))`.
+/// - GCC: разворачивается в `__attribute__((optimize("O0")))`.
+/// - Остальные компиляторы: макрос раскрывается в пустоту.
+///
+/// @par Пример использования:
+/// @code
+/// STV_DISABLE_OPTIMIZATION void critical_handler();
+/// @endcode
+#ifdef __clang__
+    #define STV_DISABLE_OPTIMIZATION __attribute__((optnone))
+#elifdef __GNUC__
+    #define STV_DISABLE_OPTIMIZATION __attribute__((optimize("O0")))
+#else
+    #define STV_DISABLE_OPTIMIZATION
+#endif
+/// @}
+
 /// @defgroup test_macros Макросы для модульного тестирования
 /// @{
 

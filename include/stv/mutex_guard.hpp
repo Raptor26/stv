@@ -3,6 +3,98 @@
 ///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
+///
+/// NAME
+///     stv::mutex_guard
+///
+/// DESCRIPTION
+///     stv::mutex_guard предоставляет RAII обертку для захвата и
+///     автоматического освобождения мьютекса. Библиотека включает:
+///     - empty_mutex: пустая заглушка мьютекса, используется когда
+///       синхронизация не требуется.
+///     - lock_guard<TMutex>: шаблонный RAII guard, автоматически
+///       захватывает мьютекс в конструкторе и освобождает в деструкторе.
+///
+///     Специализации lock_guard:
+///     - Для стандартных мьютексов (std::mutex, std::recursive_mutex и
+///       других, удовлетворяющих is_mutex_concept): наследуется от
+///       std::lock_guard<TMutex>. Параметр is_isr не влияет на работу,
+///       так как стандартные мьютексы не поддерживают вызовы из контекста
+///       прерывания.
+///     - Для ISR-совместимых мьютексов (удовлетворяющих
+///       is_mutex_with_isr_concept): реализует собственный RAII guard,
+///       сохраняет флаг is_isr и передает его в lock()/unlock().
+///
+///     При передаче is_isr=true для ISR-совместимого мьютекса вызовы
+///     lock() и unlock() выполняются с учетом контекста прерывания.
+///
+///     Объекты lock_guard нельзя копировать и перемещать.
+///
+/// EXAMPLE
+///     Пример с пустым мьютексом:
+///     ```cpp
+///     #include <stv/mutex_guard.hpp>
+///
+///     int main() {
+///         stv::empty_mutex mutex;
+///         stv::lock_guard guard{mutex};
+///         // Критическая секция без реальной блокировки.
+///         return 0;
+///     }
+///     ```
+///
+///     Пример с std::mutex:
+///     ```cpp
+///     #include <stv/mutex_guard.hpp>
+///     #include <iostream>
+///     #include <mutex>
+///
+///     int main() {
+///         std::mutex mutex;
+///         int counter = 0;
+///
+///         {
+///             stv::lock_guard guard{mutex};
+///             ++counter;
+///             std::cout << "counter: " << counter << "\n";
+///         }
+///
+///         return 0;
+///     }
+///     ```
+///
+///     Пример с ISR-совместимым мьютексом:
+///     ```cpp
+///     #include <stv/mutex_guard.hpp>
+///
+///     class isr_mutex {
+///       public:
+///         void lock(bool is_isr) {
+///             if (is_isr) {
+///                 // Блокировка из контекста прерывания.
+///             } else {
+///                 // Обычная блокировка.
+///             }
+///         }
+///
+///         void unlock(bool is_isr) {
+///             if (is_isr) {
+///                 // Разблокировка из контекста прерывания.
+///             } else {
+///                 // Обычная разблокировка.
+///             }
+///         }
+///     };
+///
+///     int main() {
+///         isr_mutex mutex;
+///         const stv::lock_guard guard{mutex, false};
+///         // Критическая секция.
+///         return 0;
+///     }
+///     ```
+///
+///     См. test_mutex.cpp для автоматических тестов.
 
 #ifndef MUTEX_HPP
 #define MUTEX_HPP

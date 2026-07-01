@@ -69,9 +69,7 @@ struct CustomPtr
 template <typename T, typename U>
 std::string operator==(CustomPtr<T> const& lhs, CustomPtr<U> const& rhs)
 {
-    // clang-format off
-    GSL_SUPPRESS(type.1) // NO-FORMAT: attribute
-    // clang-format on
+    GSL_SUPPRESS(type.1)
     return reinterpret_cast<const void*>(lhs.p_) == reinterpret_cast<const void*>(rhs.p_) ? "true"
                                                                                           : "false";
 }
@@ -79,9 +77,7 @@ std::string operator==(CustomPtr<T> const& lhs, CustomPtr<U> const& rhs)
 template <typename T, typename U>
 std::string operator!=(CustomPtr<T> const& lhs, CustomPtr<U> const& rhs)
 {
-    // clang-format off
-    GSL_SUPPRESS(type.1) // NO-FORMAT: attribute
-    // clang-format on
+    GSL_SUPPRESS(type.1)
     return reinterpret_cast<const void*>(lhs.p_) != reinterpret_cast<const void*>(rhs.p_) ? "true"
                                                                                           : "false";
 }
@@ -89,9 +85,7 @@ std::string operator!=(CustomPtr<T> const& lhs, CustomPtr<U> const& rhs)
 template <typename T, typename U>
 std::string operator<(CustomPtr<T> const& lhs, CustomPtr<U> const& rhs)
 {
-    // clang-format off
-    GSL_SUPPRESS(type.1) // NO-FORMAT: attribute
-    // clang-format on
+    GSL_SUPPRESS(type.1)
     return reinterpret_cast<const void*>(lhs.p_) < reinterpret_cast<const void*>(rhs.p_) ? "true"
                                                                                          : "false";
 }
@@ -99,9 +93,7 @@ std::string operator<(CustomPtr<T> const& lhs, CustomPtr<U> const& rhs)
 template <typename T, typename U>
 std::string operator>(CustomPtr<T> const& lhs, CustomPtr<U> const& rhs)
 {
-    // clang-format off
-    GSL_SUPPRESS(type.1) // NO-FORMAT: attribute
-    // clang-format on
+    GSL_SUPPRESS(type.1)
     return reinterpret_cast<const void*>(lhs.p_) > reinterpret_cast<const void*>(rhs.p_) ? "true"
                                                                                          : "false";
 }
@@ -109,9 +101,7 @@ std::string operator>(CustomPtr<T> const& lhs, CustomPtr<U> const& rhs)
 template <typename T, typename U>
 std::string operator<=(CustomPtr<T> const& lhs, CustomPtr<U> const& rhs)
 {
-    // clang-format off
-    GSL_SUPPRESS(type.1) // NO-FORMAT: attribute
-    // clang-format on
+    GSL_SUPPRESS(type.1)
     return reinterpret_cast<const void*>(lhs.p_) <= reinterpret_cast<const void*>(rhs.p_) ? "true"
                                                                                           : "false";
 }
@@ -119,9 +109,7 @@ std::string operator<=(CustomPtr<T> const& lhs, CustomPtr<U> const& rhs)
 template <typename T, typename U>
 std::string operator>=(CustomPtr<T> const& lhs, CustomPtr<U> const& rhs)
 {
-    // clang-format off
-    GSL_SUPPRESS(type.1) // NO-FORMAT: attribute
-    // clang-format on
+    GSL_SUPPRESS(type.1)
     return reinterpret_cast<const void*>(lhs.p_) >= reinterpret_cast<const void*>(rhs.p_) ? "true"
                                                                                           : "false";
 }
@@ -137,13 +125,9 @@ struct NonCopyableNonMovable
 
 namespace
 {
-// clang-format off
-GSL_SUPPRESS(f .4) // NO-FORMAT: attribute
-// clang-format on
+GSL_SUPPRESS(f.4)
 bool helper(not_null<int*> p) { return *p == 12; }
-// clang-format off
-GSL_SUPPRESS(f .4) // NO-FORMAT: attribute
-// clang-format on
+GSL_SUPPRESS(f.4)
 bool helper_const(not_null<const int*> p) { return *p == 12; }
 
 int* return_pointer() { return nullptr; }
@@ -734,5 +718,19 @@ TEST(notnull_tests, TestStdHash)
         EXPECT_TRUE(hash_nn(nn) == hash_intptr(&x));
         EXPECT_FALSE(hash_nn(nn) == hash_intptr(&y));
         EXPECT_FALSE(hash_nn(nn) == hash_intptr(nullptr));
+    }
+
+    {
+        auto x = std::make_shared<int>(42);
+        auto y = std::make_shared<int>(99);
+        not_null<std::shared_ptr<int>> nn{x};
+        const not_null<std::shared_ptr<int>> cnn{x};
+
+        std::hash<not_null<std::shared_ptr<int>>> hash_nn;
+        std::hash<std::shared_ptr<int>> hash_sharedptr;
+
+        EXPECT_TRUE(hash_nn(nn) == hash_sharedptr(x));
+        EXPECT_FALSE(hash_nn(nn) == hash_sharedptr(y));
+        EXPECT_TRUE(hash_nn(cnn) == hash_sharedptr(x));
     }
 }
