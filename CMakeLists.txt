@@ -47,20 +47,8 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/include/stv/)
 target_include_directories(${PROJECT_NAME}
                            INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include/")
 
-<<<<<<< HEAD
-target_link_libraries(
-  stv
-  INTERFACE Microsoft.GSL::GSL
-            Boost::leaf
-            etl::etl
-            fpm
-            lwrb_ex
-            frozen::frozen
-            hfsm2::hfsm2)
-=======
-target_link_libraries(stv INTERFACE Microsoft.GSL::GSL etl::etl fpm
-                                    lwrb_ex frozen::frozen)
->>>>>>> refs/subrepo/stv/fetch
+target_link_libraries(stv INTERFACE Microsoft.GSL::GSL etl::etl fpm lwrb_ex
+                                    frozen::frozen hfsm2::hfsm2)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   target_compile_options(
@@ -72,10 +60,10 @@ endif()
 # Автоформатирование исходников stv через clang-format
 # ------------------------------------------------------------------------------
 #
-# Для каждого C/C++ файла создаётся stamp-файл в build-директории.
-# CMake сравнивает timestamp'ы: если исходник новее stamp — запускается
-# clang-format и обновляется stamp. Так форматируются только изменённые
-# файлы, а не все 60+ при каждой сборке.
+# Для каждого C/C++ файла создаётся stamp-файл в build-директории. CMake
+# сравнивает timestamp'ы: если исходник новее stamp — запускается clang-format и
+# обновляется stamp. Так форматируются только изменённые файлы, а не все 60+ при
+# каждой сборке.
 #
 # Форматирование привязано к цели stv через add_dependencies(), поэтому
 # выполняется ДО компиляции любого зависимого кода.
@@ -84,10 +72,11 @@ endif()
 find_program(CLANG_FORMAT_EXE NAMES clang-format)
 
 if(CLANG_FORMAT_EXE)
-  # CONFIGURE_DEPENDS: CMake автоматически переконфигурируется,
-  # если появятся новые или удалятся старые файлы.
+  # CONFIGURE_DEPENDS: CMake автоматически переконфигурируется, если появятся
+  # новые или удалятся старые файлы.
   file(
-    GLOB_RECURSE _sources
+    GLOB_RECURSE
+    _sources
     CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/include/*.cpp"
@@ -97,7 +86,8 @@ if(CLANG_FORMAT_EXE)
   set(_stamps)
   foreach(src ${_sources})
     # Относительный путь:
-    cmake_path(RELATIVE_PATH src BASE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" OUTPUT_VARIABLE rel)
+    cmake_path(RELATIVE_PATH src BASE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+               OUTPUT_VARIABLE rel)
 
     # Stamp зеркалит структуру исходников: build/format_stamps/include/stv/*
     set(stamp "${CMAKE_CURRENT_BINARY_DIR}/format_stamps/${rel}.stamp")
