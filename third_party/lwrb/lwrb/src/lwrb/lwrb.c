@@ -47,7 +47,7 @@
         }                                                                                                              \
     } while (0)
 
-/* Optional atomic opeartions */
+/* Optional atomic operations */
 #ifdef LWRB_DISABLE_ATOMIC
 #define LWRB_INIT(var, val)        (var) = (val)
 #define LWRB_LOAD(var, type)       (var)
@@ -328,7 +328,10 @@ lwrb_peek(const lwrb_t* buff, lwrb_sz_t skip_count, void* data, lwrb_sz_t btp) {
 
     /*
      * Calculate maximum number of bytes available to read
-     * and check if we can even fit to it
+     * and check if we can even fit to it.
+     * 
+     * The skip count at size of buffer or above is invalid input,
+     * thus we can safely exit the function call
      */
     full = lwrb_get_full(buff);
     if (skip_count >= full) {
@@ -340,20 +343,15 @@ lwrb_peek(const lwrb_t* buff, lwrb_sz_t skip_count, void* data, lwrb_sz_t btp) {
     if (r_ptr >= buff->size) {
         r_ptr -= buff->size;
     }
-
-    /* Check maximum number of bytes available to read after skip */
     btp = BUF_MIN(full, btp);
-    if (btp == 0) {
-        return 0;
-    }
 
-    /* Step 1: Read data from linear part of buffer */
+    /* Step 1: Read data from linear part of the buffer */
     tocopy = BUF_MIN(buff->size - r_ptr, btp);
     BUF_MEMCPY(d_ptr, &buff->buff[r_ptr], tocopy);
     d_ptr += tocopy;
     btp -= tocopy;
 
-    /* Step 2: Read data from beginning of buffer (overflow part) */
+    /* Step 2: Read data from the beginning of the buffer (overflow part) */
     if (btp > 0) {
         BUF_MEMCPY(d_ptr, buff->buff, btp);
     }
