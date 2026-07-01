@@ -195,6 +195,7 @@ class deadline_timer: public stv::non_movable_non_copyable
     explicit deadline_timer(
         const setup_type &setup):
         runtime_(setup.runtime),
+        is_deadline_elapsed_{setup.is_elapsed_if_not_started},
         is_elapsed_if_not_started_{setup.is_elapsed_if_not_started}
     {
         if constexpr(std::is_pointer_v<decltype(mutex_)>)
