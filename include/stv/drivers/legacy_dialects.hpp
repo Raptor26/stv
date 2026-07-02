@@ -36,7 +36,8 @@ class i_magnetic_latest
 
     [[nodiscard]] virtual auto give_latest_meas() const -> meas_type = 0;
 
-    virtual auto noise_level() -> float { return static_cast<value_type>(0); }
+    [[nodiscard]] virtual auto noise_level() const -> float
+    { return static_cast<value_type>(0); }
 
   protected:
     i_magnetic_latest() = default;
@@ -61,11 +62,14 @@ class i_magnetic: public i_magnetic_latest<NormalizeMeasType>
 
     virtual auto read_meas() -> meas_type = 0;
 
-    virtual auto freq() -> float { return static_cast<value_type>(0); }
+    [[nodiscard]] virtual auto freq() const -> float
+    { return static_cast<value_type>(0); }
 
-    virtual auto give_name() -> std::string_view { return {"Unknown"}; }
+    [[nodiscard]] virtual auto give_name() const -> std::string_view
+    { return {"Unknown"}; }
 
-    virtual auto is_self_test_valid() -> bool { return false; }
+    [[nodiscard]] virtual auto is_self_test_valid() const -> bool
+    { return false; }
 
   protected:
     i_magnetic() = default;
