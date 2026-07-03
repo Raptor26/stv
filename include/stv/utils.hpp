@@ -260,7 +260,7 @@ class non_movable_non_copyable
 /// bool result = stv::all_true(true, true, false); // false
 /// @endcode
 template<typename... Args>
-auto all_true(
+[[nodiscard]] auto all_true(
     Args... args)
 { return (... && args); }
 
@@ -280,7 +280,7 @@ auto all_true(
 /// bool result = stv::one_true(false, false, true); // true
 /// @endcode
 template<typename... Args>
-auto one_true(
+[[nodiscard]] auto one_true(
     Args... args)
 { return (... || args); }
 
