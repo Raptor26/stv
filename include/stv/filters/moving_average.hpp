@@ -106,7 +106,7 @@
 #ifndef STVF_MOVING_AVERAGE_HPP
 #define STVF_MOVING_AVERAGE_HPP
 
-#include "GSL/gsl"
+#include "gsl/gsl"
 #include "stv/concepts.hpp"
 #include "stv/mutex_guard.hpp"
 #include "stv/utils.hpp"
