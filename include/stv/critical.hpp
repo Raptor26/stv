@@ -77,7 +77,7 @@
 #ifndef CRITICAL_HPP
 #define CRITICAL_HPP
 
-#include "stv/utils.hpp"
+#include "utils.hpp"
 #include <atomic>
 #include <cassert>
 #include <concepts>
