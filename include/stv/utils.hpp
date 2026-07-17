@@ -395,7 +395,7 @@ constexpr auto map(
 /// @}
 
 template<typename T>
-[[nodiscard]] auto clamp_with_result(
+[[nodiscard]] constexpr auto clamp_with_result(
     T &val, const T &min, const T &max)
 {
     const T old_val = val;
