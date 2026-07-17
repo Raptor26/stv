@@ -148,6 +148,74 @@ class critical final: stv::non_movable_non_copyable
     }
 };
 
+template<auto TLock, auto TUnlock, auto TLockIsr, auto TUnlockIsr>
+    requires std::invocable<decltype(TLock)>
+             && std::invocable<decltype(TUnlock)>
+class critical_with_isr final: stv::non_movable_non_copyable
+{
+    /// @brief Сквозной счетчик критической секции. Необходим для поддержания
+    /// вложенности вызовов входа/выхода.
+    inline static std::atomic<std::size_t> nesting_cnt{0};
+
+    /// @brief Порядок памяти, используемый для атомарных операций со
+    /// счетчиком вложенности.
+    static constexpr std::memory_order expected_memory_order =
+        std::memory_order_acq_rel;
+
+  public:
+    static void lock(
+        bool is_isr = false) noexcept
+    {
+        if(nesting_cnt.fetch_add(1, expected_memory_order)
+           == static_cast<std::size_t>(0))
+        {
+            if(is_isr)
+            {
+                std::invoke(TLockIsr);
+            }
+            else
+            {
+                std::invoke(TLock);
+            }
+        }
+    }
+
+    static void unlock(
+        bool is_isr = false) noexcept
+    {
+#ifndef NDEBUG
+
+        assert(nesting_cnt.load(std::memory_order_relaxed) > 0
+               && "unlock() called without matching lock()");
+#endif
+
+        // Выполним сравнение с 1 т.к. fetch_sub() возвращает результат
+        // предшествующий выполнению операции.
+        if(nesting_cnt.fetch_sub(1, expected_memory_order)
+           == static_cast<std::size_t>(1))
+        {
+            if(is_isr)
+            {
+                std::invoke(TUnlockIsr);
+            }
+            else
+            {
+                std::invoke(TUnlock);
+            }
+        }
+    }
+
+    /// @brief Возвращает глобальное значение счетчика вложенности.
+    /// @note Только для отладки и тестов.
+    ///
+    /// @return Значение глобального счетчика вложенности.
+    [[nodiscard]] auto get_glob_nesting_cnt() const
+    {
+        return static_cast<std::size_t>(
+            nesting_cnt.load(std::memory_order_relaxed));
+    }
+};
+
 } // namespace stv
 
 #endif /* CRITICAL_HPP */
