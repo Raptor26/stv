@@ -117,7 +117,7 @@ class callback_timer:
     std::uint32_t nticks_{count_type{period_}.count()};
 
     /// @brief Флаг готовности обработки делегатов в run().
-    volatile bool is_notify_given_{false};
+    std::atomic<bool> is_notify_given_{false};
 
   public:
     explicit callback_timer(
@@ -142,7 +142,7 @@ class callback_timer:
     /// @note Рекомендуется данный метод вызывать из main().
     void run()
     {
-        if(is_notify_given_ && is_period_valid())
+        if(is_notify_given_.exchange(false) && is_period_valid())
         {
             // Сброс флага, следующая обработка будет выполнена только после
             // повторного вызова GiveNotify(). Данный флаг сбрасывается до
