@@ -103,6 +103,7 @@
 #include "chrono"
 #include "etl/callback_timer_atomic.h"
 #include "stv/utils.hpp"
+#include "utils.hpp"
 #include <array>
 
 namespace stv {
@@ -146,7 +147,7 @@ struct status_led_api: public stv::non_movable_non_copyable {
 template<typename TCallbackTimer>
 struct status_led_init {
     using callback_timer_type       = TCallbackTimer;
-    using callback_timer_count_type = TCallbackTimer::count_type;
+    using callback_timer_count_type = typename TCallbackTimer::count_type;
 
     callback_timer_type *callback_timer{nullptr};
     led_api             *led{nullptr};
