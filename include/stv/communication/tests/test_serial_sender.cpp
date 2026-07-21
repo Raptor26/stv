@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <cstring>
 #include <etl/queue.h>
+#include <etl/queue_spsc_atomic.h>
 #include <iostream>
 #include <memory>
 #include <queue>
@@ -634,6 +635,34 @@ TEST_CASE(
     }
 }
 #endif
+
+TEMPLATE_TEST_CASE(
+    "Serial message buffer supports ETL queue types", "[stv][serial]",
+    (etl::queue<stv::sim_buff<stv::empty_mutex>, 10>),
+    (etl::queue_spsc_atomic<stv::sim_buff<stv::empty_mutex>, 10>))
+{
+    using namespace stv;
+
+    TestType queue{};
+
+    auto     serial_message_buffer =
+        make_serial_message_buffer(queue, stv::empty_serial_decorator{});
+
+    std::array<std::uint8_t, 4> payload{std::uint8_t{0x01}, std::uint8_t{0x02},
+                                        std::uint8_t{0x03}, std::uint8_t{0x04}};
+
+    REQUIRE(queue.size() == 0);
+
+    {
+        auto msg = serial_message_buffer.request(payload);
+        REQUIRE(msg);
+    }
+
+    REQUIRE(queue.size() == 1);
+    REQUIRE(queue.front().size_bytes() == payload.size());
+    REQUIRE(std::memcmp(queue.front().data(), payload.data(), payload.size())
+            == 0);
+}
 
 // NOLINTEND(*-magic-numbers, google-build-using-namespace,
 // readability-function-cognitive-complexity,

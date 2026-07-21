@@ -34,8 +34,9 @@
 ///         перемещение.
 ///
 ///     serial_message_buffer<TQueue, Decorators...>
-///         Адаптация базового буфера для очередей на базе
-///         etl::iqueue, хранящих элементы типа stv::sim_buff.
+///         Адаптация базового буфера для очередей, удовлетворяющих
+///         stv::serial_queue_concept (etl::queue, etl::queue_spsc_atomic,
+///         etl::iqueue и др.), хранящих элементы типа stv::sim_buff.
 ///
 ///     make_serial_message_buffer(queue, decorators...)
 ///         Фабричная функция, упрощающая создание
@@ -117,6 +118,7 @@
 
 #include "etl/queue.h"
 #include "serial_decorators.hpp"
+#include "stv/concepts.hpp"
 #include "stv/containers/simbuff.hpp"
 #include <array>
 #include <cassert>
@@ -923,30 +925,32 @@ class serial_message_buffer_base:
     }
 };
 
-/// @brief Буфер серийных сообщений для очередей на базе etl::iqueue.
+/// @brief Буфер серийных сообщений для очередей с интерфейсом ETL.
 ///
 /// @details
 /// Наследует функциональность @ref serial_message_buffer_base и адаптирует
-/// её для работы с очередью типа etl::iqueue<sim_buff<...>>. Позволяет
-/// создавать сообщения, которые затем передаются в последовательный порт,
-/// радиоканал или другой транспорт.
+/// её для работы с любой очередью, удовлетворяющей
+/// @ref stv::serial_queue_concept: value_type, full() и push(T&&). Поддерживает
+/// etl::iqueue, etl::queue, etl::queue_spsc_atomic и другие совместимые
+/// очереди. Позволяет создавать сообщения, которые затем передаются в
+/// последовательный порт, радиоканал или другой транспорт.
 ///
-/// @tparam TQueue Тип очереди, производной от etl::iqueue. Её value_type
-/// должен быть совместим с @ref sim_buff.
+/// @tparam TQueue Тип очереди. Её value_type должен быть совместим с
+/// @ref sim_buff.
 /// @tparam Decorators Декораторы, применяемые к каждому сообщению.
 template<typename TQueue, typename... Decorators>
+    requires(stv::serial_queue_concept<TQueue>)
 class serial_message_buffer:
-    public serial_message_buffer_base<etl::iqueue<typename TQueue::value_type>,
-                                      Decorators...>
+    public serial_message_buffer_base<TQueue, Decorators...>
 {
     /// @brief Тип элемента очереди.
-    using queue_item_type = TQueue::value_type;
+    using queue_item_type = typename TQueue::value_type;
 
     /// @brief Тип симуляционного буфера, хранящегося в очереди.
     using sim_buff_type = queue_item_type;
 
     /// @brief Базовый тип очереди, передаваемый в базовый класс.
-    using queue_base_type = etl::iqueue<sim_buff_type>;
+    using queue_base_type = TQueue;
 
     /// @brief Базовый класс.
     using base_type =
