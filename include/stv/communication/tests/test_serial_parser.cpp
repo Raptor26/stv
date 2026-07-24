@@ -339,6 +339,166 @@ TEST_CASE(
                     parsed_msg_queue.pop();
                 }
             }
+
+            SECTION("Incomplete frame waits for remaining bytes")
+            {
+                constexpr std::string_view test_message{"Hello world"};
+
+                {
+                    auto msg = serial_message_buffer.request(test_message);
+                }
+
+                decltype(auto) queue_instance =
+                    serial_message_buffer.queue_instance();
+                auto msg = queue_instance.front();
+
+                // Записываем только часть кадра: заголовок и часть полезной
+                // нагрузки.
+                constexpr std::size_t partial_size{8};
+                lwrb.write(msg.begin(), msg.begin() + partial_size);
+
+                // Парсер должен дождаться остатка кадра, не помещая
+                // сообщение в очередь и не блокируясь внутри run().
+                REQUIRE_FALSE(parser.run());
+                REQUIRE(parsed_msg_queue.empty());
+
+                // Дописываем остаток кадра: сообщение должно быть
+                // распарсено на следующем вызове run().
+                lwrb.write(msg.begin() + partial_size, msg.end());
+                queue_instance.pop();
+
+                REQUIRE(parser.run());
+                REQUIRE(parsed_msg_queue.size() == 1);
+
+                {
+                    auto parsed_msg = std::move(parsed_msg_queue.front());
+                    REQUIRE(memcmp(test_message.data(), parsed_msg.data(),
+                                   test_message.size())
+                            == 0);
+                    parsed_msg_queue.pop();
+                }
+            }
+
+            SECTION("Stalled frame recovered by timeout")
+            {
+                constexpr std::string_view test_message{"Hello world"};
+
+                {
+                    auto msg = serial_message_buffer.request(test_message);
+                }
+
+                decltype(auto) queue_instance =
+                    serial_message_buffer.queue_instance();
+
+                // Записываем только заголовок кадра: отправитель «оборвал»
+                // передачу посреди кадра.
+                {
+                    decltype(auto) msg = queue_instance.front();
+                    lwrb.write(
+                        msg.begin(),
+                        msg.begin()
+                            + static_cast<std::ptrdiff_t>(
+                                stv::start_frame_and_crc_16::header_size()));
+                    queue_instance.pop();
+                }
+
+                // Каждый вызов run() - это опрос неполного кадра. После
+                // max_wait_message_ready_polls вызовов парсер отбрасывает
+                // стартовый кадр и возвращается к поиску заголовка.
+                for(std::size_t i{0}; i < 100; ++i)
+                {
+                    REQUIRE_FALSE(parser.run());
+                }
+
+                // После восстановления следующее валидное сообщение должно
+                // быть распарсено.
+                {
+                    auto msg = serial_message_buffer.request(test_message);
+                }
+
+                {
+                    decltype(auto) msg = queue_instance.front();
+                    lwrb.write(msg.begin(), msg.end());
+                    queue_instance.pop();
+                }
+
+                REQUIRE(parser.run());
+                REQUIRE(parsed_msg_queue.size() == 1);
+
+                {
+                    auto parsed_msg = std::move(parsed_msg_queue.front());
+                    REQUIRE(memcmp(test_message.data(), parsed_msg.data(),
+                                   test_message.size())
+                            == 0);
+                    parsed_msg_queue.pop();
+                }
+            }
+
+            SECTION("Full output queue drops message without corruption")
+            {
+                constexpr std::string_view test_message{"Hello world"};
+
+                decltype(auto)             queue_instance =
+                    serial_message_buffer.queue_instance();
+
+                // Заполняем выходную очередь до ее емкости.
+                for(std::size_t i{0}; i < parsed_msg_queue.capacity(); ++i)
+                {
+                    {
+                        auto msg = serial_message_buffer.request(test_message);
+                    }
+
+                    decltype(auto) msg = queue_instance.front();
+                    lwrb.write(msg.begin(), msg.end());
+                    queue_instance.pop();
+
+                    REQUIRE(parser.run());
+                    REQUIRE(parsed_msg_queue.size() == i + 1);
+                }
+
+                // Очередь заполнена: следующее сообщение должно быть
+                // отброшено без порчи очереди.
+                {
+                    auto msg = serial_message_buffer.request(test_message);
+                }
+
+                {
+                    decltype(auto) msg = queue_instance.front();
+                    lwrb.write(msg.begin(), msg.end());
+                    queue_instance.pop();
+                }
+
+                REQUIRE_FALSE(parser.run());
+                REQUIRE(parsed_msg_queue.full());
+
+                // Очередь не сломана: после освобождения места разбор
+                // продолжается.
+                while(!parsed_msg_queue.empty())
+                {
+                    parsed_msg_queue.pop();
+                }
+
+                {
+                    auto msg = serial_message_buffer.request(test_message);
+                }
+
+                {
+                    decltype(auto) msg = queue_instance.front();
+                    lwrb.write(msg.begin(), msg.end());
+                    queue_instance.pop();
+                }
+
+                REQUIRE(parser.run());
+                REQUIRE(parsed_msg_queue.size() == 1);
+
+                {
+                    auto parsed_msg = std::move(parsed_msg_queue.front());
+                    REQUIRE(memcmp(test_message.data(), parsed_msg.data(),
+                                   test_message.size())
+                            == 0);
+                    parsed_msg_queue.pop();
+                }
+            }
         }
     }
 
@@ -422,6 +582,49 @@ TEST_CASE(
                     memcmp(test_message.data(), msg.data(), test_message.size())
                     == 0);
                 queue_to_check->pop();
+            }
+
+            SECTION("Drop message when destination queue is full")
+            {
+                stv::head_route::head_route_setup_t route_setup{
+                    .dst_id  = parsed_msg_queue_id,
+                    .pack_id = 0,
+                };
+
+                decltype(auto) src_queue =
+                    serial_message_buffer.queue_instance();
+
+                // Заполняем целевую очередь до ее емкости.
+                for(std::size_t i{0}; i < parsed_msg_queue.capacity(); ++i)
+                {
+                    {
+                        auto msg = serial_message_buffer.request(test_message,
+                                                                 route_setup);
+                    }
+                    REQUIRE(route.run());
+                    REQUIRE(parsed_msg_queue.size() == i + 1);
+                }
+
+                // Целевая очередь переполнена: сообщение отбрасывается, но
+                // удаляется из входной очереди и не ломает целевую.
+                {
+                    auto msg = serial_message_buffer.request(test_message,
+                                                             route_setup);
+                }
+                REQUIRE_FALSE(route.run());
+                REQUIRE(src_queue.empty());
+                REQUIRE(parsed_msg_queue.full());
+
+                // Целевая очередь не сломана: после освобождения места
+                // маршрутизация продолжается.
+                parsed_msg_queue.pop();
+
+                {
+                    auto msg = serial_message_buffer.request(test_message,
+                                                             route_setup);
+                }
+                REQUIRE(route.run());
+                REQUIRE(parsed_msg_queue.full());
             }
         }
     }

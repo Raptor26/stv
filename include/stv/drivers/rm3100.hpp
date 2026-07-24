@@ -81,8 +81,8 @@ namespace stv {
 ///     Тип должен поддерживать вызов с одним аргументом, представляющим
 ///     количество миллисекунд (@c std::uint16_t).
 template<typename TDelayFnMs>
-concept rm3100_delayable = requires(TDelayFnMs delay_fn, std::uint16_t ms) {
-    { delay_fn(ms) };
+concept rm3100_delayable = requires(TDelayFnMs delay_fn, std::uint16_t delay_ms) {
+    { delay_fn(delay_ms) };
 };
 
 /// @brief Параметры инициализации драйвера RM3100.
