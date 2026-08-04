@@ -21,6 +21,7 @@ Checks: >
   -llvm-header-guard,
   -llvm-use-ranges,
   -llvm-qualified-auto,
+  -llvm-prefer-static-over-anonymous-namespace,
   misc-*,
   -misc-include-cleaner,
   -misc-non-private-member-variables-in-classes,

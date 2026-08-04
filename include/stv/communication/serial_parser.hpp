@@ -319,10 +319,13 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     static constexpr auto construct_states_hash()
     {
         hash_type hash{};
+        // Индексы — значения enum states, ограничены размером таблицы.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
         hash[std::to_underlying(states::start_frame_and_size)] =
             &stv::serial_parser<TSetup,
                                 Decorators...>::start_frame_and_size_state;
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
         hash[std::to_underlying(states::wait_message_ready)] =
             &stv::serial_parser<TSetup,
                                 Decorators...>::wait_message_ready_state;

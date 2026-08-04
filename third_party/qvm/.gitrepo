@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/boostorg/qvm.git
+	branch = develop
+	commit = 2e574dd16f812b99423ad20fa72b3738ff053390
+	parent = ee799fe965b86e0ef0c0f217ff615a929965d7f0
+	method = merge
+	cmdver = 0.4.9

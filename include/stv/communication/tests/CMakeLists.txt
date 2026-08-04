@@ -3,11 +3,13 @@ cmake_minimum_required(VERSION 3.23)
 project(test_stv_communication)
 
 find_package(Catch2 REQUIRED)
-include(Catch)
+find_package(FakeIt REQUIRED)
 
-add_executable(${PROJECT_NAME} test_serial_sender.cpp test_serial_parser.cpp)
+add_executable(${PROJECT_NAME} test_serial_sender.cpp test_serial_parser.cpp
+                               test_crsf.cpp)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE Catch2::Catch2WithMain stv::stv)
+target_link_libraries(${PROJECT_NAME} PRIVATE Catch2::Catch2WithMain
+                                              FakeIt::FakeIt-catch stv::stv)
 catch_discover_tests(${PROJECT_NAME})
 
 stv_add_pedantic_compile_options_and_features(${PROJECT_NAME})
