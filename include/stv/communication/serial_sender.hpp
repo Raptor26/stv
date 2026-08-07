@@ -58,6 +58,7 @@
 ///     стартовым кадром, CRC и маршрутизацией:
 ///     ```cpp
 ///     #include <stv/communication/serial_sender.hpp>
+///     #include <stv/communication/stvlink_sender.hpp>
 ///     #include <stv/containers/simbuff.hpp>
 ///     #include <stv/mutex_guard.hpp>
 ///     #include <etl/queue.h>
@@ -77,10 +78,10 @@
 ///         queue_type queue{};
 ///
 ///         auto serial_message_buffer = make_serial_message_buffer(
-///             queue, start_frame_and_crc_16{}, head_route{});
+///             queue, stvlink_frame_tx{}, stvlink_route_tx{});
 ///
 ///         auto msg = serial_message_buffer.request<UserData>(
-///             head_route::head_route_setup_t{
+///             stvlink_route_tx::setup_t{
 ///                 .dst_id = 1, .pack_id = 7});
 ///
 ///         if (msg) {
@@ -105,7 +106,7 @@
 ///     Пример передачи массива с параметрами декоратора:
 ///     ```cpp
 ///     std::array<std::uint16_t, 3> data{11, 22, 33};
-///     head_route::head_route_setup_t route{
+///     stvlink_route_tx::setup_t route{
 ///         .dst_id = 1, .pack_id = 7};
 ///     auto msg = serial_message_buffer.request(data, route);
 ///     ```
@@ -913,12 +914,48 @@ class serial_message_buffer_base:
             tuple_of_decorators);
     }
 
-    // Универсальная проверка - пытаемся сконструировать декоратор из параметра
+    /// @brief Применяет параметр запроса к каждому декоратору сообщения.
+    ///
+    /// @details
+    /// Вызывается из request_impl() для каждого аргумента, переданного в
+    /// request() после полезной нагрузки. Существует два способа, которыми
+    /// декоратор может принять параметр запроса:
+    ///
+    /// 1. Метод apply_setup(const Param &) — декоратор обновляет только те
+    ///    поля, которые описаны в параметре, сохраняя своё внутреннее
+    ///    состояние. Способ выбирается, если метод существует.
+    ///
+    /// 2. Пересоздание decorator = Decorator(param) — декоратор полностью
+    ///    заменяется новым экземпляром, сконструированным из параметра.
+    ///    Способ выбирается, если метод apply_setup отсутствует, а декоратор
+    ///    конструируем из параметра.
+    ///
+    /// Если декоратору не подходит ни один способ, параметр для него
+    /// игнорируется.
+    ///
+    /// Выбор способа выполняется на этапе компиляции (if constexpr),
+    /// накладных расходов в runtime нет.
+    ///
+    /// @note Рекомендация для новых декораторов:
+    /// - Если декоратор НЕ хранит состояния и полностью описывается
+    ///   параметром запроса (как stv::stvlink_route_tx), apply_setup
+    ///   реализовывать НЕ нужно — достаточно конструктора из параметра.
+    /// - Если декоратор хранит состояние, заданное при создании буфера
+    ///   (например, идентификатор отправителя или указатель на счётчик,
+    ///   как декоратор кадра KrdLink из karavan), apply_setup НЕОБХОДИМ:
+    ///   пересоздание из параметра запроса уничтожило бы это состояние.
+    ///
+    /// @param[in,out] decorator Декоратор, к которому применяется параметр.
+    /// @param[in] param Параметр запроса из request().
     template<typename Decorator, typename Param>
     void apply_to_single_decorator(
         Decorator &decorator, const Param &param)
     {
-        if constexpr(std::is_constructible_v<Decorator, const Param &>)
+        if constexpr(requires { decorator.apply_setup(param); })
+        {
+            decorator.apply_setup(param);
+        }
+        else if constexpr(std::is_constructible_v<Decorator, const Param &>)
         {
             decorator = Decorator(param);
         }

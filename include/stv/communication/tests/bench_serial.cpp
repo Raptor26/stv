@@ -5,6 +5,7 @@
 /// See LICENSE file in the project root for full license information.
 
 #include "stv/communication/serial_sender.hpp"
+#include "stv/communication/stvlink_sender.hpp"
 #include "stv/containers/simbuff.hpp"
 #include "stv/mutex_guard.hpp"
 #include <benchmark/benchmark.h>
@@ -29,7 +30,7 @@ static void request(
     };
 
     auto serial_message_buffer = make_serial_message_buffer(
-        queue, stv::start_frame_and_crc_16{}, stv::head_route{});
+        queue, stv::stvlink_frame_tx{}, stv::stvlink_route_tx{});
 
     for(auto unused: state)
     {
