@@ -26,6 +26,7 @@
 
 #include "stv/communication/crc16.hpp"
 #include "stv/communication/serial_decorators.hpp"
+#include <bit>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -58,10 +59,13 @@ namespace stv {
 ///   [compat_flags, seq, sysid, compid, msgid (3 байта, LE), payload].
 ///
 /// @note
-/// У подписанных кадров @c trailer_size() учитывает только CRC (2 байта),
-/// поэтому парсер отрезает 2 байта от конца кадра, съедая последние 2
-/// байта подписи. В хвосте отрезанного сообщения при этом остаются 2
-/// байта CRC и первые 11 байт подписи.
+/// Подписанные кадры (бит @c 0x01 в поле incompat_flags) и кадры с любыми
+/// другими ненулевыми битами incompat_flags отклоняются в is_crc_valid():
+/// верификация подписи не реализована, а @c trailer_size() учитывает
+/// только CRC (2 байта), поэтому принять подписанный кадр без проверки
+/// нельзя — 13 байт подписи оказались бы в хвосте отрезанного сообщения.
+/// Кадры с неизвестными битами incompat_flags спецификация требует
+/// отбрасывать.
 ///
 /// @tparam TCrcExtraProvider Провайдер байта CRC_EXTRA. Должен
 ///     предоставлять статический метод
@@ -147,14 +151,26 @@ class mavlink_v2_frame
     /// CRC вычисляется по байтам от поля len до конца полезной нагрузки
     /// (то есть без стартового байта @c 0xFD) с досчётом байта CRC_EXTRA,
     /// предоставляемого @c TCrcExtraProvider для msgid кадра. Кадр с
-    /// неизвестным провайдеру msgid считается невалидным. У подписанного
-    /// кадра CRC расположен перед 13 байтами подписи.
+    /// неизвестным провайдеру msgid считается невалидным.
+    ///
+    /// Кадр с любым ненулевым полем incompat_flags отклоняется: единственный
+    /// определённый спецификацией бит @c 0x01 означает наличие подписи, а
+    /// её верификация не реализована; остальные биты спецификация требует
+    /// отбрасывать как неизвестные. Когда поддержка подписи будет
+    /// реализована, здесь нужно будет разрешить бит @c 0x01 и отклонять
+    /// только неизвестные биты (@c incompat_flags & ~0x01).
     ///
     /// @param[in] total Границы всего принятого кадра.
     /// @return @c true, если CRC совпадает; @c false в противном случае.
     static bool is_crc_valid(
         const stv::total_message_span &total)
     {
+        // Чтение CRC через memcpy предполагает, что порядок байт CRC на
+        // проводе (little-endian) совпадает с порядком байт платформы.
+        static_assert(std::endian::native == std::endian::little,
+                      "mavlink_v2_frame::is_crc_valid requires a little-endian"
+                      " platform");
+
         // Кадр должен содержать как минимум заголовок и хвост, иначе
         // вычисление размера данных для CRC приведёт к underflow size_t.
         if(total.size_bytes() < (header_size() + trailer_size()))
@@ -162,14 +178,17 @@ class mavlink_v2_frame
             return false;
         }
 
-        const bool is_signed =
-            (total[incompat_flags_offset] & signature_flag) != std::byte{0x00};
-        const size_t actual_signature_size = is_signed ? signature_size : 0U;
+        // Подпись не верифицируется, а неизвестные биты incompat_flags
+        // спецификация требует отбрасывать: принимаются только кадры с
+        // нулевым полем incompat_flags (см. документацию класса).
+        if(total[incompat_flags_offset] != std::byte{0x00})
+        {
+            return false;
+        }
 
         // Для чтения msgid и CRC кадр должен содержать полный заголовок
-        // MAVLink, хвост CRC и подпись (у подписанного кадра).
-        if(total.size_bytes()
-           < (full_header_size + trailer_size() + actual_signature_size))
+        // MAVLink и хвост CRC.
+        if(total.size_bytes() < (full_header_size + trailer_size()))
         {
             return false;
         }
@@ -190,15 +209,13 @@ class mavlink_v2_frame
         // заканчиваются перед CRC.
         const auto data_for_crc = total.subspan(len_offset);
         auto       expected_crc = stv::crc16_x25(
-            data_for_crc.data(),
-            data_for_crc.size_bytes() - trailer_size() - actual_signature_size);
+            data_for_crc.data(), data_for_crc.size_bytes() - trailer_size());
         expected_crc =
             stv::crc16_x25_accumulate(expected_crc, std::byte{*crc_extra});
 
-        // У подписанного кадра CRC расположен перед подписью.
         crc_type         received_crc{};
         const std::byte *crc_pos =
-            total.end().base() - actual_signature_size - trailer_size();
+            total.data() + total.size_bytes() - trailer_size();
         std::memcpy(&received_crc, crc_pos, sizeof(received_crc));
 
         return received_crc == expected_crc;

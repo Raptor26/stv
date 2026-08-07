@@ -27,6 +27,7 @@
 #include "stv/communication/mavlink_v2_frame.hpp"
 #include "stv/communication/serial_decorators.hpp"
 #include <atomic>
+#include <bit>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -182,19 +183,48 @@ class mavlink_v2_frame_tx
     static constexpr std::size_t trailer_size()
     { return sizeof(std::uint16_t); }
 
+    /// @brief Возвращает максимальный размер полезной нагрузки кадра.
+    ///
+    /// @details
+    /// Поле len однобайтовое и равно размеру полезной нагрузки. Буфер
+    /// сообщений отклоняет request() с бо́льшей полезной нагрузкой,
+    /// возвращая невалидное сообщение (см. serial_message_buffer_base).
+    ///
+    /// @return Максимальный размер полезной нагрузки в байтах (255).
+    static constexpr std::size_t max_pload_size()
+    { return std::numeric_limits<std::uint8_t>::max(); }
+
     /// @brief Обновляет идентификатор сообщения из параметра запроса.
     ///
     /// @details
     /// Обновляет только msgid, сохраняя sysid, compid и счётчик,
     /// заданные при создании буфера. Вызывается из request() буфера
-    /// сообщений для каждого параметра @ref route_t.
+    /// сообщений для каждого параметра @ref route_t. Параметр с msgid, не
+    /// помещающимся в 3 байта, отклоняется: request() вернёт невалидное
+    /// сообщение. Также отклоняется msgid, для которого провайдер
+    /// @c TCrcExtraProvider не знает байт CRC_EXTRA: без него
+    /// setup_trailer() не сможет сформировать корректный CRC.
     ///
     /// @param[in] route Параметры маршрутизации сообщения.
-    void apply_setup(
-        const route_t &route)
+    /// @return @c true, если параметры приняты; @c false, если msgid
+    ///     превышает 0xFFFFFF или провайдеру неизвестен CRC_EXTRA для
+    ///     этого msgid.
+    auto apply_setup(
+        const route_t &route) -> bool
     {
-        assert(route.msgid <= max_message_id);
+        if(route.msgid > max_message_id)
+        {
+            return false;
+        }
+
+        // Отправитель обязан знать CRC_EXTRA для передаваемого msgid.
+        if(!TCrcExtraProvider::crc_extra_for(route.msgid).has_value())
+        {
+            return false;
+        }
+
         route_ = route;
+        return true;
     }
 
     /// @brief Заполняет заголовок кадра MAVLink v2.
@@ -213,6 +243,9 @@ class mavlink_v2_frame_tx
         const pload_span &pload) const
     {
         (void)total;
+        // Гарантируется проверками на уровне request(): apply_setup()
+        // отклоняет msgid > 0xFFFFFF, max_pload_size() ограничивает
+        // полезную нагрузку одним байтом поля len.
         assert(route_.msgid <= max_message_id);
         assert(pload.size_bytes() <= std::numeric_limits<std::uint8_t>::max());
 
@@ -247,7 +280,14 @@ class mavlink_v2_frame_tx
     void setup_trailer(
         std::byte *dst, const total_message_span &total) const
     {
-        // Отправитель обязан знать CRC_EXTRA для передаваемого msgid.
+        // Запись CRC через memcpy предполагает, что порядок байт CRC на
+        // проводе (little-endian) совпадает с порядком байт платформы.
+        static_assert(std::endian::native == std::endian::little,
+                      "mavlink_v2_frame_tx::setup_trailer requires a"
+                      " little-endian platform");
+
+        // Гарантируется проверками на уровне request(): apply_setup()
+        // отклоняет msgid, для которого провайдеру неизвестен CRC_EXTRA.
         const auto crc_extra = TCrcExtraProvider::crc_extra_for(route_.msgid);
         assert(crc_extra.has_value());
 

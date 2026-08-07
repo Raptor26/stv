@@ -248,8 +248,15 @@ class mavlink_v2_route: virtual public stv::non_movable_non_copyable
         {
             auto        msg  = std::move(queue_to_read_->front());
             const auto *data = msg.template data<std::byte>();
-            assert(data != nullptr);
-            assert(msg.size_bytes() >= routing_header_size);
+
+            // Входная очередь — публичный интерфейс: повреждённое
+            // сообщение отбрасывается (политика drop, как при переполненной
+            // целевой очереди), а не приводит к чтению вне границ.
+            if((data == nullptr) || (msg.size_bytes() < routing_header_size))
+            {
+                queue_to_read_->pop();
+                continue;
+            }
 
             const auto compid = static_cast<std::uint8_t>(data[compid_offset]);
 

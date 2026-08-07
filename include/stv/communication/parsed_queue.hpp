@@ -19,7 +19,9 @@
 #ifndef PARSED_QUEUE_HPP
 #define PARSED_QUEUE_HPP
 
+#include <concepts>
 #include <cstddef>
+#include <type_traits>
 
 namespace stv {
 
@@ -46,10 +48,16 @@ struct parsed_queue {
 
     /// @brief Конструирует обёртку из ссылки на очередь.
     ///
+    /// @details
+    /// Если @c QueueType отличен от @c void, тип аргумента обязан совпадать
+    /// с @c QueueType: несовпадение — ошибка компиляции, а не неконтролируемое
+    /// приведение из @c void *.
+    ///
     /// @tparam Q Тип очереди, выводимый из аргумента.
     /// @param[in,out] queue Очередь, в которую будут помещаться распарсенные
     ///     кадры, соответствующие декоратору @c FrameDecorator.
     template<typename Q>
+        requires(std::is_void_v<QueueType> || std::same_as<Q, QueueType>)
     explicit parsed_queue(
         Q &queue):
         queue_{&queue}
@@ -58,9 +66,15 @@ struct parsed_queue {
 
     /// @brief Конструирует обёртку из указателя на очередь.
     ///
+    /// @details
+    /// Если @c QueueType отличен от @c void, тип аргумента обязан совпадать
+    /// с @c QueueType: несовпадение — ошибка компиляции, а не неконтролируемое
+    /// приведение из @c void *.
+    ///
     /// @tparam Q Тип очереди, выводимый из аргумента.
     /// @param[in] queue Указатель на очередь. Может быть @c nullptr.
     template<typename Q>
+        requires(std::is_void_v<QueueType> || std::same_as<Q, QueueType>)
     explicit parsed_queue(
         Q *queue):
         queue_{queue}

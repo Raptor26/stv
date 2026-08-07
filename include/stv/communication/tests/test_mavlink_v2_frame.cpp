@@ -174,13 +174,16 @@ TEST_CASE(
         REQUIRE_FALSE(frame_type::is_crc_valid(total));
     }
 
-    SECTION("signed frame")
+    SECTION("signed frame is rejected")
     {
+        // Верификация подписи не реализована: подписанный кадр отклоняется
+        // даже с корректным CRC. Полный размер кадра по заголовку при этом
+        // по-прежнему учитывает 13 байт подписи.
         const auto frame = make_frame(0x01U, 0x01U, 0x01U, 0U,
                                       {std::byte{0x48}, std::byte{0x69}}, 50U);
 
         const stv::total_message_span total{frame.data(), frame.size()};
-        REQUIRE(frame_type::is_crc_valid(total));
+        REQUIRE_FALSE(frame_type::is_crc_valid(total));
 
         const stv::total_message_span header_span{frame.data(),
                                                   frame_type::header_size()};
@@ -211,9 +214,10 @@ TEST_CASE(
             REQUIRE_FALSE(frame_type::is_crc_valid(total));
         }
 
-        // Подписанный кадр (бит 0x01 в incompat_flags): второй guard
-        // требует 10 + 2 + 13 = 25 байт, кадры размером 12..24 байта
-        // отвергаются.
+        // Подписанный кадр (бит 0x01 в incompat_flags) отклоняется до
+        // проверки размера и CRC: кадры размером 12..24 байта с флагом
+        // подписи отвергаются, как и любые кадры с ненулевыми
+        // incompat_flags.
         for(std::size_t size{12U}; size <= 24U; ++size)
         {
             std::vector<std::byte> frame(size, std::byte{0x00});
@@ -270,23 +274,24 @@ TEST_CASE(
                                 {std::byte{0x48}, std::byte{0x69}}, 50U);
 
         // Портим младший байт CRC, расположенный перед 13 байтами подписи.
+        // Кадр отклоняется: подписанные кадры не принимаются вне
+        // зависимости от корректности CRC.
         frame[frame.size() - 13U - 2U] ^= std::byte{0xFF};
 
         const stv::total_message_span total{frame.data(), frame.size()};
         REQUIRE_FALSE(frame_type::is_crc_valid(total));
     }
 
-    SECTION("signature bytes are not covered by crc")
+    SECTION("frame with unknown incompat flags is rejected")
     {
-        auto frame = make_frame(0x01U, 0x01U, 0x01U, 0U,
-                                {std::byte{0x48}, std::byte{0x69}}, 50U);
-
-        // Портим байт подписи: CRC её не покрывает, кадр остаётся
-        // валидным.
-        frame.back() ^= std::byte{0xFF};
+        // Кадр с неизвестным битом 0x02 в incompat_flags и корректным CRC
+        // отбрасывается: спецификация требует отбрасывать кадры с
+        // неопознанными битами incompat_flags.
+        const auto frame = make_frame(0x02U, 0x01U, 0x01U, 0U,
+                                      {std::byte{0x48}, std::byte{0x69}}, 50U);
 
         const stv::total_message_span total{frame.data(), frame.size()};
-        REQUIRE(frame_type::is_crc_valid(total));
+        REQUIRE_FALSE(frame_type::is_crc_valid(total));
     }
 
     SECTION("msgid is assembled little-endian")

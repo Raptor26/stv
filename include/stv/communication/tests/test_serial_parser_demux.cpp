@@ -145,6 +145,30 @@ auto make_mavlink_frame(
     return result;
 }
 
+/// @brief Собирает кадр stv_rx_v2 с байтовой полезной нагрузкой.
+auto make_stv_frame_bytes(
+    std::span<const std::byte> payload, std::uint8_t dst_id)
+    -> std::vector<std::byte>
+{
+    queue_type tx_queue;
+    auto       buffer = stv::make_serial_message_buffer(
+        tx_queue, stv::stvlink_frame_tx{}, stv::stvlink_route_tx{});
+
+    {
+        auto msg = buffer.request(payload, stv::stvlink_route_tx::setup_t{
+                                               .dst_id = dst_id, .pack_id = 0});
+        (void)msg;
+    }
+
+    REQUIRE(!tx_queue.empty());
+
+    const auto            &frame = tx_queue.front();
+    std::vector<std::byte> result(frame.begin(), frame.end());
+    tx_queue.pop();
+
+    return result;
+}
+
 /// @brief Возвращает ожидаемое содержимое распарсенного кадра stv_rx_v2
 ///     (заголовок stvlink_route_tx: dst_id, pack_id, pload_size + нагрузка).
 auto make_expected_stv_payload(
@@ -510,12 +534,12 @@ TEST_CASE(
                                           {.msgid = mavlink_msgid_heartbeat}));
     }
 
-    SECTION("signed mavlink frame parsed through demux")
+    SECTION("signed mavlink frame dropped through demux")
     {
         // Подписанный кадр: бит 0x01 в incompat_flags, после CRC идут 13
-        // байт подписи. Подпись не верифицируется и остаётся в хвосте
-        // отрезанного сообщения (задокументированное ограничение
-        // mavlink_v2_frame), маршрутизация по compid при этом работает.
+        // байт подписи. Верификация подписи не реализована, поэтому кадр
+        // отклоняется is_crc_valid() даже с корректным CRC (CRC подпись
+        // не покрывает); следующий валидный кадр при этом распарсен.
         constexpr std::string_view payload{"sig"};
 
         // Кадр собирается вручную: передающий декоратор подпись не
@@ -547,28 +571,151 @@ TEST_CASE(
         lwrb.write(make_mavlink_frame("ok", mavlink_compid,
                                       {.msgid = mavlink_msgid_heartbeat}));
 
-        // Подписанный кадр и следующий за ним обычный кадр распарсены.
+        // Подписанный кадр отброшен, следующий за ним кадр распарсен.
         REQUIRE(parser.run());
         REQUIRE(stv_parsed_queue.empty());
-        REQUIRE(mavlink_parsed_queue.size() == 2U);
+        REQUIRE(mavlink_parsed_queue.size() == 1U);
 
-        REQUIRE(mavlink_router.run() == 2U);
+        REQUIRE(mavlink_router.run() == 1U);
 
-        // Парсер отрезает заголовок (3) и хвост trailer_size() = 2 байта
-        // от конца кадра, поэтому в отрезанном сообщении остаются 2 байта
-        // CRC и первые 11 байт подписи (задокументированное ограничение
-        // mavlink_v2_frame: подпись не отделяется от сообщения).
-        auto expected_signed = make_expected_mavlink_payload(
-            payload, mavlink_compid, {.msgid = mavlink_msgid_heartbeat});
-        expected_signed.push_back(static_cast<std::byte>(crc & 0xFFU));
-        expected_signed.push_back(static_cast<std::byte>(
-            (static_cast<std::uint32_t>(crc) >> 8U) & 0xFFU));
-        expected_signed.insert(expected_signed.end(), 11U, std::byte{0x5A});
-
-        require_front_equals(mavlink_routed_queue, expected_signed);
         require_front_equals(
             mavlink_routed_queue,
             make_expected_mavlink_payload("ok", mavlink_compid,
+                                          {.msgid = mavlink_msgid_heartbeat}));
+    }
+
+    SECTION("mavlink frame with unknown incompat flags dropped")
+    {
+        // Единственный определённый спецификацией бит incompat_flags —
+        // 0x01 (подпись). Кадр с неизвестным битом 0x02 отбрасывается,
+        // даже если его CRC корректен; следующий валидный кадр распарсен.
+        constexpr std::string_view payload{"x"};
+
+        std::vector<std::byte>     unknown_flags_frame{
+            std::byte{0xFD},          static_cast<std::byte>(payload.size()),
+            std::byte{0x02},  // incompat_flags: неизвестный бит
+            std::byte{0x00},  // compat_flags
+            std::byte{0x00},  // seq
+            std::byte{mavlink_sysid}, std::byte{mavlink_compid},
+            std::byte{0x00},          std::byte{0x00},
+            std::byte{0x00}}; // msgid = 0
+
+        const auto pload_bytes =
+            std::as_bytes(std::span(payload.data(), payload.size()));
+        unknown_flags_frame.insert(unknown_flags_frame.end(),
+                                   pload_bytes.begin(), pload_bytes.end());
+
+        auto crc = stv::crc16_x25(unknown_flags_frame.data() + 1U,
+                                  unknown_flags_frame.size() - 1U);
+        crc      = stv::crc16_x25_accumulate(crc, std::byte{50U});
+        unknown_flags_frame.push_back(static_cast<std::byte>(crc & 0xFFU));
+        unknown_flags_frame.push_back(static_cast<std::byte>(
+            (static_cast<std::uint32_t>(crc) >> 8U) & 0xFFU));
+
+        lwrb.write(unknown_flags_frame);
+        lwrb.write(make_mavlink_frame("ok", mavlink_compid,
+                                      {.msgid = mavlink_msgid_heartbeat}));
+
+        REQUIRE(parser.run());
+        REQUIRE(stv_parsed_queue.empty());
+        REQUIRE(mavlink_parsed_queue.size() == 1U);
+
+        REQUIRE(mavlink_router.run() == 1U);
+
+        require_front_equals(
+            mavlink_routed_queue,
+            make_expected_mavlink_payload("ok", mavlink_compid,
+                                          {.msgid = mavlink_msgid_heartbeat}));
+    }
+
+    SECTION("garbage containing sync sequences")
+    {
+        // Мусор содержит стартовые последовательности протоколов потока:
+        // 0xAA 0xAA образует ложный кадр stv_rx_v2 с frame_size = 0x5555,
+        // превышающий лимит размера сообщения (ложный заголовок
+        // отбрасывается), а вторая пара 0x55 0x55 не совпадает ни с одним
+        // декоратором и пропускается побайтно. После ресинхронизации
+        // валидные кадры обоих протоколов доставлены.
+        constexpr std::array<std::byte, 8> garbage{
+            std::byte{0xAA}, std::byte{0xAA}, std::byte{0x55}, std::byte{0x55},
+            std::byte{0x00}, std::byte{0x55}, std::byte{0x55}, std::byte{0x11}};
+
+        constexpr std::string_view stv_payload{"stv"};
+        constexpr std::string_view mav_payload{"mav"};
+
+        lwrb.write(garbage);
+        lwrb.write(make_stv_frame(stv_payload, stv_dst_id));
+        lwrb.write(garbage);
+        lwrb.write(make_mavlink_frame(mav_payload, mavlink_compid,
+                                      {.msgid = mavlink_msgid_heartbeat}));
+
+        // Первый вызов отбрасывает ложный заголовок stv_rx_v2 из первого
+        // блока мусора (frame_size = 0x5555 превышает лимит размера
+        // сообщения) и завершается без разбора кадров.
+        REQUIRE_FALSE(parser.run());
+        // Второй вызов разбирает кадр stv_rx_v2 и отбрасывает ложный
+        // заголовок из второго блока мусора.
+        REQUIRE(parser.run());
+        // Третий вызов разбирает кадр MAVLink.
+        REQUIRE(parser.run());
+        REQUIRE(stv_parsed_queue.size() == 1U);
+        REQUIRE(mavlink_parsed_queue.size() == 1U);
+
+        REQUIRE(stv_router.run() == 1U);
+        REQUIRE(mavlink_router.run() == 1U);
+
+        require_front_equals(stv_routed_queue, make_expected_stv_payload(
+                                                   stv_payload, stv_dst_id));
+        require_front_equals(
+            mavlink_routed_queue,
+            make_expected_mavlink_payload(mav_payload, mavlink_compid,
+                                          {.msgid = mavlink_msgid_heartbeat}));
+    }
+
+    SECTION("corrupted stvlink frame with 0xFD in payload is not claimed as "
+            "mavlink")
+    {
+        // Битый кадр stv_rx_v2, чья полезная нагрузка содержит стартовый
+        // байт MAVLink 0xFD. После отбрасывания битого кадра по ошибке CRC
+        // парсер просматривает его байты по одному, и 0xFD образует ложный
+        // заголовок MAVLink. Ложный кадр детерминированно отклонён: его
+        // msgid = 42 неизвестен провайдеру CRC_EXTRA. Следующие валидные
+        // кадры обоих протоколов доставлены.
+        constexpr std::array<std::byte, 10> tricky_payload{
+            std::byte{0xFD},  // ложный стартовый байт MAVLink
+            std::byte{0x00},  // len
+            std::byte{0x00},  // incompat_flags
+            std::byte{0x00},  // compat_flags
+            std::byte{0x00},  // seq
+            std::byte{0x01},  // sysid
+            std::byte{0x01},  // compid
+            std::byte{0x2A}, std::byte{0x00},
+            std::byte{0x00}}; // msgid = 42 (неизвестен провайдеру)
+
+        auto stv_frame_bad = make_stv_frame_bytes(tricky_payload, stv_dst_id);
+        // Портим последний байт CRC кадра, не трогая его размер.
+        stv_frame_bad.back() ^= std::byte{0xFF};
+
+        constexpr std::string_view stv_payload{"next"};
+        constexpr std::string_view mav_payload{"last"};
+
+        lwrb.write(stv_frame_bad);
+        lwrb.write(make_stv_frame(stv_payload, stv_dst_id));
+        lwrb.write(make_mavlink_frame(mav_payload, mavlink_compid,
+                                      {.msgid = mavlink_msgid_heartbeat}));
+
+        REQUIRE(parser.run());
+        REQUIRE(stv_parsed_queue.size() == 1U);
+        REQUIRE(mavlink_parsed_queue.size() == 1U);
+
+        REQUIRE(stv_router.run() == 1U);
+        REQUIRE(mavlink_router.run() == 1U);
+
+        require_front_equals(stv_routed_queue, make_expected_stv_payload(
+                                                   stv_payload, stv_dst_id));
+        require_front_equals(
+            mavlink_routed_queue,
+            make_expected_mavlink_payload(mav_payload, mavlink_compid,
                                           {.msgid = mavlink_msgid_heartbeat}));
     }
 

@@ -881,17 +881,35 @@ class serial_message_buffer_base:
     /// - проверить через operator bool() что память успешно выделена.
     /// - в случае успешного выделения памяти, можно ее заполнить через
     ///   оператор operator->().
+    ///
+    /// Если запрос отклонён декоратором (превышен предел размера полезной
+    /// нагрузки max_pload_size() либо apply_setup() вернул false),
+    /// возвращается невалидное сообщение: оно не выделяет память и не
+    /// попадает в очередь (как сообщение из request_null()).
     template<typename UserData, typename... SetupParams>
     auto request_impl(
         const span_type &pload, SetupParams &&...setup_params)
     {
         auto decorators_copy = decorators_;
 
+        // Декоратор может отклонить запрос: через предел размера полезной
+        // нагрузки (max_pload_size()) либо через отказ принять параметр
+        // (apply_setup(), возвращающий bool).
+        bool is_request_valid{is_pload_size_accepted(pload.size_bytes())};
+
         // Сопоставление каждого аргумента из пачки параметров setup_params с
         // каждым декоратором.
-        (apply_param_to_decorators(decorators_copy,
+        (apply_param_to_decorators(is_request_valid, decorators_copy,
                                    std::forward<SetupParams>(setup_params)),
          ...);
+
+        if(!is_request_valid)
+        {
+            // Отклонённый запрос: возвращается невалидное сообщение,
+            // аналогичное результату request_null().
+            return serial_message<UserData, queue_base_type, Decorators...>(
+                nullptr, queue_);
+        }
 
         // Конструирование объекта serial_message из updated_decorators.
         return std::apply(
@@ -902,14 +920,60 @@ class serial_message_buffer_base:
             decorators_copy);
     }
 
+    /// @brief Проверяет, что размер полезной нагрузки укладывается в
+    ///     ограничения всех декораторов.
+    ///
+    /// @param[in] pload_size Размер полезной нагрузки в байтах.
+    /// @return @c true, если все декораторы принимают такой размер;
+    ///     @c false в противном случае.
+    auto is_pload_size_accepted(
+        std::size_t pload_size) const -> bool
+    {
+        return std::apply(
+            [pload_size](const auto &...decorators) {
+                return (is_pload_size_accepted_by(decorators, pload_size)
+                        && ...);
+            },
+            decorators_);
+    }
+
+    /// @brief Проверяет размер полезной нагрузки против предела одного
+    ///     декоратора.
+    ///
+    /// @details
+    /// Декоратор может объявить предел размера полезной нагрузки статическим
+    /// методом @c max_pload_size(). Декоратор без такого метода принимает
+    /// любой размер.
+    ///
+    /// @tparam Decorator Тип декоратора.
+    /// @param[in] pload_size Размер полезной нагрузки в байтах.
+    /// @return @c true, если размер не превышает предел декоратора;
+    ///     @c false в противном случае.
+    template<typename Decorator>
+    static constexpr auto is_pload_size_accepted_by(
+        const Decorator & /*decorator*/, std::size_t pload_size) -> bool
+    {
+        if constexpr(requires { Decorator::max_pload_size(); })
+        {
+            return pload_size <= Decorator::max_pload_size();
+        }
+        else
+        {
+            return true;
+        }
+    }
+
     template<typename Param>
     void apply_param_to_decorators(
-        auto &tuple_of_decorators, const Param &param)
+        bool &is_request_valid, auto &tuple_of_decorators, const Param &param)
     {
         std::apply(
-            [&param, this](auto &...decorators) {
+            [&param, &is_request_valid, this](auto &...decorators) {
                 (void)this;
-                (apply_to_single_decorator(decorators, param), ...);
+                ((is_request_valid =
+                      apply_to_single_decorator(decorators, param)
+                      && is_request_valid),
+                 ...);
             },
             tuple_of_decorators);
     }
@@ -923,7 +987,9 @@ class serial_message_buffer_base:
     ///
     /// 1. Метод apply_setup(const Param &) — декоратор обновляет только те
     ///    поля, которые описаны в параметре, сохраняя своё внутреннее
-    ///    состояние. Способ выбирается, если метод существует.
+    ///    состояние. Способ выбирается, если метод существует. Если метод
+    ///    возвращает bool, значение false означает отказ принять параметр:
+    ///    request() вернёт невалидное сообщение.
     ///
     /// 2. Пересоздание decorator = Decorator(param) — декоратор полностью
     ///    заменяется новым экземпляром, сконструированным из параметра.
@@ -947,17 +1013,33 @@ class serial_message_buffer_base:
     ///
     /// @param[in,out] decorator Декоратор, к которому применяется параметр.
     /// @param[in] param Параметр запроса из request().
+    /// @return @c false, если декоратор отклонил параметр (apply_setup,
+    ///     возвращающий bool, вернул false); иначе @c true.
     template<typename Decorator, typename Param>
-    void apply_to_single_decorator(
-        Decorator &decorator, const Param &param)
+    static auto apply_to_single_decorator(
+        Decorator &decorator, const Param &param) -> bool
     {
-        if constexpr(requires { decorator.apply_setup(param); })
+        if constexpr(requires {
+                         {
+                             decorator.apply_setup(param)
+                         } -> std::convertible_to<bool>;
+                     })
+        {
+            return static_cast<bool>(decorator.apply_setup(param));
+        }
+        else if constexpr(requires { decorator.apply_setup(param); })
         {
             decorator.apply_setup(param);
+            return true;
         }
         else if constexpr(std::is_constructible_v<Decorator, const Param &>)
         {
             decorator = Decorator(param);
+            return true;
+        }
+        else
+        {
+            return true;
         }
     }
 };

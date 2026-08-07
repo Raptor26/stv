@@ -788,6 +788,12 @@ class serial_parser: virtual private stv::non_movable_non_copyable
         constexpr std::size_t need_bytes_available_befor_start{
             max_header_size()};
 
+        // matches() вызывается с двумя первыми байтами заголовка: буфер
+        // заголовка обязан вмещать минимум 2 байта.
+        static_assert(max_header_size() >= 2U,
+                      "max_header_size() must be at least 2: matches() reads"
+                      " two header bytes");
+
         auto how_many_bytes_can_read_in_one_iteration{max_one_message_size_};
 
         while(lwrb_->get_full() >= need_bytes_available_befor_start)

@@ -338,6 +338,94 @@ TEST_CASE(
                 == frame.size_bytes());
     }
 
+    SECTION("msgid exceeding 3 bytes is rejected")
+    {
+        queue_type                  queue;
+        stv::mavlink_v2_seq_counter counter;
+
+        auto serial_message_buffer = stv::make_serial_message_buffer(
+            queue,
+            frame_tx_type{{.sysid = 5, .compid = 3, .counter = &counter}});
+
+        // Поле msgid занимает 3 байта: значение 0x1000000 непредставимо,
+        // request() возвращает невалидное сообщение вместо усечения msgid.
+        {
+            auto msg = serial_message_buffer.request(
+                user_data_t{}, frame_tx_type::route_t{.msgid = 0x1000000});
+            REQUIRE(!msg);
+        }
+
+        // Отклонённый запрос не помещает кадр в очередь и не тратит seq.
+        REQUIRE(queue.empty());
+
+        {
+            auto msg = serial_message_buffer.request(
+                user_data_t{}, frame_tx_type::route_t{.msgid = 0});
+            REQUIRE(msg);
+        }
+
+        REQUIRE(queue.size() == 1U);
+        // seq первого реального кадра равен 0.
+        REQUIRE(queue.front().data<std::byte>()[4U] == std::byte{0x00});
+    }
+
+    SECTION("msgid without known crc extra is rejected")
+    {
+        queue_type                  queue;
+        stv::mavlink_v2_seq_counter counter;
+
+        auto serial_message_buffer = stv::make_serial_message_buffer(
+            queue,
+            frame_tx_type{{.sysid = 5, .compid = 3, .counter = &counter}});
+
+        // Провайдер знает CRC_EXTRA только для msgid 0 и 1: для msgid 42
+        // сформировать корректный CRC невозможно, поэтому request()
+        // возвращает невалидное сообщение вместо кадра с битым CRC.
+        {
+            auto msg = serial_message_buffer.request(
+                user_data_t{}, frame_tx_type::route_t{.msgid = 42});
+            REQUIRE(!msg);
+        }
+
+        // Отклонённый запрос не помещает кадр в очередь и не тратит seq.
+        REQUIRE(queue.empty());
+
+        {
+            auto msg = serial_message_buffer.request(
+                user_data_t{}, frame_tx_type::route_t{.msgid = 1});
+            REQUIRE(msg);
+        }
+
+        REQUIRE(queue.size() == 1U);
+        // seq первого реального кадра равен 0.
+        REQUIRE(queue.front().data<std::byte>()[4U] == std::byte{0x00});
+    }
+
+    SECTION("oversized payload is rejected")
+    {
+        queue_type                  queue;
+        stv::mavlink_v2_seq_counter counter;
+
+        auto serial_message_buffer = stv::make_serial_message_buffer(
+            queue,
+            frame_tx_type{{.sysid = 5, .compid = 3, .counter = &counter}});
+
+        STATIC_REQUIRE(frame_tx_type::max_pload_size() == 255U);
+
+        // Поле len однобайтовое: полезная нагрузка 256 байт не помещается
+        // в кадр. request() возвращает невалидное сообщение вместо
+        // формирования кадра с усечённым полем len.
+        const std::string payload(256U, 'A');
+
+        {
+            auto msg = serial_message_buffer.request(
+                payload, frame_tx_type::route_t{.msgid = 0});
+            REQUIRE(!msg);
+        }
+
+        REQUIRE(queue.empty());
+    }
+
     SECTION("concurrent requests produce unique sequential seq")
     {
         constexpr std::size_t thread_count{4};
