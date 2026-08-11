@@ -120,7 +120,8 @@ auto make_stv_frame(
 ///     передающий декоратор mavlink_v2_frame_tx.
 auto make_mavlink_frame(
     std::string_view payload, std::uint8_t compid,
-    const mavlink_frame_tx_type::route_t &route) -> std::vector<std::byte>
+    const mavlink_frame_tx_type::route_t &route)
+    -> std::vector<std::byte> // NOLINT(bugprone-easily-swappable-parameters)
 {
     queue_type                  tx_queue;
     stv::mavlink_v2_seq_counter counter;
@@ -148,7 +149,7 @@ auto make_mavlink_frame(
 /// @brief Собирает кадр stv_rx_v2 с байтовой полезной нагрузкой.
 auto make_stv_frame_bytes(
     std::span<const std::byte> payload, std::uint8_t dst_id)
-    -> std::vector<std::byte>
+    -> std::vector<std::byte> // NOLINT(bugprone-easily-swappable-parameters)
 {
     queue_type tx_queue;
     auto       buffer = stv::make_serial_message_buffer(
@@ -194,7 +195,8 @@ auto make_expected_stv_payload(
 ///     [compat_flags, seq, sysid, compid, msgid (3 байта, LE), payload].
 auto make_expected_mavlink_payload(
     std::string_view payload, std::uint8_t compid,
-    const mavlink_frame_tx_type::route_t &route) -> std::vector<std::byte>
+    const mavlink_frame_tx_type::route_t &route)
+    -> std::vector<std::byte> // NOLINT(bugprone-easily-swappable-parameters)
 {
     const auto             msgid = route.msgid;
     std::vector<std::byte> result;

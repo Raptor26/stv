@@ -895,6 +895,7 @@ class serial_message_buffer_base:
         // Декоратор может отклонить запрос: через предел размера полезной
         // нагрузки (max_pload_size()) либо через отказ принять параметр
         // (apply_setup(), возвращающий bool).
+        // NOLINTNEXTLINE(misc-const-correctness)
         bool is_request_valid{is_pload_size_accepted(pload.size_bytes())};
 
         // Сопоставление каждого аргумента из пачки параметров setup_params с
@@ -926,7 +927,7 @@ class serial_message_buffer_base:
     /// @param[in] pload_size Размер полезной нагрузки в байтах.
     /// @return @c true, если все декораторы принимают такой размер;
     ///     @c false в противном случае.
-    auto is_pload_size_accepted(
+    [[nodiscard]] auto is_pload_size_accepted(
         std::size_t pload_size) const -> bool
     {
         return std::apply(

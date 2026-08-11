@@ -403,6 +403,7 @@ TEST_CASE(
 
     SECTION("oversized payload is rejected")
     {
+        // NOLINTNEXTLINE(misc-const-correctness)
         queue_type                  queue;
         stv::mavlink_v2_seq_counter counter;
 
