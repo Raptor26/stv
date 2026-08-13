@@ -90,7 +90,7 @@ class lwrb_base:
     };
 
     container_type storage_;
-    lwrb_t         lwrb_;
+    lwrb_t         lwrb_{};
 
     /// @brief Используется для обеспечения атомарности обновления данных в
     /// многопоточном приложении.
