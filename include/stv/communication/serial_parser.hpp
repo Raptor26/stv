@@ -813,9 +813,11 @@ class serial_parser: virtual private stv::non_movable_non_copyable
                                  std::integral_constant<std::size_t, Idx>) {
                 using decorator_type = std::tuple_element_t<Idx, decorators_t>;
 
+                // NOLINTBEGIN(cppcoreguidelines-pro-bounds-*)
                 if(!is_matched
                    && decorator_type::matches(header_storage[0],
                                               header_storage[1]))
+                // NOLINTEND(cppcoreguidelines-pro-bounds-*)
                 {
                     is_matched  = true;
                     matched_idx = Idx;
