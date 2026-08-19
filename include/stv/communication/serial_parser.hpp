@@ -482,12 +482,9 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     /// собран целиком. Приход новых байт сбрасывает отсчет: медленный,
     /// но живой отправитель таймаут не вызывает. Если за
     /// @c max_wait_message_ready_polls подряд идущих опросов новых байт
-    /// не появилось, заголовок отбрасывается и парсер возвращается к
-    /// поиску начала кадра, как и при ошибке CRC.
-    ///
-    /// @param[in] header_size Размер заголовка выбранного декоратора.
-    void track_incomplete_frame_timeout(
-        std::size_t header_size)
+    /// не появилось, отбрасывается один байт и парсер возвращается к
+    /// побайтному поиску начала кадра, как и при ошибке CRC.
+    void track_incomplete_frame_timeout()
     {
         const auto bytes_available = lwrb_->get_full();
 
@@ -506,8 +503,9 @@ class serial_parser: virtual private stv::non_movable_non_copyable
         }
 
         // Отправитель оборвал передачу посреди кадра (либо заголовок
-        // ложный).
-        lwrb_->skip(header_size);
+        // ложный). Отбрасываем один байт, чтобы продолжить побайтный
+        // поиск настоящей границы кадра.
+        lwrb_->skip(1U);
         set_state(states::start_frame_and_size);
         set_frame_selection(frame_selection{decorators_count, 0});
         reset_wait_message_ready_timeout();
@@ -913,9 +911,10 @@ class serial_parser: virtual private stv::non_movable_non_copyable
 
         if(expect_total_message_size > max_one_message_size_)
         {
-            // Размер кадра превышает допустимый: отбрасываем заголовок,
-            // чтобы не зациклиться на одном и том же месте.
-            lwrb_->skip(header_size);
+            // Размер кадра превышает допустимый: отбрасываем один байт,
+            // чтобы продолжить побайтный поиск и не зациклиться на одном
+            // и том же месте.
+            lwrb_->skip(1U);
             set_state(states::start_frame_and_size);
             set_frame_selection(frame_selection{decorators_count, 0});
             reset_wait_message_ready_timeout();
@@ -935,7 +934,7 @@ class serial_parser: virtual private stv::non_movable_non_copyable
         // В буфер еще не записано сообщение целиком.
         if(lwrb_->get_full() < expect_total_message_size)
         {
-            track_incomplete_frame_timeout(header_size);
+            track_incomplete_frame_timeout();
             return false;
         }
 
@@ -983,10 +982,10 @@ class serial_parser: virtual private stv::non_movable_non_copyable
             }
             else
             {
-                // CRC не сошлось: ложный заголовок. Пропускаем только
-                // заголовок, чтобы поиск продолжился со следующего
+                // CRC не сошлось: ложный заголовок. Пропускаем один
+                // байт, чтобы поиск продолжился побайтно со следующего
                 // байта после ложного начала кадра.
-                lwrb_->skip(header_size, is_isr);
+                lwrb_->skip(1U, is_isr);
             }
 
             set_state(states::start_frame_and_size);
