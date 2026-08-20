@@ -166,7 +166,8 @@ TEST_CASE(
         reg.soft_reset     = qmc5883p_ctrl2_reg::soft_reset_t::normal;
         reg.self_test      = qmc5883p_ctrl2_reg::self_test_t::normal;
         reg.rng            = qmc5883p_ctrl2_reg::rng_t::full_scale_30g;
-        reg.set_reset_mode = qmc5883p_ctrl2_reg::set_reset_mode_t::set_only_on;
+        reg.set_reset_mode =
+            qmc5883p_ctrl2_reg::set_reset_mode_t::set_and_reset_on;
 
         SECTION("Soft Reset")
         {
@@ -211,23 +212,23 @@ TEST_CASE(
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
 
+            SECTION("If RNG == 12G")
+            {
+                reg.rng = qmc5883p_ctrl2_reg::rng_t::full_scale_12g;
+                const reg_bitset expect_reg_val{std::string{"00000100"}};
+                REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
+            }
+
             SECTION("If RNG == 8G")
             {
                 reg.rng = qmc5883p_ctrl2_reg::rng_t::full_scale_8g;
-                const reg_bitset expect_reg_val{std::string{"00000100"}};
+                const reg_bitset expect_reg_val{std::string{"00001000"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
 
             SECTION("If RNG == 2G")
             {
                 reg.rng = qmc5883p_ctrl2_reg::rng_t::full_scale_2g;
-                const reg_bitset expect_reg_val{std::string{"00001000"}};
-                REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
-            }
-
-            SECTION("If RNG == 12G")
-            {
-                reg.rng = qmc5883p_ctrl2_reg::rng_t::full_scale_12g;
                 const reg_bitset expect_reg_val{std::string{"00001100"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
@@ -235,18 +236,18 @@ TEST_CASE(
 
         SECTION("SET/RESET MODE")
         {
-            SECTION("If SET/RESET MODE == set only on")
-            {
-                reg.set_reset_mode =
-                    qmc5883p_ctrl2_reg::set_reset_mode_t::set_only_on;
-                const reg_bitset expect_reg_val{std::string{"00000000"}};
-                REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
-            }
-
             SECTION("If SET/RESET MODE == set and reset on")
             {
                 reg.set_reset_mode =
                     qmc5883p_ctrl2_reg::set_reset_mode_t::set_and_reset_on;
+                const reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
+            }
+
+            SECTION("If SET/RESET MODE == set only on")
+            {
+                reg.set_reset_mode =
+                    qmc5883p_ctrl2_reg::set_reset_mode_t::set_only_on;
                 const reg_bitset expect_reg_val{std::string{"00000001"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }

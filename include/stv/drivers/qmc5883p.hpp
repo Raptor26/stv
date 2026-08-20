@@ -315,6 +315,16 @@ class qmc5883p: public stv::qmc5883p_i2c, public stv::imag<MagType>
 
         if(is_init_success)
         {
+            // Согласно примерам инициализации из даташита (7.1 Normal Mode,
+            // 7.2 Continuous Mode, 7.3 Self-test) первым шагом выполняется
+            // запись 0x06 в регистр 0x29 (знаки осей X, Y, Z). Регистр не
+            // входит в Register Map даташита, поэтому read-back верификация
+            // не выполняется.
+            is_init_success = write(qmc5883p_axis_sign_reg{});
+        }
+
+        if(is_init_success)
+        {
             is_init_success = write_reg_then_check(setup.ctrl2_reg);
         }
 

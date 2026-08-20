@@ -52,6 +52,35 @@ class qmc5883p_chip_id_reg
     qmc5883p_reg_type chip_id{0};
 };
 
+/// @brief Класс для работы с регистром определения знаков осей QMC5883P.
+///
+/// @details Регистр 0x29 задаёт знаки осей X, Y и Z. Во всех примерах
+/// инициализации из даташита (7.1 Normal Mode, 7.2 Continuous Mode,
+/// 7.3 Self-test) первым шагом выполняется запись значения 0x06
+/// («Define the sign for X Y and Z axis»). Регистр не входит в Register
+/// Map (Table 14) и в даташите не описан как доступный для чтения.
+class qmc5883p_axis_sign_reg
+{
+  public:
+    /// @brief Адрес регистра знаков осей в памяти устройства.
+    static constexpr qmc5883p_reg_type addr{0x29};
+
+    /// @brief Значение из примеров инициализации даташита.
+    static constexpr qmc5883p_reg_type default_value{0x06};
+
+    explicit qmc5883p_axis_sign_reg(
+        qmc5883p_reg_type value = default_value):
+        sign{value}
+    {
+    }
+
+    /// @brief Оператор преобразования в сырое значение регистра.
+    explicit operator qmc5883p_reg_type() const { return sign; }
+
+    /// @brief Значение регистра знаков осей.
+    qmc5883p_reg_type sign{default_value};
+};
+
 /// @brief Класс для работы с регистром статуса QMC5883P.
 ///
 /// @details Регистр 0x09 (STATUS) содержит флаги состояния устройства.
@@ -286,11 +315,14 @@ class qmc5883p_ctrl2_reg
     self_test_t self_test{self_test_t::normal};
 
     /// @brief Перечисление значений полного диапазона (RNG).
+    ///
+    /// @note Значения соответствуют даташиту QMC5883P (Table 18):
+    ///       00 = ±30 Гс, 01 = ±12 Гс, 10 = ±8 Гс, 11 = ±2 Гс.
     enum struct rng_t : std::uint8_t {
         full_scale_30g = 0, ///< Полный диапазон ±30 Гс.
-        full_scale_8g  = 1, ///< Полный диапазон ±8 Гс.
-        full_scale_2g  = 2, ///< Полный диапазон ±2 Гс.
-        full_scale_12g = 3, ///< Полный диапазон ±12 Гс.
+        full_scale_12g = 1, ///< Полный диапазон ±12 Гс.
+        full_scale_8g  = 2, ///< Полный диапазон ±8 Гс.
+        full_scale_2g  = 3, ///< Полный диапазон ±2 Гс.
     };
 
     /// @brief Диапазон измерений.
