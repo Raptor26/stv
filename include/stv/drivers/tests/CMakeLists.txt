@@ -7,7 +7,8 @@ find_package(FakeIt REQUIRED)
 
 add_executable(${PROJECT_NAME} test_mc3479.cpp test_qma6100_regs.cpp
                                test_qma6100.cpp test_mmc3630kj.cpp
-                               test_mmc56xx.cpp test_qmc5883.cpp)
+                               test_mmc56xx.cpp test_qmc5883.cpp
+                               test_qmc5883p.cpp)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Catch2::Catch2WithMain
                                               FakeIt::FakeIt-catch stv::stv)
