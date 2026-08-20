@@ -71,6 +71,16 @@ class i_magnetic: public i_magnetic_latest<NormalizeMeasType>
     [[nodiscard]] virtual auto is_self_test_valid() const -> bool
     { return false; }
 
+    /// @brief Признак наличия у датчика аппаратного вывода готовности данных
+    /// (DRDY/INT).
+    /// @return true если датчик формирует импульс готовности данных на
+    /// выделенном выводе (прерывание EXTI), false если готовность данных
+    /// доступна только опросом бита в регистре статуса.
+    /// @note Датчики без DRDY (например QMC5883P) не могут служить источником
+    /// внешнего прерывания: для них запрещено отключение SysTick и переход в
+    /// глубокий сон, чтение выполняется по программному таймеру.
+    [[nodiscard]] virtual auto has_drdy() const -> bool { return true; }
+
   protected:
     i_magnetic() = default;
 };
