@@ -163,9 +163,9 @@ TEST_CASE(
     {
         // Установка регистра в нулевые значения.
         qmc5883p_ctrl2_reg reg;
-        reg.soft_reset     = qmc5883p_ctrl2_reg::soft_reset_t::normal;
-        reg.self_test      = qmc5883p_ctrl2_reg::self_test_t::normal;
-        reg.rng            = qmc5883p_ctrl2_reg::rng_t::full_scale_30g;
+        reg.soft_reset = qmc5883p_ctrl2_reg::soft_reset_t::normal;
+        reg.self_test  = qmc5883p_ctrl2_reg::self_test_t::normal;
+        reg.rng        = qmc5883p_ctrl2_reg::rng_t::full_scale_30g;
         reg.set_reset_mode =
             qmc5883p_ctrl2_reg::set_reset_mode_t::set_and_reset_on;
 
