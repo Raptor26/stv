@@ -206,7 +206,7 @@ class qmc5883p: public stv::qmc5883p_i2c, public stv::imag<MagType>
     /// попыток.
     template<typename TDelayFnMs>
     [[nodiscard]] auto wait_data_ready(
-        TDelayFnMs &&delay_ms) -> bool
+        TDelayFnMs delay_ms) -> bool
     {
         for(std::size_t attempt{0}; attempt < max_data_ready_polls; ++attempt)
         {
@@ -215,7 +215,7 @@ class qmc5883p: public stv::qmc5883p_i2c, public stv::imag<MagType>
                 return true;
             }
 
-            std::forward<TDelayFnMs>(delay_ms)(1);
+            delay_ms(1);
         }
 
         return false;
@@ -358,14 +358,13 @@ class qmc5883p: public stv::qmc5883p_i2c, public stv::imag<MagType>
     template<typename TDelayFnMs>
     auto init(
         const stv::qmc5883p_setup &setup, bool is_need_self_test,
-        TDelayFnMs &&delay_ms)
+        TDelayFnMs delay_ms)
     {
         auto is_init_success = init(setup);
 
         if(is_init_success && is_need_self_test)
         {
-            is_init_success =
-                check_self_test(std::forward<TDelayFnMs>(delay_ms));
+            is_init_success = check_self_test(delay_ms);
         }
 
         is_init_success_ = is_init_success;
@@ -387,7 +386,7 @@ class qmc5883p: public stv::qmc5883p_i2c, public stv::imag<MagType>
     /// @return true, если self-test пройден успешно.
     template<typename TDelayFnMs>
     auto check_self_test(
-        TDelayFnMs &&delay_ms)
+        TDelayFnMs delay_ms)
     {
         is_self_test_valid_ = false;
         auto       is_self_test_success{false};
@@ -425,7 +424,7 @@ class qmc5883p: public stv::qmc5883p_i2c, public stv::imag<MagType>
         }
 
         // Задержка 5 мс после включения self-test, требуемая даташитом.
-        std::forward<TDelayFnMs>(delay_ms)(5);
+        delay_ms(5);
 
         // Ожидание завершения измерения с включенным self-test.
         if(!wait_data_ready(delay_ms))
