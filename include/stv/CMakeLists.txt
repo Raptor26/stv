@@ -19,6 +19,7 @@ set(ASAN_SANITIZER_FLAGS
 add_subdirectory(filters)
 add_subdirectory(communication)
 add_subdirectory(containers)
+add_subdirectory(controllers)
 add_subdirectory(drivers)
 
 if(UTEST)
