@@ -8,7 +8,6 @@
 #define STV_DRIVERS_LEGACY_DIALECTS_HPP
 
 #include "stv/gyraccmag_types.hpp"
-#include <string_view>
 
 namespace stv::drivers {
 
@@ -64,9 +63,6 @@ class i_magnetic: public i_magnetic_latest<NormalizeMeasType>
 
     [[nodiscard]] virtual auto freq() const -> float
     { return static_cast<value_type>(0); }
-
-    [[nodiscard]] virtual auto give_name() const -> std::string_view
-    { return {"Unknown"}; }
 
     [[nodiscard]] virtual auto is_self_test_valid() const -> bool
     { return false; }
