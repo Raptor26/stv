@@ -4,6 +4,16 @@
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
+#include <array>
+#include <catch2/catch_test_macros.hpp>
+#include <cstddef>
+#include <cstring>
+#include <etl/queue.h>
+#include <etl/utility.h>
+#include <new>
+#include <string_view>
+#include <utility>
+
 #include "etl/unordered_map.h"
 #include "stv/communication/serial_decorators.hpp"
 #include "stv/communication/serial_parser.hpp"
@@ -11,14 +21,6 @@
 #include "stv/containers/lwrb.hpp"
 #include "stv/containers/simbuff.hpp"
 #include "stv/mutex_guard.hpp"
-#include <catch2/catch_template_test_macros.hpp>
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include <cstring>
-#include <etl/queue.h>
-#include <iterator>
-#include <string_view>
 
 // NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
 // readability-function-cognitive-,

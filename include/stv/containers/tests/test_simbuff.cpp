@@ -4,17 +4,12 @@
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
-#include "stv/containers/lwrb.hpp"
-#include "stv/containers/simbuff.hpp"
 #include <algorithm>
-#include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cstring>
-#include <mutex>
-#include <string>
 #include <string_view>
+
+#include "stv/containers/simbuff.hpp"
 
 TEST_CASE(
     "sumbuff", "[stv]")

@@ -5,16 +5,22 @@
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
-#include "fpm/fixed.hpp"
-#include "stv/filters/moving_average.hpp"
 #include <array>
+#include <cassert>
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include <iostream>
+#include <cstddef>
 #include <memory>
 #include <mutex>
+#include <type_traits>
+#include <utility>
+
+#include "fpm/fixed.hpp"
+#include "stv/filters/moving_average.hpp"
+#include "stv/mutex_guard.hpp"
+#include "stv/wrappers.hpp"
 
 // NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
 // readability-function-cognitive-,

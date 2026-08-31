@@ -4,10 +4,13 @@
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
-#include "stv/drivers/mmc56xx_regs.hpp"
 #include <bitset>
 #include <catch2/catch_test_macros.hpp>
-#include <fakeit.hpp>
+#include <cstdint>
+#include <string>
+
+#include "stv/drivers/mmc56xx_regs.hpp"
+#include "stv/drivers/mmc56xx_types.hpp"
 
 // NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
 // readability-function-cognitive-,

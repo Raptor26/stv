@@ -4,15 +4,17 @@
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
+#include <catch2/catch_test_macros.hpp>
+#include <cstdint>
+#include <fakeit.hpp>
+#include <functional>
+#include <string>
+
 #include "stv/drivers/qma6100.hpp"
 #include "stv/drivers/qma6100_regs.hpp"
+#include "stv/drivers/qma6100_types.hpp"
 #include "stv/gyraccmag_types.hpp"
-#include <catch2/catch_template_test_macros.hpp>
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include <fakeit.hpp>
-#include <type_traits>
+#include "stv/i2c.hpp"
 
 // NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
 // readability-function-cognitive-,

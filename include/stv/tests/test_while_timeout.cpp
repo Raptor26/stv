@@ -4,11 +4,14 @@
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
-#include "stv/runtime.hpp"
-#include "stv/while_timeout.hpp"
 #include <catch2/catch_test_macros.hpp>
 #include <chrono>
+#include <compare>
 #include <fakeit.hpp>
+#include <string>
+
+#include "stv/runtime.hpp"
+#include "stv/while_timeout.hpp"
 
 // NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
 // readability-function-cognitive-,

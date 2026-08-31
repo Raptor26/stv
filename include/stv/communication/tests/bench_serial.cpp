@@ -4,11 +4,14 @@
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
+#include <benchmark/benchmark.h>
+#include <cstdint>
+#include <etl/queue.h>
+
+#include "stv/communication/serial_decorators.hpp"
 #include "stv/communication/serial_sender.hpp"
 #include "stv/containers/simbuff.hpp"
 #include "stv/mutex_guard.hpp"
-#include <benchmark/benchmark.h>
-#include <queue>
 
 namespace bm = benchmark;
 
