@@ -103,17 +103,17 @@ class mmc56xx_status_reg
     void parse(
         mmc56xx_reg_type reg)
     {
-        meas_t_done = (reg & (1U << static_cast<unsigned>(meas_t_done_offset)))
+        meas_t_done = (reg & (std::uint32_t{1} << static_cast<unsigned>(meas_t_done_offset)))
                           ? meas_t_done_t::is_done
                           : meas_t_done_t::not_ready;
-        meas_m_done = (reg & (1U << static_cast<unsigned>(meas_m_done_offset)))
+        meas_m_done = (reg & (std::uint32_t{1} << static_cast<unsigned>(meas_m_done_offset)))
                           ? meas_m_done_t::is_done
                           : meas_m_done_t::not_ready;
-        sat_sensor  = (reg & (1U << static_cast<unsigned>(sat_sensor_offset)))
+        sat_sensor  = (reg & (std::uint32_t{1} << static_cast<unsigned>(sat_sensor_offset)))
                           ? sat_sensor_t::fail_
                           : sat_sensor_t::pass_;
         otp_read_done =
-            (reg & (1U << static_cast<unsigned>(otp_read_done_offset)))
+            (reg & (std::uint32_t{1} << static_cast<unsigned>(otp_read_done_offset)))
                 ? otp_read_done_t::success
                 : otp_read_done_t::error;
     }
@@ -270,25 +270,25 @@ class mmc56xx_ctrl0_reg
     void parse(
         mmc56xx_reg_type reg)
     {
-        cmm_freq_en = (reg & (1U << static_cast<unsigned>(cmm_freq_en_offset)))
+        cmm_freq_en = (reg & (std::uint32_t{1} << static_cast<unsigned>(cmm_freq_en_offset)))
                           ? cmm_freq_en_t::set
                           : cmm_freq_en_t::reset;
-        auto_st_en  = (reg & (1U << static_cast<unsigned>(auto_st_en_offset)))
+        auto_st_en  = (reg & (std::uint32_t{1} << static_cast<unsigned>(auto_st_en_offset)))
                           ? auto_st_en_t::enable
                           : auto_st_en_t::disable;
-        auto_sr_en  = (reg & (1U << static_cast<unsigned>(auto_sr_en_offset)))
+        auto_sr_en  = (reg & (std::uint32_t{1} << static_cast<unsigned>(auto_sr_en_offset)))
                           ? auto_sr_en_t::set
                           : auto_sr_en_t::reset;
-        do_reset    = (reg & (1U << static_cast<unsigned>(do_reset_offset)))
+        do_reset    = (reg & (std::uint32_t{1} << static_cast<unsigned>(do_reset_offset)))
                           ? do_reset_t::set
                           : do_reset_t::reset;
-        do_set      = (reg & (1U << static_cast<unsigned>(do_set_offset)))
+        do_set      = (reg & (std::uint32_t{1} << static_cast<unsigned>(do_set_offset)))
                           ? do_set_t::set
                           : do_set_t::reset;
-        take_meas_t = (reg & (1U << static_cast<unsigned>(take_meas_t_offset)))
+        take_meas_t = (reg & (std::uint32_t{1} << static_cast<unsigned>(take_meas_t_offset)))
                           ? take_meas_t_t::enable
                           : take_meas_t_t::disable;
-        take_meas_m = (reg & (1U << static_cast<unsigned>(take_meas_m_offset)))
+        take_meas_m = (reg & (std::uint32_t{1} << static_cast<unsigned>(take_meas_m_offset)))
                           ? take_meas_m_t::enable
                           : take_meas_m_t::disable;
     }
@@ -400,22 +400,22 @@ class mmc56xx_ctrl1_reg
     void parse(
         mmc56xx_reg_type reg)
     {
-        sw_reset  = (reg & (1U << static_cast<unsigned>(sw_reset_offset)))
+        sw_reset  = (reg & (std::uint32_t{1} << static_cast<unsigned>(sw_reset_offset)))
                         ? sw_reset_t::enable
                         : sw_reset_t::disable;
-        st_enm    = (reg & (1U << static_cast<unsigned>(st_enm_offset)))
+        st_enm    = (reg & (std::uint32_t{1} << static_cast<unsigned>(st_enm_offset)))
                         ? st_enm_t::enable
                         : st_enm_t::disable;
-        st_enp    = (reg & (1U << static_cast<unsigned>(st_enp_offset)))
+        st_enp    = (reg & (std::uint32_t{1} << static_cast<unsigned>(st_enp_offset)))
                         ? st_enp_t::enable
                         : st_enp_t::disable;
-        z_inhibit = (reg & (1U << static_cast<unsigned>(z_inhibit_offset)))
+        z_inhibit = (reg & (std::uint32_t{1} << static_cast<unsigned>(z_inhibit_offset)))
                         ? axis_inhibit_t::disable
                         : axis_inhibit_t::enable;
-        y_inhibit = (reg & (1U << static_cast<unsigned>(y_inhibit_offset)))
+        y_inhibit = (reg & (std::uint32_t{1} << static_cast<unsigned>(y_inhibit_offset)))
                         ? axis_inhibit_t::disable
                         : axis_inhibit_t::enable;
-        x_inhibit = (reg & (1U << static_cast<unsigned>(x_inhibit_offset)))
+        x_inhibit = (reg & (std::uint32_t{1} << static_cast<unsigned>(x_inhibit_offset)))
                         ? axis_inhibit_t::disable
                         : axis_inhibit_t::enable;
         constexpr mmc56xx_reg_type bw_mask{0x03};
@@ -507,13 +507,13 @@ class mmc56xx_ctrl2_reg
     void parse(
         mmc56xx_reg_type reg)
     {
-        hpower     = (reg & (1U << static_cast<unsigned>(hpower_offset)))
+        hpower     = (reg & (std::uint32_t{1} << static_cast<unsigned>(hpower_offset)))
                          ? hpower_t::achieve_1000_hz
                          : hpower_t::disable;
-        cmm_en     = (reg & (1U << static_cast<unsigned>(cmm_en_offset)))
+        cmm_en     = (reg & (std::uint32_t{1} << static_cast<unsigned>(cmm_en_offset)))
                          ? cmm_en_t::enable
                          : cmm_en_t::disable;
-        en_prd_set = (reg & (1U << static_cast<unsigned>(en_prd_set_offset)))
+        en_prd_set = (reg & (std::uint32_t{1} << static_cast<unsigned>(en_prd_set_offset)))
                          ? en_prd_set_t::enable
                          : en_prd_set_t::disable;
         constexpr mmc56xx_reg_type prd_set_mask{0x07};

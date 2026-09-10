@@ -147,20 +147,20 @@ class mmc3630kj_status_reg
     void parse(
         mmc3630kj_reg_type reg)
     {
-        otp_rd_done = (reg & (1U << static_cast<unsigned>(otp_rd_done_offset)))
+        otp_rd_done = (reg & (std::uint32_t{1} << static_cast<unsigned>(otp_rd_done_offset)))
                           ? otp_rd_done_t::able_to_read
                           : otp_rd_done_t::not_able_to_read;
-        pump_on     = (reg & (1U << static_cast<unsigned>(pump_on_offset)))
+        pump_on     = (reg & (std::uint32_t{1} << static_cast<unsigned>(pump_on_offset)))
                           ? pump_on_t::charge_pump_active
                           : pump_on_t::charge_pump_complete;
         motion_detect =
-            (reg & (1U << static_cast<unsigned>(motion_detect_offset)))
+            (reg & (std::uint32_t{1} << static_cast<unsigned>(motion_detect_offset)))
                 ? motion_detected_t::motion_detect
                 : motion_detected_t::no_motion;
-        meas_t_done = (reg & (1U << static_cast<unsigned>(meas_t_done_offset)))
+        meas_t_done = (reg & (std::uint32_t{1} << static_cast<unsigned>(meas_t_done_offset)))
                           ? meas_t_done_t::finished
                           : meas_t_done_t::not_ready;
-        meas_m_done = (reg & (1U << static_cast<unsigned>(meas_m_done_offset)))
+        meas_m_done = (reg & (std::uint32_t{1} << static_cast<unsigned>(meas_m_done_offset)))
                           ? meas_m_done_t::finished
                           : meas_m_done_t::not_ready;
     }
@@ -358,25 +358,25 @@ class mmc3630kj_ctrl0_reg
     void parse(
         mmc3630kj_reg_type reg)
     {
-        otr_read   = (reg & (1U << static_cast<unsigned>(otr_read_offset)))
+        otr_read   = (reg & (std::uint32_t{1} << static_cast<unsigned>(otr_read_offset)))
                          ? otp_read_t::let_device_to_read_otp_data_again
                          : otp_read_t::reset;
-        refill_cap = (reg & (1U << static_cast<unsigned>(refill_cap_offset)))
+        refill_cap = (reg & (std::uint32_t{1} << static_cast<unsigned>(refill_cap_offset)))
                          ? refill_cap_t::request_recharge_capacity
                          : refill_cap_t::reset;
-        reset      = (reg & (1U << static_cast<unsigned>(reset_offset)))
+        reset      = (reg & (std::uint32_t{1} << static_cast<unsigned>(reset_offset)))
                          ? reset_t::enable
                          : reset_t::disable;
-        set        = (reg & (1U << static_cast<unsigned>(set_offset)))
+        set        = (reg & (std::uint32_t{1} << static_cast<unsigned>(set_offset)))
                          ? set_t::enable
                          : set_t::disable;
-        start_mdt  = (reg & (1U << static_cast<unsigned>(start_mdt_offset)))
+        start_mdt  = (reg & (std::uint32_t{1} << static_cast<unsigned>(start_mdt_offset)))
                          ? start_mdt_t::enable
                          : start_mdt_t::disable_or_motion_is_detect;
-        tm_t       = (reg & (1U << static_cast<unsigned>(tm_t_offset)))
+        tm_t       = (reg & (std::uint32_t{1} << static_cast<unsigned>(tm_t_offset)))
                          ? tm_t_t::initiate_measurement
                          : tm_t_t::reset;
-        tm_m       = (reg & (1U << static_cast<unsigned>(tm_m_offset)))
+        tm_m       = (reg & (std::uint32_t{1} << static_cast<unsigned>(tm_m_offset)))
                          ? tm_m_t::initiate_measurement
                          : tm_m_t::reset;
     }

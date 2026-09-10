@@ -211,7 +211,7 @@ class qma6100_fsr_reg
         qma6100_reg_type reg)
     {
         constexpr qma6100_reg_type range_mask{0x0F};
-        const auto raw_value = (reg >> range_offset) & range_mask;
+        const auto raw_value = (reg >> static_cast<unsigned>(range_offset)) & range_mask;
 
         // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
         switch(static_cast<decltype(range)>(raw_value))
