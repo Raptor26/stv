@@ -9,11 +9,11 @@
 
 #include "mmc56xx_i2c.hpp"
 #include "mmc56xx_regs.hpp"
+#include "stv/drivers/sample_validity.hpp"
 #include "stv/gyraccmag_types.hpp"
 #include "stv/utils.hpp"
 #include <array>
 #include <cstdint>
-#include <limits>
 
 namespace stv {
 
@@ -73,32 +73,15 @@ class mmc56xx: public stv::mmc56xx_i2c, public stv::imag<MagType>
                 is_data_valid = false;
             }
 
-            if(is_data_valid)
+            if(is_data_valid && !stv::are_axes_valid(x, y, z))
             {
-                if(!is_axis_valid(x) || !is_axis_valid(y) || !is_axis_valid(z))
-                {
-                    is_data_valid = false;
-                }
+                is_data_valid = false;
             }
 
             return is_data_valid;
         }
 
       private:
-        [[nodiscard]] static auto is_axis_valid(
-            std::int32_t axis) -> bool
-        {
-            auto is_axis_valid{true};
-
-            if((axis == std::numeric_limits<std::int32_t>::max())
-               || (axis == std::numeric_limits<std::int32_t>::min()))
-            {
-                is_axis_valid = false;
-            }
-
-            return is_axis_valid;
-        }
-
         [[nodiscard]] auto is_default() const -> bool
         { return (x == 0) && (y == 0) && (z == 0); }
     };

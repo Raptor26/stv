@@ -989,13 +989,13 @@ class qma6100_st_reg
     {
         {
             constexpr qma6100_reg_type selftest_mask{0x80};
-            selftest_bit = static_cast<selftest_bit_t>(
-                (reg >> selftest_bit_offset) & selftest_mask);
+            selftest_bit = extract_field<decltype(selftest_bit)>(
+                reg, selftest_bit_offset, selftest_mask);
         }
         {
             constexpr qma6100_reg_type selftest_sign_mask{0x04};
-            selftest_sign = static_cast<selftest_sign_t>(
-                (reg >> selftest_sing_offset) & selftest_sign_mask);
+            selftest_sign = extract_field<decltype(selftest_sign)>(
+                reg, selftest_sing_offset, selftest_sign_mask);
         }
     }
 };
