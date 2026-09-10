@@ -8,6 +8,7 @@
 #define QMA6100_REGS_HPP
 
 #include "qma6100_types.hpp"
+#include "stv/register_field.hpp"
 #include <cstddef>
 #include <cstdint>
 
@@ -55,11 +56,8 @@ class qma6100_bw_reg
     /// @return 8-битное значение регистра, собранное из полей.
     explicit operator qma6100_reg_type() const
     {
-        return static_cast<qma6100_reg_type>(
-            (static_cast<std::uint32_t>(nlpf)
-             << static_cast<unsigned>(nlpf_offset))
-            | (static_cast<std::uint32_t>(bw)
-               << static_cast<unsigned>(bw_offset)));
+        return static_cast<qma6100_reg_type>(field_to_raw(nlpf, nlpf_offset)
+                                             | field_to_raw(bw, bw_offset));
     }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
@@ -131,10 +129,10 @@ class qma6100_bw_reg
         qma6100_reg_type reg)
     {
         constexpr qma6100_reg_type bw_mask{0x1F};
-        bw = static_cast<decltype(bw)>((reg >> bw_offset) & bw_mask);
+        bw = extract_field<decltype(bw)>(reg, bw_offset, bw_mask);
 
         constexpr qma6100_reg_type nlpf_mask{0x03};
-        nlpf = static_cast<decltype(nlpf)>((reg >> nlpf_offset) & nlpf_mask);
+        nlpf = extract_field<decltype(nlpf)>(reg, nlpf_offset, nlpf_mask);
     }
 };
 
@@ -166,10 +164,7 @@ class qma6100_fsr_reg
     /// готовое для записи в регистр устройства.
     /// @return 8-битное значение регистра, содержащее настройку диапазона.
     explicit operator std::byte() const
-    {
-        return static_cast<std::byte>(
-            (static_cast<std::byte>(range) << range_offset));
-    }
+    { return static_cast<std::byte>(field_to_raw(range, range_offset)); }
 
     // -------------------------------------------------------------------------
 
@@ -211,7 +206,7 @@ class qma6100_fsr_reg
         qma6100_reg_type reg)
     {
         constexpr qma6100_reg_type range_mask{0x0F};
-        const auto raw_value = (reg >> static_cast<unsigned>(range_offset)) & range_mask;
+        const auto raw_value = field_raw(reg, range_offset, range_mask);
 
         // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
         switch(static_cast<decltype(range)>(raw_value))
@@ -272,12 +267,9 @@ class qma6100_int_en1_reg
     explicit operator qma6100_reg_type() const
     {
         return static_cast<qma6100_reg_type>(
-            (static_cast<std::uint32_t>(int_fwm_en)
-             << static_cast<unsigned>(int_fwm_en_offset))
-            | (static_cast<std::uint32_t>(int_ffull_en)
-               << static_cast<unsigned>(int_ffull_en_offset))
-            | (static_cast<std::uint32_t>(int_data_en)
-               << static_cast<unsigned>(int_data_en_offset)));
+            field_to_raw(int_fwm_en, int_fwm_en_offset)
+            | field_to_raw(int_ffull_en, int_ffull_en_offset)
+            | field_to_raw(int_data_en, int_data_en_offset));
     }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
@@ -320,20 +312,20 @@ class qma6100_int_en1_reg
     {
         {
             constexpr qma6100_reg_type int_fwm_en_mask{0x01};
-            int_fwm_en = static_cast<decltype(int_fwm_en)>(
-                (reg >> int_fwm_en_offset) & int_fwm_en_mask);
+            int_fwm_en = extract_field<decltype(int_fwm_en)>(
+                reg, int_fwm_en_offset, int_fwm_en_mask);
         }
 
         {
             constexpr qma6100_reg_type iint_ffull_en_mask{0x01};
-            int_ffull_en = static_cast<decltype(int_ffull_en)>(
-                (reg >> int_ffull_en_offset) & iint_ffull_en_mask);
+            int_ffull_en = extract_field<decltype(int_ffull_en)>(
+                reg, int_ffull_en_offset, iint_ffull_en_mask);
         }
 
         {
             constexpr qma6100_reg_type int_data_en_mask{0x01};
-            int_data_en = static_cast<decltype(int_data_en)>(
-                (reg >> int_data_en_offset) & int_data_en_mask);
+            int_data_en = extract_field<decltype(int_data_en)>(
+                reg, int_data_en_offset, int_data_en_mask);
         }
     }
 };
@@ -367,10 +359,8 @@ class qma6100_int_map1_reg
     explicit operator qma6100_reg_type() const
     {
         return static_cast<qma6100_reg_type>(
-            (static_cast<std::uint32_t>(int1_no_mot)
-             << static_cast<unsigned>(int1_no_mot_offset))
-            | (static_cast<std::uint32_t>(int1_any_mot)
-               << static_cast<unsigned>(int1_any_mot_offset)));
+            field_to_raw(int1_no_mot, int1_no_mot_offset)
+            | field_to_raw(int1_any_mot, int1_any_mot_offset));
     }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
@@ -409,14 +399,14 @@ class qma6100_int_map1_reg
     {
         {
             constexpr qma6100_reg_type int1_no_mot_mask{0x01};
-            int1_no_mot = static_cast<decltype(int1_no_mot)>(
-                (reg >> int1_no_mot_offset) & int1_no_mot_mask);
+            int1_no_mot = extract_field<decltype(int1_no_mot)>(
+                reg, int1_no_mot_offset, int1_no_mot_mask);
         }
 
         {
             constexpr qma6100_reg_type int1_any_mot_mask{0x01};
-            int1_any_mot = static_cast<decltype(int1_any_mot)>(
-                (reg >> int1_any_mot_offset) & int1_any_mot_mask);
+            int1_any_mot = extract_field<decltype(int1_any_mot)>(
+                reg, int1_any_mot_offset, int1_any_mot_mask);
         }
     }
 };
@@ -462,10 +452,8 @@ class qma6100_int_map3_reg
     explicit operator qma6100_reg_type() const
     {
         return static_cast<qma6100_reg_type>(
-            (static_cast<std::uint32_t>(int2_no_mot)
-             << static_cast<unsigned>(int2_no_mot_offset))
-            | (static_cast<std::uint32_t>(int2_any_mot)
-               << static_cast<unsigned>(int2_any_mot_offset)));
+            field_to_raw(int2_no_mot, int2_no_mot_offset)
+            | field_to_raw(int2_any_mot, int2_any_mot_offset));
     }
 
     /// @brief Перечисление для управления состоянием маппинга прерывания на
@@ -493,14 +481,14 @@ class qma6100_int_map3_reg
     {
         {
             constexpr qma6100_reg_type int2_no_mot_mask{0x01};
-            int2_no_mot = static_cast<decltype(int2_no_mot)>(
-                (reg >> int2_no_mot_offset) & int2_no_mot_mask);
+            int2_no_mot = extract_field<decltype(int2_no_mot)>(
+                reg, int2_no_mot_offset, int2_no_mot_mask);
         }
 
         {
             constexpr qma6100_reg_type int2_any_mot_mask{0x01};
-            int2_any_mot = static_cast<decltype(int2_any_mot)>(
-                (reg >> int2_any_mot_offset) & int2_any_mot_mask);
+            int2_any_mot = extract_field<decltype(int2_any_mot)>(
+                reg, int2_any_mot_offset, int2_any_mot_mask);
         }
     }
 };
@@ -551,20 +539,13 @@ class qma6100_intpin_conf_reg
     explicit operator qma6100_reg_type() const
     {
         return static_cast<qma6100_reg_type>(
-            (static_cast<std::uint32_t>(dis_pu_senb)
-             << static_cast<unsigned>(dis_pu_senb_offset))
-            | (static_cast<std::uint32_t>(dis_ie_ad0)
-               << static_cast<unsigned>(dis_ie_ad0_offset))
-            | (static_cast<std::uint32_t>(en_spi3w)
-               << static_cast<unsigned>(en_spi3w_offset))
-            | (static_cast<std::uint32_t>(int2_od)
-               << static_cast<unsigned>(int2_od_offset))
-            | (static_cast<std::uint32_t>(int2_lvl)
-               << static_cast<unsigned>(int2_lvl_offset))
-            | (static_cast<std::uint32_t>(int1_od)
-               << static_cast<unsigned>(int1_od_offset))
-            | (static_cast<std::uint32_t>(int1_lvl)
-               << static_cast<unsigned>(int1_lvl_offset)));
+            field_to_raw(dis_pu_senb, dis_pu_senb_offset)
+            | field_to_raw(dis_ie_ad0, dis_ie_ad0_offset)
+            | field_to_raw(en_spi3w, en_spi3w_offset)
+            | field_to_raw(int2_od, int2_od_offset)
+            | field_to_raw(int2_lvl, int2_lvl_offset)
+            | field_to_raw(int1_od, int1_od_offset)
+            | field_to_raw(int1_lvl, int1_lvl_offset));
     }
 
     /// @brief Перечисление для управления внутренней подтяжкой вывода PIN_SENB.
@@ -650,44 +631,44 @@ class qma6100_intpin_conf_reg
     {
         {
             constexpr qma6100_reg_type idis_pu_senb_mask{0x01};
-            dis_pu_senb = static_cast<decltype(dis_pu_senb)>(
-                (reg >> dis_pu_senb_offset) & idis_pu_senb_mask);
+            dis_pu_senb = extract_field<decltype(dis_pu_senb)>(
+                reg, dis_pu_senb_offset, idis_pu_senb_mask);
         }
 
         {
             constexpr qma6100_reg_type dis_ie_ad0_mask{0x01};
-            dis_ie_ad0 = static_cast<decltype(dis_ie_ad0)>(
-                (reg >> dis_ie_ad0_offset) & dis_ie_ad0_mask);
+            dis_ie_ad0 = extract_field<decltype(dis_ie_ad0)>(
+                reg, dis_ie_ad0_offset, dis_ie_ad0_mask);
         }
 
         {
             constexpr qma6100_reg_type en_spi3w_mask{0x01};
-            en_spi3w = static_cast<decltype(en_spi3w)>((reg >> en_spi3w_offset)
-                                                       & en_spi3w_mask);
+            en_spi3w = extract_field<decltype(en_spi3w)>(reg, en_spi3w_offset,
+                                                         en_spi3w_mask);
         }
 
         {
             constexpr qma6100_reg_type int2_od_mask{0x01};
-            int2_od = static_cast<decltype(int2_od)>((reg >> int2_od_offset)
-                                                     & int2_od_mask);
+            int2_od = extract_field<decltype(int2_od)>(reg, int2_od_offset,
+                                                       int2_od_mask);
         }
 
         {
             constexpr qma6100_reg_type int2_lvl_mask{0x01};
-            int2_lvl = static_cast<decltype(int2_lvl)>((reg >> int2_lvl_offset)
-                                                       & int2_lvl_mask);
+            int2_lvl = extract_field<decltype(int2_lvl)>(reg, int2_lvl_offset,
+                                                         int2_lvl_mask);
         }
 
         {
             constexpr qma6100_reg_type int1_od_mask{0x01};
-            int1_od = static_cast<decltype(int1_od)>((reg >> int1_od_offset)
-                                                     & int1_od_mask);
+            int1_od = extract_field<decltype(int1_od)>(reg, int1_od_offset,
+                                                       int1_od_mask);
         }
 
         {
             constexpr qma6100_reg_type int1_lvl_mask{0x01};
-            int1_lvl = static_cast<decltype(int1_lvl)>((reg >> int1_lvl_offset)
-                                                       & int1_lvl_mask);
+            int1_lvl = extract_field<decltype(int1_lvl)>(reg, int1_lvl_offset,
+                                                         int1_lvl_mask);
         }
     }
 };
@@ -735,16 +716,11 @@ class qma6100_int_cfg_reg
     explicit operator qma6100_reg_type() const
     {
         return static_cast<qma6100_reg_type>(
-            (static_cast<std::uint32_t>(int_rd_clr)
-             << static_cast<unsigned>(int_rd_clr_offset))
-            | (static_cast<std::uint32_t>(shadow_dis)
-               << static_cast<unsigned>(shadow_dis_offset))
-            | (static_cast<std::uint32_t>(dis_i2c)
-               << static_cast<unsigned>(dis_i2c_offset))
-            | (static_cast<std::uint32_t>(latch_int_step)
-               << static_cast<unsigned>(latch_int_step_offset))
-            | (static_cast<std::uint32_t>(latch_int)
-               << static_cast<unsigned>(latch_int_offset)));
+            field_to_raw(int_rd_clr, int_rd_clr_offset)
+            | field_to_raw(shadow_dis, shadow_dis_offset)
+            | field_to_raw(dis_i2c, dis_i2c_offset)
+            | field_to_raw(latch_int_step, latch_int_step_offset)
+            | field_to_raw(latch_int, latch_int_offset));
     }
 
     /// @brief Перечисление для политики очистки флагов прерываний при чтении.
@@ -852,32 +828,32 @@ class qma6100_int_cfg_reg
     {
         {
             constexpr qma6100_reg_type int_rd_clr_mask{0x01};
-            int_rd_clr = static_cast<decltype(int_rd_clr)>(
-                (reg >> int_rd_clr_offset) & int_rd_clr_mask);
+            int_rd_clr = extract_field<decltype(int_rd_clr)>(
+                reg, int_rd_clr_offset, int_rd_clr_mask);
         }
 
         {
             constexpr qma6100_reg_type shadow_dis_mask{0x01};
-            shadow_dis = static_cast<decltype(shadow_dis)>(
-                (reg >> shadow_dis_offset) & shadow_dis_mask);
+            shadow_dis = extract_field<decltype(shadow_dis)>(
+                reg, shadow_dis_offset, shadow_dis_mask);
         }
 
         {
             constexpr qma6100_reg_type dis_i2c_mask{0x01};
-            dis_i2c = static_cast<decltype(dis_i2c)>((reg >> dis_i2c_offset)
-                                                     & dis_i2c_mask);
+            dis_i2c = extract_field<decltype(dis_i2c)>(reg, dis_i2c_offset,
+                                                       dis_i2c_mask);
         }
 
         {
             constexpr qma6100_reg_type latch_int_step_mask{0x01};
-            latch_int_step = static_cast<decltype(latch_int_step)>(
-                (reg >> latch_int_step_offset) & latch_int_step_mask);
+            latch_int_step = extract_field<decltype(latch_int_step)>(
+                reg, latch_int_step_offset, latch_int_step_mask);
         }
 
         {
             constexpr qma6100_reg_type latch_int_mask{0x01};
-            latch_int = static_cast<decltype(latch_int)>(
-                (reg >> latch_int_offset) & latch_int_mask);
+            latch_int = extract_field<decltype(latch_int)>(
+                reg, latch_int_offset, latch_int_mask);
         }
     }
 };
@@ -896,12 +872,9 @@ class qma6100_pm_reg
     explicit operator qma6100_reg_type() const
     {
         return static_cast<qma6100_reg_type>(
-            (static_cast<std::uint32_t>(mode_bit)
-             << static_cast<unsigned>(mode_bit_offset))
-            | (static_cast<std::uint32_t>(t_rstb_sinc_sel)
-               << static_cast<unsigned>(t_rstb_sinc_sel_offset))
-            | (static_cast<std::uint32_t>(mclk_sel)
-               << static_cast<unsigned>(mclk_sel_offset)));
+            field_to_raw(mode_bit, mode_bit_offset)
+            | field_to_raw(t_rstb_sinc_sel, t_rstb_sinc_sel_offset)
+            | field_to_raw(mclk_sel, mclk_sel_offset));
     }
 
     explicit qma6100_pm_reg(
@@ -959,20 +932,20 @@ class qma6100_pm_reg
     {
         {
             constexpr qma6100_reg_type mode_bit_mask{0x01};
-            mode_bit = static_cast<decltype(mode_bit)>((reg >> mode_bit_offset)
-                                                       & mode_bit_mask);
+            mode_bit = extract_field<decltype(mode_bit)>(reg, mode_bit_offset,
+                                                         mode_bit_mask);
         }
 
         {
             constexpr qma6100_reg_type t_rstb_sinc_mask{0x03};
-            t_rstb_sinc_sel = static_cast<decltype(t_rstb_sinc_sel)>(
-                (reg >> t_rstb_sinc_sel_offset) & t_rstb_sinc_mask);
+            t_rstb_sinc_sel = extract_field<decltype(t_rstb_sinc_sel)>(
+                reg, t_rstb_sinc_sel_offset, t_rstb_sinc_mask);
         }
 
         {
             constexpr qma6100_reg_type mclk_sel_mask{0x0F};
-            mclk_sel = static_cast<decltype(mclk_sel)>((reg >> mclk_sel_offset)
-                                                       & mclk_sel_mask);
+            mclk_sel = extract_field<decltype(mclk_sel)>(reg, mclk_sel_offset,
+                                                         mclk_sel_mask);
         }
     }
 };
@@ -1006,10 +979,8 @@ class qma6100_st_reg
     explicit operator stv::qma6100_reg_type() const
     {
         return static_cast<stv::qma6100_reg_type>(
-            (static_cast<std::uint32_t>(selftest_bit)
-             << static_cast<unsigned>(selftest_bit_offset))
-            | (static_cast<std::uint32_t>(selftest_sign)
-               << static_cast<unsigned>(selftest_sing_offset)));
+            field_to_raw(selftest_bit, selftest_bit_offset)
+            | field_to_raw(selftest_sign, selftest_sing_offset));
     }
 
   private:

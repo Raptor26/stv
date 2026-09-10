@@ -8,6 +8,7 @@
 #define MMC56XX_REGS_HPP
 
 #include "mmc56xx_types.hpp"
+#include "stv/register_field.hpp"
 #include <cstdint>
 
 namespace stv {
@@ -35,14 +36,10 @@ class mmc56xx_status_reg
     explicit operator mmc56xx_reg_type() const
     {
         return static_cast<mmc56xx_reg_type>(
-            (static_cast<std::uint32_t>(meas_t_done)
-             << static_cast<unsigned>(meas_t_done_offset))
-            | (static_cast<std::uint32_t>(meas_m_done)
-               << static_cast<unsigned>(meas_m_done_offset))
-            | (static_cast<std::uint32_t>(sat_sensor)
-               << static_cast<unsigned>(sat_sensor_offset))
-            | (static_cast<std::uint32_t>(otp_read_done)
-               << static_cast<unsigned>(otp_read_done_offset)));
+            field_to_raw(meas_t_done, meas_t_done_offset)
+            | field_to_raw(meas_m_done, meas_m_done_offset)
+            | field_to_raw(sat_sensor, sat_sensor_offset)
+            | field_to_raw(otp_read_done, otp_read_done_offset));
     }
 
     /// @brief Оператор присваивания, обновляющий значение регистра.
@@ -103,19 +100,17 @@ class mmc56xx_status_reg
     void parse(
         mmc56xx_reg_type reg)
     {
-        meas_t_done = (reg & (std::uint32_t{1} << static_cast<unsigned>(meas_t_done_offset)))
-                          ? meas_t_done_t::is_done
-                          : meas_t_done_t::not_ready;
-        meas_m_done = (reg & (std::uint32_t{1} << static_cast<unsigned>(meas_m_done_offset)))
-                          ? meas_m_done_t::is_done
-                          : meas_m_done_t::not_ready;
-        sat_sensor  = (reg & (std::uint32_t{1} << static_cast<unsigned>(sat_sensor_offset)))
-                          ? sat_sensor_t::fail_
-                          : sat_sensor_t::pass_;
+        meas_t_done =
+            parse_flag(reg, meas_t_done_offset, meas_t_done_t::is_done,
+                       meas_t_done_t::not_ready);
+        meas_m_done =
+            parse_flag(reg, meas_m_done_offset, meas_m_done_t::is_done,
+                       meas_m_done_t::not_ready);
+        sat_sensor = parse_flag(reg, sat_sensor_offset, sat_sensor_t::fail_,
+                                sat_sensor_t::pass_);
         otp_read_done =
-            (reg & (std::uint32_t{1} << static_cast<unsigned>(otp_read_done_offset)))
-                ? otp_read_done_t::success
-                : otp_read_done_t::error;
+            parse_flag(reg, otp_read_done_offset, otp_read_done_t::success,
+                       otp_read_done_t::error);
     }
 };
 
@@ -178,20 +173,13 @@ class mmc56xx_ctrl0_reg
     explicit operator mmc56xx_reg_type() const
     {
         return static_cast<mmc56xx_reg_type>(
-            (static_cast<std::uint32_t>(cmm_freq_en)
-             << static_cast<unsigned>(cmm_freq_en_offset))
-            | (static_cast<std::uint32_t>(auto_st_en)
-               << static_cast<unsigned>(auto_st_en_offset))
-            | (static_cast<std::uint32_t>(auto_sr_en)
-               << static_cast<unsigned>(auto_sr_en_offset))
-            | (static_cast<std::uint32_t>(do_reset)
-               << static_cast<unsigned>(do_reset_offset))
-            | (static_cast<std::uint32_t>(do_set)
-               << static_cast<unsigned>(do_set_offset))
-            | (static_cast<std::uint32_t>(take_meas_t)
-               << static_cast<unsigned>(take_meas_t_offset))
-            | (static_cast<std::uint32_t>(take_meas_m)
-               << static_cast<unsigned>(take_meas_m_offset)));
+            field_to_raw(cmm_freq_en, cmm_freq_en_offset)
+            | field_to_raw(auto_st_en, auto_st_en_offset)
+            | field_to_raw(auto_sr_en, auto_sr_en_offset)
+            | field_to_raw(do_reset, do_reset_offset)
+            | field_to_raw(do_set, do_set_offset)
+            | field_to_raw(take_meas_t, take_meas_t_offset)
+            | field_to_raw(take_meas_m, take_meas_m_offset));
     }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
@@ -270,27 +258,19 @@ class mmc56xx_ctrl0_reg
     void parse(
         mmc56xx_reg_type reg)
     {
-        cmm_freq_en = (reg & (std::uint32_t{1} << static_cast<unsigned>(cmm_freq_en_offset)))
-                          ? cmm_freq_en_t::set
-                          : cmm_freq_en_t::reset;
-        auto_st_en  = (reg & (std::uint32_t{1} << static_cast<unsigned>(auto_st_en_offset)))
-                          ? auto_st_en_t::enable
-                          : auto_st_en_t::disable;
-        auto_sr_en  = (reg & (std::uint32_t{1} << static_cast<unsigned>(auto_sr_en_offset)))
-                          ? auto_sr_en_t::set
-                          : auto_sr_en_t::reset;
-        do_reset    = (reg & (std::uint32_t{1} << static_cast<unsigned>(do_reset_offset)))
-                          ? do_reset_t::set
-                          : do_reset_t::reset;
-        do_set      = (reg & (std::uint32_t{1} << static_cast<unsigned>(do_set_offset)))
-                          ? do_set_t::set
-                          : do_set_t::reset;
-        take_meas_t = (reg & (std::uint32_t{1} << static_cast<unsigned>(take_meas_t_offset)))
-                          ? take_meas_t_t::enable
-                          : take_meas_t_t::disable;
-        take_meas_m = (reg & (std::uint32_t{1} << static_cast<unsigned>(take_meas_m_offset)))
-                          ? take_meas_m_t::enable
-                          : take_meas_m_t::disable;
+        cmm_freq_en = parse_flag(reg, cmm_freq_en_offset, cmm_freq_en_t::set,
+                                 cmm_freq_en_t::reset);
+        auto_st_en  = parse_flag(reg, auto_st_en_offset, auto_st_en_t::enable,
+                                 auto_st_en_t::disable);
+        auto_sr_en  = parse_flag(reg, auto_sr_en_offset, auto_sr_en_t::set,
+                                 auto_sr_en_t::reset);
+        do_reset    = parse_flag(reg, do_reset_offset, do_reset_t::set,
+                                 do_reset_t::reset);
+        do_set = parse_flag(reg, do_set_offset, do_set_t::set, do_set_t::reset);
+        take_meas_t = parse_flag(reg, take_meas_t_offset, take_meas_t_t::enable,
+                                 take_meas_t_t::disable);
+        take_meas_m = parse_flag(reg, take_meas_m_offset, take_meas_m_t::enable,
+                                 take_meas_m_t::disable);
     }
 };
 
@@ -317,20 +297,13 @@ class mmc56xx_ctrl1_reg
     explicit operator mmc56xx_reg_type() const
     {
         return static_cast<mmc56xx_reg_type>(
-            (static_cast<std::uint32_t>(sw_reset)
-             << static_cast<unsigned>(sw_reset_offset))
-            | (static_cast<std::uint32_t>(st_enm)
-               << static_cast<unsigned>(st_enm_offset))
-            | (static_cast<std::uint32_t>(st_enp)
-               << static_cast<unsigned>(st_enp_offset))
-            | (static_cast<std::uint32_t>(z_inhibit)
-               << static_cast<unsigned>(z_inhibit_offset))
-            | (static_cast<std::uint32_t>(y_inhibit)
-               << static_cast<unsigned>(y_inhibit_offset))
-            | (static_cast<std::uint32_t>(x_inhibit)
-               << static_cast<unsigned>(x_inhibit_offset))
-            | (static_cast<std::uint32_t>(bw)
-               << static_cast<unsigned>(bw_offset)));
+            field_to_raw(sw_reset, sw_reset_offset)
+            | field_to_raw(st_enm, st_enm_offset)
+            | field_to_raw(st_enp, st_enp_offset)
+            | field_to_raw(z_inhibit, z_inhibit_offset)
+            | field_to_raw(y_inhibit, y_inhibit_offset)
+            | field_to_raw(x_inhibit, x_inhibit_offset)
+            | field_to_raw(bw, bw_offset));
     }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
@@ -400,26 +373,20 @@ class mmc56xx_ctrl1_reg
     void parse(
         mmc56xx_reg_type reg)
     {
-        sw_reset  = (reg & (std::uint32_t{1} << static_cast<unsigned>(sw_reset_offset)))
-                        ? sw_reset_t::enable
-                        : sw_reset_t::disable;
-        st_enm    = (reg & (std::uint32_t{1} << static_cast<unsigned>(st_enm_offset)))
-                        ? st_enm_t::enable
-                        : st_enm_t::disable;
-        st_enp    = (reg & (std::uint32_t{1} << static_cast<unsigned>(st_enp_offset)))
-                        ? st_enp_t::enable
-                        : st_enp_t::disable;
-        z_inhibit = (reg & (std::uint32_t{1} << static_cast<unsigned>(z_inhibit_offset)))
-                        ? axis_inhibit_t::disable
-                        : axis_inhibit_t::enable;
-        y_inhibit = (reg & (std::uint32_t{1} << static_cast<unsigned>(y_inhibit_offset)))
-                        ? axis_inhibit_t::disable
-                        : axis_inhibit_t::enable;
-        x_inhibit = (reg & (std::uint32_t{1} << static_cast<unsigned>(x_inhibit_offset)))
-                        ? axis_inhibit_t::disable
-                        : axis_inhibit_t::enable;
+        sw_reset = parse_flag(reg, sw_reset_offset, sw_reset_t::enable,
+                              sw_reset_t::disable);
+        st_enm =
+            parse_flag(reg, st_enm_offset, st_enm_t::enable, st_enm_t::disable);
+        st_enp =
+            parse_flag(reg, st_enp_offset, st_enp_t::enable, st_enp_t::disable);
+        z_inhibit = parse_flag(reg, z_inhibit_offset, axis_inhibit_t::disable,
+                               axis_inhibit_t::enable);
+        y_inhibit = parse_flag(reg, y_inhibit_offset, axis_inhibit_t::disable,
+                               axis_inhibit_t::enable);
+        x_inhibit = parse_flag(reg, x_inhibit_offset, axis_inhibit_t::disable,
+                               axis_inhibit_t::enable);
         constexpr mmc56xx_reg_type bw_mask{0x03};
-        bw = static_cast<bw_t>(reg & bw_mask);
+        bw = extract_field<bw_t>(reg, 0, bw_mask);
     }
 };
 
@@ -443,14 +410,10 @@ class mmc56xx_ctrl2_reg
     explicit operator mmc56xx_reg_type() const
     {
         return static_cast<mmc56xx_reg_type>(
-            (static_cast<std::uint32_t>(hpower)
-             << static_cast<unsigned>(hpower_offset))
-            | (static_cast<std::uint32_t>(cmm_en)
-               << static_cast<unsigned>(cmm_en_offset))
-            | (static_cast<std::uint32_t>(en_prd_set)
-               << static_cast<unsigned>(en_prd_set_offset))
-            | (static_cast<std::uint32_t>(prd_set)
-               << static_cast<unsigned>(prd_set_offset)));
+            field_to_raw(hpower, hpower_offset)
+            | field_to_raw(cmm_en, cmm_en_offset)
+            | field_to_raw(en_prd_set, en_prd_set_offset)
+            | field_to_raw(prd_set, prd_set_offset));
     }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
@@ -507,17 +470,14 @@ class mmc56xx_ctrl2_reg
     void parse(
         mmc56xx_reg_type reg)
     {
-        hpower     = (reg & (std::uint32_t{1} << static_cast<unsigned>(hpower_offset)))
-                         ? hpower_t::achieve_1000_hz
-                         : hpower_t::disable;
-        cmm_en     = (reg & (std::uint32_t{1} << static_cast<unsigned>(cmm_en_offset)))
-                         ? cmm_en_t::enable
-                         : cmm_en_t::disable;
-        en_prd_set = (reg & (std::uint32_t{1} << static_cast<unsigned>(en_prd_set_offset)))
-                         ? en_prd_set_t::enable
-                         : en_prd_set_t::disable;
+        hpower = parse_flag(reg, hpower_offset, hpower_t::achieve_1000_hz,
+                            hpower_t::disable);
+        cmm_en =
+            parse_flag(reg, cmm_en_offset, cmm_en_t::enable, cmm_en_t::disable);
+        en_prd_set = parse_flag(reg, en_prd_set_offset, en_prd_set_t::enable,
+                                en_prd_set_t::disable);
         constexpr mmc56xx_reg_type prd_set_mask{0x07};
-        prd_set = static_cast<prd_set_t>(reg & prd_set_mask);
+        prd_set = extract_field<prd_set_t>(reg, 0, prd_set_mask);
     }
 };
 

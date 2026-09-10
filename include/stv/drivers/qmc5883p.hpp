@@ -9,6 +9,7 @@
 
 #include "qmc5883p_i2c.hpp"
 #include "qmc5883p_regs.hpp"
+#include "stv/drivers/sample_validity.hpp"
 #include "stv/gyraccmag_types.hpp"
 #include "stv/utils.hpp"
 #include <cstdint>
@@ -98,8 +99,7 @@ class qmc5883p: public stv::qmc5883p_i2c, public stv::imag<MagType>
                 is_data_valid = false;
             }
 
-            if(is_data_valid
-               && (!is_axis_valid(x) || !is_axis_valid(y) || !is_axis_valid(z)))
+            if(is_data_valid && !stv::are_axes_valid(x, y, z))
             {
                 is_data_valid = false;
             }
@@ -108,20 +108,6 @@ class qmc5883p: public stv::qmc5883p_i2c, public stv::imag<MagType>
         }
 
       private:
-        [[nodiscard]] static auto is_axis_valid(
-            std::int16_t axis) -> bool
-        {
-            auto is_axis_valid{true};
-
-            if((axis == std::numeric_limits<std::int16_t>::max())
-               || (axis == std::numeric_limits<std::int16_t>::min()))
-            {
-                is_axis_valid = false;
-            }
-
-            return is_axis_valid;
-        }
-
         [[nodiscard]] auto is_default() const -> bool
         { return (x == 0) && (y == 0) && (z == 0); }
     };
