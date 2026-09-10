@@ -145,6 +145,29 @@ TEST_CASE(
                 REQUIRE(reg.range == stv::qma6100_fsr_reg::range_t::g_32);
             }
         }
+
+        SECTION("EN_16B")
+        {
+            stv::qma6100_fsr_reg reg;
+
+            SECTION("EN_16B == disable")
+            {
+                reg.en_16b = stv::qma6100_fsr_reg::en_16b_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000001"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("EN_16B == enable")
+            {
+                reg.en_16b = stv::qma6100_fsr_reg::en_16b_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"10000001"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
     }
 
     SECTION("INT_EN1")
@@ -260,6 +283,90 @@ TEST_CASE(
                             expect_reg_val.to_ulong()));
             }
         }
+
+        SECTION("INT1_FWM")
+        {
+            SECTION("INT1_FWM == disable")
+            {
+                reg.int1_fwm = stv::qma6100_int_map1_reg::mapper_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("INT1_FWM == enable")
+            {
+                reg.int1_fwm = stv::qma6100_int_map1_reg::mapper_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"01000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("INT1_FFULL")
+        {
+            SECTION("INT1_FFULL == disable")
+            {
+                reg.int1_ffull = stv::qma6100_int_map1_reg::mapper_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("INT1_FFULL == enable")
+            {
+                reg.int1_ffull = stv::qma6100_int_map1_reg::mapper_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"00100000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("INT1_DATA")
+        {
+            SECTION("INT1_DATA == disable")
+            {
+                reg.int1_data = stv::qma6100_int_map1_reg::mapper_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("INT1_DATA == enable")
+            {
+                reg.int1_data = stv::qma6100_int_map1_reg::mapper_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"00010000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("INT1_Q_TAP")
+        {
+            SECTION("INT1_Q_TAP == disable")
+            {
+                reg.int1_q_tap = stv::qma6100_int_map1_reg::mapper_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("INT1_Q_TAP == enable")
+            {
+                reg.int1_q_tap = stv::qma6100_int_map1_reg::mapper_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000010"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
     }
 
     SECTION("INT_MAP3")
@@ -299,6 +406,90 @@ TEST_CASE(
             {
                 reg.int2_any_mot = stv::qma6100_int_map3_reg::mapper_t::enable;
                 constexpr reg_bitset expect_reg_val{std::string{"00000001"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("INT2_FWM")
+        {
+            SECTION("INT2_FWM == disable")
+            {
+                reg.int2_fwm = stv::qma6100_int_map3_reg::mapper_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("INT2_FWM == enable")
+            {
+                reg.int2_fwm = stv::qma6100_int_map3_reg::mapper_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"01000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("INT2_FFULL")
+        {
+            SECTION("INT2_FFULL == disable")
+            {
+                reg.int2_ffull = stv::qma6100_int_map3_reg::mapper_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("INT2_FFULL == enable")
+            {
+                reg.int2_ffull = stv::qma6100_int_map3_reg::mapper_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"00100000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("INT2_DATA")
+        {
+            SECTION("INT2_DATA == disable")
+            {
+                reg.int2_data = stv::qma6100_int_map3_reg::mapper_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("INT2_DATA == enable")
+            {
+                reg.int2_data = stv::qma6100_int_map3_reg::mapper_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"00010000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("INT2_Q_TAP")
+        {
+            SECTION("INT2_Q_TAP == disable")
+            {
+                reg.int2_q_tap = stv::qma6100_int_map3_reg::mapper_t::disable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("INT2_Q_TAP == enable")
+            {
+                reg.int2_q_tap = stv::qma6100_int_map3_reg::mapper_t::enable;
+                constexpr reg_bitset expect_reg_val{std::string{"00000010"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
                             expect_reg_val.to_ulong()));
@@ -378,6 +569,29 @@ TEST_CASE(
                 reg.en_spi3w =
                     stv::qma6100_intpin_conf_reg::en_spi3w_t::disable;
                 constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("STEP_COUNT_PEAK_2")
+        {
+            SECTION("STEP_COUNT_PEAK_2 == reset")
+            {
+                reg.step_count_peak_2 =
+                    stv::qma6100_intpin_conf_reg::step_count_peak_2_t::reset;
+                constexpr reg_bitset expect_reg_val{std::string{"00000000"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("STEP_COUNT_PEAK_2 == set")
+            {
+                reg.step_count_peak_2 =
+                    stv::qma6100_intpin_conf_reg::step_count_peak_2_t::set;
+                constexpr reg_bitset expect_reg_val{std::string{"00010000"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
                             expect_reg_val.to_ulong()));
@@ -789,6 +1003,49 @@ TEST_CASE(
                 reg.selftest_sign =
                     stv::qma6100_st_reg::selftest_sign_t::positive;
                 constexpr reg_bitset expect_reg_val{std::string{"00000100"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+        }
+
+        SECTION("STEP_BP_AXIS")
+        {
+            SECTION("STEP_BP_AXIS == all_axes")
+            {
+                reg.step_bp_axis =
+                    stv::qma6100_st_reg::step_bp_axis_t::all_axes;
+                constexpr reg_bitset expect_reg_val{std::string{"00000100"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("STEP_BP_AXIS == bypass_x")
+            {
+                reg.step_bp_axis =
+                    stv::qma6100_st_reg::step_bp_axis_t::bypass_x;
+                constexpr reg_bitset expect_reg_val{std::string{"00000101"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("STEP_BP_AXIS == bypass_y")
+            {
+                reg.step_bp_axis =
+                    stv::qma6100_st_reg::step_bp_axis_t::bypass_y;
+                constexpr reg_bitset expect_reg_val{std::string{"00000110"}};
+                REQUIRE(static_cast<qma6100_reg_type>(reg)
+                        == static_cast<qma6100_reg_type>(
+                            expect_reg_val.to_ulong()));
+            }
+
+            SECTION("STEP_BP_AXIS == bypass_z")
+            {
+                reg.step_bp_axis =
+                    stv::qma6100_st_reg::step_bp_axis_t::bypass_z;
+                constexpr reg_bitset expect_reg_val{std::string{"00000111"}};
                 REQUIRE(static_cast<qma6100_reg_type>(reg)
                         == static_cast<qma6100_reg_type>(
                             expect_reg_val.to_ulong()));

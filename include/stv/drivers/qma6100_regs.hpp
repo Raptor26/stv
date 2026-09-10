@@ -149,6 +149,7 @@ class qma6100_bw_reg
 class qma6100_fsr_reg
 {
     static constexpr int range_offset{0U};
+    static constexpr int en_16b_offset{7U};
 
   public:
     /// @brief Адрес регистра RANGE в памяти устройства.
@@ -158,19 +159,23 @@ class qma6100_fsr_reg
         qma6100_reg_type value = qma6100_reg_type{0})
     { parse(value); }
 
-    /// @brief Преобразует конфигурацию в 8-битное значение регистра.
+    /// @brief Оператор преобразования в сырое значение регистра.
     ///
-    /// @details Собирает текущую настройку диапазона в сырое значение,
-    /// готовое для записи в регистр устройства.
-    /// @return 8-битное значение регистра, содержащее настройку диапазона.
-    explicit operator std::byte() const
-    { return static_cast<std::byte>(field_to_raw(range, range_offset)); }
+    /// @details Собирает текущие настройки полей range и en_16b в одно
+    /// 8-битное значение, готовое для записи в регистр устройства.
+    /// @return 8-битное значение регистра, собранное из полей.
+    explicit operator qma6100_reg_type() const
+    {
+        return static_cast<qma6100_reg_type>(
+            field_to_raw(en_16b, en_16b_offset)
+            | field_to_raw(range, range_offset));
+    }
 
     // -------------------------------------------------------------------------
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     ///
-    /// @param other Ссылка на другой экземпляр qma6100_bw_reg для сравнения.
+    /// @param other Ссылка на другой экземпляр qma6100_fsr_reg для сравнения.
     /// @return true, если значения регистров (после преобразования в
     /// qma6100_reg_type) равны.
     bool operator==(
@@ -198,6 +203,19 @@ class qma6100_fsr_reg
     range_t range{range_t::g_2};
     // -------------------------------------------------------------------------
 
+    /// @brief Перечисление для управления битом EN_16B регистра FSR.
+    ///
+    /// @details Подробное описание назначения бита EN_16B в даташите QMA6100
+    /// отсутствует; бит присутствует в карте регистров (0x0F, бит 7).
+    enum struct en_16b_t : std::uint8_t {
+        disable = 0, ///< Бит EN_16B сброшен.
+        enable  = 1, ///< Бит EN_16B установлен.
+    };
+
+    /// @brief Текущее состояние бита EN_16B.
+    en_16b_t en_16b{en_16b_t::disable};
+    // -------------------------------------------------------------------------
+
   private:
     /// @brief Парсинг сырого значения регистра в поля класса.
     ///
@@ -205,6 +223,10 @@ class qma6100_fsr_reg
     void parse(
         qma6100_reg_type reg)
     {
+        constexpr qma6100_reg_type en_16b_mask{0x01};
+        en_16b =
+            extract_field<decltype(en_16b)>(reg, en_16b_offset, en_16b_mask);
+
         constexpr qma6100_reg_type range_mask{0x0F};
         const auto raw_value = field_raw(reg, range_offset, range_mask);
 
@@ -274,7 +296,8 @@ class qma6100_int_en1_reg
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     ///
-    /// @param other Ссылка на другой экземпляр qma6100_bw_reg для сравнения.
+    /// @param other Ссылка на другой экземпляр qma6100_int_en1_reg для
+    /// сравнения.
     /// @return true, если значения регистров (после преобразования в
     /// qma6100_reg_type) равны.
     bool operator==(
@@ -317,9 +340,9 @@ class qma6100_int_en1_reg
         }
 
         {
-            constexpr qma6100_reg_type iint_ffull_en_mask{0x01};
+            constexpr qma6100_reg_type int_ffull_en_mask{0x01};
             int_ffull_en = extract_field<decltype(int_ffull_en)>(
-                reg, int_ffull_en_offset, iint_ffull_en_mask);
+                reg, int_ffull_en_offset, int_ffull_en_mask);
         }
 
         {
@@ -332,7 +355,6 @@ class qma6100_int_en1_reg
 
 /// @brief Класс для работы с регистром маппинга прерываний на вывод INT1
 /// (INT_MAP1) QMA6100.
-/// @warning В классе определены не все биты регистра.
 ///
 /// @details Этот класс инкапсулирует логику работы с регистром 0x1A (INT_MAP1),
 /// который управляет маппингом (назначением) сигналов прерываний на физический
@@ -341,6 +363,10 @@ class qma6100_int_en1_reg
 class qma6100_int_map1_reg
 {
     static constexpr int int1_no_mot_offset{7U};
+    static constexpr int int1_fwm_offset{6U};
+    static constexpr int int1_ffull_offset{5U};
+    static constexpr int int1_data_offset{4U};
+    static constexpr int int1_q_tap_offset{1U};
     static constexpr int int1_any_mot_offset{0U};
 
   public:
@@ -360,12 +386,17 @@ class qma6100_int_map1_reg
     {
         return static_cast<qma6100_reg_type>(
             field_to_raw(int1_no_mot, int1_no_mot_offset)
+            | field_to_raw(int1_fwm, int1_fwm_offset)
+            | field_to_raw(int1_ffull, int1_ffull_offset)
+            | field_to_raw(int1_data, int1_data_offset)
+            | field_to_raw(int1_q_tap, int1_q_tap_offset)
             | field_to_raw(int1_any_mot, int1_any_mot_offset));
     }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     ///
-    /// @param other Ссылка на другой экземпляр qma6100_bw_reg для сравнения.
+    /// @param other Ссылка на другой экземпляр qma6100_int_map1_reg для
+    /// сравнения.
     /// @return true, если значения регистров (после преобразования в
     /// qma6100_reg_type) равны.
     bool operator==(
@@ -387,6 +418,24 @@ class qma6100_int_map1_reg
     mapper_t int1_no_mot{mapper_t::disable};
     // -------------------------------------------------------------------------
 
+    /// @brief Маппинг прерывания по достижению уровня заполнения FIFO
+    /// (watermark) на вывод INT1.
+    mapper_t int1_fwm{mapper_t::disable};
+    // -------------------------------------------------------------------------
+
+    /// @brief Маппинг прерывания по полному заполнению FIFO на вывод INT1.
+    mapper_t int1_ffull{mapper_t::disable};
+    // -------------------------------------------------------------------------
+
+    /// @brief Маппинг прерывания по готовности новых данных (data ready) на
+    /// вывод INT1.
+    mapper_t int1_data{mapper_t::disable};
+    // -------------------------------------------------------------------------
+
+    /// @brief Маппинг прерывания "quad tap" (четверное касание) на вывод INT1.
+    mapper_t int1_q_tap{mapper_t::disable};
+    // -------------------------------------------------------------------------
+
     /// @brief Маппинг прерывания "any motion" (любое движение) на вывод INT1.
     mapper_t int1_any_mot{mapper_t::disable};
 
@@ -404,6 +453,30 @@ class qma6100_int_map1_reg
         }
 
         {
+            constexpr qma6100_reg_type int1_fwm_mask{0x01};
+            int1_fwm = extract_field<decltype(int1_fwm)>(reg, int1_fwm_offset,
+                                                         int1_fwm_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type int1_ffull_mask{0x01};
+            int1_ffull = extract_field<decltype(int1_ffull)>(
+                reg, int1_ffull_offset, int1_ffull_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type int1_data_mask{0x01};
+            int1_data = extract_field<decltype(int1_data)>(
+                reg, int1_data_offset, int1_data_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type int1_q_tap_mask{0x01};
+            int1_q_tap = extract_field<decltype(int1_q_tap)>(
+                reg, int1_q_tap_offset, int1_q_tap_mask);
+        }
+
+        {
             constexpr qma6100_reg_type int1_any_mot_mask{0x01};
             int1_any_mot = extract_field<decltype(int1_any_mot)>(
                 reg, int1_any_mot_offset, int1_any_mot_mask);
@@ -413,7 +486,6 @@ class qma6100_int_map1_reg
 
 /// @brief Класс для работы с регистром маппинга прерываний на вывод INT2
 /// (INT_MAP3) QMA6100.
-/// @warning В классе определены не все биты регистра.
 ///
 /// @details Этот класс инкапсулирует логику работы с регистром 0x1C (INT_MAP3),
 /// который управляет маппингом (назначением) сигналов прерываний на физический
@@ -422,6 +494,10 @@ class qma6100_int_map1_reg
 class qma6100_int_map3_reg
 {
     static constexpr int int2_no_mot_offset{7U};
+    static constexpr int int2_fwm_offset{6U};
+    static constexpr int int2_ffull_offset{5U};
+    static constexpr int int2_data_offset{4U};
+    static constexpr int int2_q_tap_offset{1U};
     static constexpr int int2_any_mot_offset{0U};
 
   public:
@@ -434,7 +510,8 @@ class qma6100_int_map3_reg
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     ///
-    /// @param other Ссылка на другой экземпляр qma6100_bw_reg для сравнения.
+    /// @param other Ссылка на другой экземпляр qma6100_int_map3_reg для
+    /// сравнения.
     /// @return true, если значения регистров (после преобразования в
     /// qma6100_reg_type) равны.
     bool operator==(
@@ -453,6 +530,10 @@ class qma6100_int_map3_reg
     {
         return static_cast<qma6100_reg_type>(
             field_to_raw(int2_no_mot, int2_no_mot_offset)
+            | field_to_raw(int2_fwm, int2_fwm_offset)
+            | field_to_raw(int2_ffull, int2_ffull_offset)
+            | field_to_raw(int2_data, int2_data_offset)
+            | field_to_raw(int2_q_tap, int2_q_tap_offset)
             | field_to_raw(int2_any_mot, int2_any_mot_offset));
     }
 
@@ -466,6 +547,24 @@ class qma6100_int_map3_reg
     /// @brief Маппинг прерывания "no motion" (отсутствие движения) на вывод
     /// INT2.
     mapper_t int2_no_mot{mapper_t::disable};
+    // -------------------------------------------------------------------------
+
+    /// @brief Маппинг прерывания по достижению уровня заполнения FIFO
+    /// (watermark) на вывод INT2.
+    mapper_t int2_fwm{mapper_t::disable};
+    // -------------------------------------------------------------------------
+
+    /// @brief Маппинг прерывания по полному заполнению FIFO на вывод INT2.
+    mapper_t int2_ffull{mapper_t::disable};
+    // -------------------------------------------------------------------------
+
+    /// @brief Маппинг прерывания по готовности новых данных (data ready) на
+    /// вывод INT2.
+    mapper_t int2_data{mapper_t::disable};
+    // -------------------------------------------------------------------------
+
+    /// @brief Маппинг прерывания "quad tap" (четверное касание) на вывод INT2.
+    mapper_t int2_q_tap{mapper_t::disable};
     // -------------------------------------------------------------------------
 
     /// @brief Маппинг прерывания "any motion" (любое движение) на вывод INT2.
@@ -483,6 +582,30 @@ class qma6100_int_map3_reg
             constexpr qma6100_reg_type int2_no_mot_mask{0x01};
             int2_no_mot = extract_field<decltype(int2_no_mot)>(
                 reg, int2_no_mot_offset, int2_no_mot_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type int2_fwm_mask{0x01};
+            int2_fwm = extract_field<decltype(int2_fwm)>(reg, int2_fwm_offset,
+                                                         int2_fwm_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type int2_ffull_mask{0x01};
+            int2_ffull = extract_field<decltype(int2_ffull)>(
+                reg, int2_ffull_offset, int2_ffull_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type int2_data_mask{0x01};
+            int2_data = extract_field<decltype(int2_data)>(
+                reg, int2_data_offset, int2_data_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type int2_q_tap_mask{0x01};
+            int2_q_tap = extract_field<decltype(int2_q_tap)>(
+                reg, int2_q_tap_offset, int2_q_tap_mask);
         }
 
         {
@@ -506,6 +629,7 @@ class qma6100_intpin_conf_reg
     static constexpr int dis_pu_senb_offset{7U};
     static constexpr int dis_ie_ad0_offset{6U};
     static constexpr int en_spi3w_offset{5U};
+    static constexpr int step_count_peak_2_offset{4U};
     static constexpr int int2_od_offset{3U};
     static constexpr int int2_lvl_offset{2U};
     static constexpr int int1_od_offset{1U};
@@ -521,7 +645,8 @@ class qma6100_intpin_conf_reg
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     ///
-    /// @param other Ссылка на другой экземпляр qma6100_bw_reg для сравнения.
+    /// @param other Ссылка на другой экземпляр qma6100_intpin_conf_reg для
+    /// сравнения.
     /// @return true, если значения регистров (после преобразования в
     /// qma6100_reg_type) равны.
     bool operator==(
@@ -542,6 +667,7 @@ class qma6100_intpin_conf_reg
             field_to_raw(dis_pu_senb, dis_pu_senb_offset)
             | field_to_raw(dis_ie_ad0, dis_ie_ad0_offset)
             | field_to_raw(en_spi3w, en_spi3w_offset)
+            | field_to_raw(step_count_peak_2, step_count_peak_2_offset)
             | field_to_raw(int2_od, int2_od_offset)
             | field_to_raw(int2_lvl, int2_lvl_offset)
             | field_to_raw(int1_od, int1_od_offset)
@@ -580,6 +706,20 @@ class qma6100_intpin_conf_reg
     /// @brief Включение режима 3-проводного SPI (SI и SO объединены на одной
     /// линии).
     en_spi3w_t en_spi3w{en_spi3w_t::disable};
+    // -------------------------------------------------------------------------
+
+    /// @brief Перечисление для старшего бита (бит 2) поля STEP_COUNT_PEAK.
+    ///
+    /// @details Поле STEP_COUNT_PEAK<2:0> участвует в настройке алгоритма
+    /// подсчёта шагов; его младшие биты <1:0> расположены в регистре 0x1F
+    /// (STEP_CFG), биты 4:3.
+    enum struct step_count_peak_2_t : std::uint8_t {
+        reset = 0, ///< Бит 2 поля STEP_COUNT_PEAK сброшен.
+        set   = 1, ///< Бит 2 поля STEP_COUNT_PEAK установлен.
+    };
+
+    /// @brief Старший бит (бит 2) поля STEP_COUNT_PEAK.
+    step_count_peak_2_t step_count_peak_2{step_count_peak_2_t::reset};
     // -------------------------------------------------------------------------
 
     /// @brief Перечисление для настройки типа выхода (output type) вывода INT2.
@@ -630,9 +770,9 @@ class qma6100_intpin_conf_reg
         qma6100_reg_type reg)
     {
         {
-            constexpr qma6100_reg_type idis_pu_senb_mask{0x01};
+            constexpr qma6100_reg_type dis_pu_senb_mask{0x01};
             dis_pu_senb = extract_field<decltype(dis_pu_senb)>(
-                reg, dis_pu_senb_offset, idis_pu_senb_mask);
+                reg, dis_pu_senb_offset, dis_pu_senb_mask);
         }
 
         {
@@ -645,6 +785,12 @@ class qma6100_intpin_conf_reg
             constexpr qma6100_reg_type en_spi3w_mask{0x01};
             en_spi3w = extract_field<decltype(en_spi3w)>(reg, en_spi3w_offset,
                                                          en_spi3w_mask);
+        }
+
+        {
+            constexpr qma6100_reg_type step_count_peak_2_mask{0x01};
+            step_count_peak_2 = extract_field<decltype(step_count_peak_2)>(
+                reg, step_count_peak_2_offset, step_count_peak_2_mask);
         }
 
         {
@@ -698,7 +844,8 @@ class qma6100_int_cfg_reg
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     ///
-    /// @param other Ссылка на другой экземпляр qma6100_bw_reg для сравнения.
+    /// @param other Ссылка на другой экземпляр qma6100_int_cfg_reg для
+    /// сравнения.
     /// @return true, если значения регистров (после преобразования в
     /// qma6100_reg_type) равны.
     bool operator==(
@@ -865,7 +1012,7 @@ class qma6100_pm_reg
     static constexpr int mclk_sel_offset{0};
 
   public:
-    /// @brief Адрес регистра BANDWIDTH в памяти устройства.
+    /// @brief Адрес регистра PM (POWER MANAGEMENT) в памяти устройства.
     static constexpr qma6100_reg_type addr{0x11};
 
     //
@@ -881,6 +1028,11 @@ class qma6100_pm_reg
         qma6100_reg_type value = qma6100_reg_type{0})
     { parse(value); }
 
+    /// @brief Оператор сравнения двух экземпляров регистра на равенство.
+    ///
+    /// @param other Ссылка на другой экземпляр qma6100_pm_reg для сравнения.
+    /// @return true, если значения регистров (после преобразования в
+    /// qma6100_reg_type) равны.
     bool operator==(
         const qma6100_pm_reg &other) const
     {
@@ -893,7 +1045,7 @@ class qma6100_pm_reg
         standby = 0,
     };
 
-    mode_bit_t mode_bit{mode_bit_t::active};
+    mode_bit_t mode_bit{mode_bit_t::standby};
     // -------------------------------------------------------------------------
 
     enum struct t_rstb_sinc_sel_t : std::uint8_t {
@@ -923,9 +1075,9 @@ class qma6100_pm_reg
   private:
     /// @brief Парсинг сырого значения регистра в поля класса.
     ///
-    /// @details Извлекает битовые поля, соответствующие настройкам bw и nlpf,
-    /// из переданного сырого значения регистра и сохраняет их в
-    /// соответствующих полях объекта.
+    /// @details Извлекает битовые поля, соответствующие настройкам mode_bit,
+    /// t_rstb_sinc_sel и mclk_sel, из переданного сырого значения регистра и
+    /// сохраняет их в соответствующих полях объекта.
     /// @param reg Сырое значение регистра для парсинга.
     void parse(
         qma6100_reg_type reg)
@@ -956,12 +1108,14 @@ class qma6100_pm_reg
 /// датчика QMA6100, который управляет функцией самотестирования
 /// акселерометра. Бит SELFTEST_BIT включает режим самотестирования, а бит
 /// SELFTEST_SIGN задаёт полярность возбуждения при самотестировании
-/// (положительную или отрицательную). Класс предоставляет типобезопасный
-/// интерфейс для работы с этими настройками через перечисления. Поддерживает
-/// преобразование в сырое значение регистра и обратно.
+/// (положительную или отрицательную). Поле STEP_BP_AXIS<1:0> позволяет
+/// исключить одну из осей из алгоритма подсчёта шагов. Класс предоставляет
+/// типобезопасный интерфейс для работы с этими настройками через
+/// перечисления. Поддерживает преобразование в сырое значение регистра и
+/// обратно.
 class qma6100_st_reg
 {
-    static constexpr int step_by_axix_offset{0};
+    static constexpr int step_bp_axis_offset{0};
     static constexpr int selftest_sign_offset{2};
     static constexpr int selftest_bit_offset{7};
 
@@ -987,17 +1141,33 @@ class qma6100_st_reg
         positive = 1, ///< Положительная полярность возбуждения.
     };
 
+    /// @brief Перечисление для выбора осей, исключаемых из алгоритма подсчёта
+    /// шагов (STEP_BP_AXIS).
+    ///
+    /// @details Определяет, данные каких осей используются алгоритмом
+    /// подсчёта шагов: можно исключить (обойти) одну из трёх осей.
+    enum struct step_bp_axis_t : std::uint8_t {
+        all_axes = 0b00, ///< Используются данные всех трёх осей.
+        bypass_x = 0b01, ///< Ось X исключена (используются оси Y и Z).
+        bypass_y = 0b10, ///< Ось Y исключена (используются оси X и Z).
+        bypass_z = 0b11, ///< Ось Z исключена (используются оси X и Y).
+    };
+
+    /// @brief Текущая настройка исключения осей из алгоритма подсчёта шагов.
+    step_bp_axis_t step_bp_axis{step_bp_axis_t::all_axes};
+    // -------------------------------------------------------------------------
+
     /// @brief Текущая настройка режима самотестирования.
     selftest_bit_t selftest_bit{selftest_bit_t::normal};
 
     /// @brief Текущая настройка полярности возбуждения при самотестировании.
-    selftest_sign_t selftest_sign{selftest_sign_t::positive};
+    selftest_sign_t selftest_sign{selftest_sign_t::negative};
 
     /// @brief Конструктор с возможностью инициализации значением регистра.
     ///
     /// @details Создаёт объект класса, выполняет парсинг переданного сырого
-    /// значения регистра и заполняет внутренние поля (selftest_bit и
-    /// selftest_sign) соответствующими значениями.
+    /// значения регистра и заполняет внутренние поля (selftest_bit,
+    /// selftest_sign и step_bp_axis) соответствующими значениями.
     /// @param value Начальное сырое значение регистра (по умолчанию 0).
     explicit qma6100_st_reg(
         stv::qma6100_reg_type value = stv::qma6100_reg_type{0})
@@ -1005,22 +1175,25 @@ class qma6100_st_reg
 
     /// @brief Оператор преобразования в сырое значение регистра.
     ///
-    /// @details Собирает текущие настройки полей selftest_bit и selftest_sign
-    /// в одно 8-битное значение, готовое для записи в регистр устройства.
+    /// @details Собирает текущие настройки полей selftest_bit, selftest_sign и
+    /// step_bp_axis в одно 8-битное значение, готовое для записи в регистр
+    /// устройства.
     /// @return 8-битное значение регистра, собранное из полей.
     explicit operator stv::qma6100_reg_type() const
     {
         return static_cast<stv::qma6100_reg_type>(
             field_to_raw(selftest_bit, selftest_bit_offset)
-            | field_to_raw(selftest_sign, selftest_sign_offset));
+            | field_to_raw(selftest_sign, selftest_sign_offset)
+            | field_to_raw(step_bp_axis, step_bp_axis_offset));
     }
 
   private:
     /// @brief Парсинг сырого значения регистра в поля класса.
     ///
     /// @details Извлекает битовые поля, соответствующие настройкам
-    /// самотестирования (selftest_bit и selftest_sign), из переданного сырого
-    /// значения регистра и сохраняет их в соответствующих полях объекта.
+    /// самотестирования (selftest_bit и selftest_sign) и исключения осей из
+    /// алгоритма подсчёта шагов (step_bp_axis), из переданного сырого значения
+    /// регистра и сохраняет их в соответствующих полях объекта.
     /// @param reg Сырое значение регистра для парсинга.
     void parse(
         stv::qma6100_reg_type reg)
@@ -1034,6 +1207,11 @@ class qma6100_st_reg
             constexpr qma6100_reg_type selftest_sign_mask{0x01};
             selftest_sign = extract_field<decltype(selftest_sign)>(
                 reg, selftest_sign_offset, selftest_sign_mask);
+        }
+        {
+            constexpr qma6100_reg_type step_bp_axis_mask{0x03};
+            step_bp_axis = extract_field<decltype(step_bp_axis)>(
+                reg, step_bp_axis_offset, step_bp_axis_mask);
         }
     }
 };
