@@ -80,12 +80,10 @@ class qmc5883: public stv::qmc5883_i2c, public stv::imag<MagType>
                 is_data_valid = false;
             }
 
-            if(is_data_valid)
+            if(is_data_valid
+               && (!is_axis_valid(x) || !is_axis_valid(y) || !is_axis_valid(z)))
             {
-                if(!is_axis_valid(x) || !is_axis_valid(y) || !is_axis_valid(z))
-                {
-                    is_data_valid = false;
-                }
+                is_data_valid = false;
             }
 
             return is_data_valid;
@@ -153,7 +151,7 @@ class qmc5883: public stv::qmc5883_i2c, public stv::imag<MagType>
     /// @brief Вычисляет масштабный коэффициент LSB.
     void compute_lsb()
     {
-        auto ctrl1 = read<qmc5883_ctrl1_reg>();
+        const auto ctrl1 = read<qmc5883_ctrl1_reg>();
         if(ctrl1.rng == qmc5883_ctrl1_reg::rng_t::full_scale_2g)
         {
             lsb_per_g_ = 12000;
@@ -210,9 +208,11 @@ class qmc5883: public stv::qmc5883_i2c, public stv::imag<MagType>
     {
         auto                              is_detected{false};
         static constexpr qmc5883_reg_type chip_id_valid{
-            qmc5883_chip_id_reg::expected_value};
+            qmc5883_chip_id_reg::expected_value,
+        };
         static constexpr qmc5883_reg_type chip_id_addr{
-            qmc5883_chip_id_reg::addr};
+            qmc5883_chip_id_reg::addr,
+        };
         qmc5883_reg_type chip_id{0x00};
         const auto       is_success =
             i2c->read(static_cast<stv::i2c_interface::byte_type>(
@@ -299,7 +299,7 @@ class qmc5883: public stv::qmc5883_i2c, public stv::imag<MagType>
     /// @brief Возвращает true, если новые данные готовы для чтения.
     auto is_data_ready()
     {
-        auto status_reg = read_status_reg();
+        const auto status_reg = read_status_reg();
         return status_reg.drdy == qmc5883_status_reg::drdy_t::new_data_is_ready;
     }
 
@@ -353,10 +353,12 @@ class qmc5883: public stv::qmc5883_i2c, public stv::imag<MagType>
     auto normalize(
         const raw_t &raw_meas)
     {
-        return mag_type{static_cast<value_type>(raw_meas.x) / lsb_per_g_,
-                        static_cast<value_type>(raw_meas.y) / lsb_per_g_,
-                        static_cast<value_type>(raw_meas.z) / lsb_per_g_,
-                        timestamp_};
+        return mag_type{
+            static_cast<value_type>(raw_meas.x) / lsb_per_g_,
+            static_cast<value_type>(raw_meas.y) / lsb_per_g_,
+            static_cast<value_type>(raw_meas.z) / lsb_per_g_,
+            timestamp_,
+        };
     }
 
     /// @brief Читает нормализованные данные с магнитометра.
@@ -379,8 +381,8 @@ class qmc5883: public stv::qmc5883_i2c, public stv::imag<MagType>
     [[nodiscard("Read overflow status")]] static auto is_status_reg_overflow(
         qmc5883_reg_type status_reg) -> bool
     {
-        auto is_overflow_detect{false};
-        auto reg = qmc5883_status_reg{status_reg};
+        auto       is_overflow_detect{false};
+        const auto reg = qmc5883_status_reg{status_reg};
 
         if(reg.ovl == qmc5883_status_reg::ovl_t::data_overflow)
         {

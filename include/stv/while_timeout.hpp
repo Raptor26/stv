@@ -62,9 +62,13 @@ class while_timeout
     while_timeout(
         runtime_type &runtime, typename runtime_type::value_type timeout,
         Fn condition):
-        deadline_{deadline_setup_type{.runtime                   = &runtime,
-                                      .delay                     = timeout,
-                                      .is_elapsed_if_not_started = true}}
+        deadline_{
+            deadline_setup_type{
+                .runtime                   = &runtime,
+                .delay                     = timeout,
+                .is_elapsed_if_not_started = true,
+            },
+        }
     {
         while(!condition())
         {

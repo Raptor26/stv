@@ -291,14 +291,17 @@ class moving_average_base
         noexcept(setup_default_.is_valid(buffer_.size()))
         && noexcept(setup_actual_.is_valid(buffer_.size())))
     {
-        auto is_mutex_ptr_valid{true};
-        if constexpr(std::is_pointer_v<decltype(mutex_)>)
-        {
-            if(!mutex_)
+        const auto is_mutex_ptr_valid = [this] -> bool {
+            if constexpr(std::is_pointer_v<decltype(mutex_)>)
             {
-                is_mutex_ptr_valid = false;
+                return mutex_ != nullptr;
             }
-        }
+            else
+            {
+                static_cast<void>(this);
+                return true;
+            }
+        }();
 
         return stv::all_true(setup_default_.is_valid(buffer_.size()),
                              setup_actual_.is_valid(buffer_.size()),
@@ -321,7 +324,7 @@ class moving_average_base
                 change_window_width_and_update_counter(params.window_width))
             && noexcept(UpdateWindowWithInverse()))
     {
-        auto success{params.is_valid(buffer_.size())};
+        const auto success{params.is_valid(buffer_.size())};
 
         if(success)
         {
@@ -551,15 +554,15 @@ class moving_average_base
     void set_smaller_window_width(
         decltype(cnt_) new_width) noexcept
     {
-        auto old_width      = setup_actual_.window_width;
-        auto size_decrement = old_width - new_width;
+        const auto old_width      = setup_actual_.window_width;
+        const auto size_decrement = old_width - new_width;
 
         // Уменьшить накопленную сумму.
         for(std::size_t i = 0; i < size_decrement; ++i)
         {
             // Вычислить индекс элемента, который должен быть удален из
             // суммы.
-            auto idx = (cnt_ + i) % old_width;
+            const auto idx = (cnt_ + i) % old_width;
             // NOLINTNEXTLINE(*-avoid-unchecked-container-access)
             sum_ -= buffer_[idx];
         }
@@ -568,11 +571,11 @@ class moving_average_base
 
         // Вычислить максимальный индекс элемента старого буфера. Индекс должен
         // быть больше нуля
-        auto old_max_element_idx = old_width - 1;
+        const auto old_max_element_idx = old_width - 1;
 
         // Добавить old_width к текущему счетчику, чтобы иметь возможность
         // итерироваться справа налево. Счетчик должен быть больше нуля.
-        auto last_element_idx =
+        const auto last_element_idx =
             cnt_ + static_cast<decltype(cnt_)>(old_max_element_idx);
 
         for(std::size_t i = 0, new_max_element_idx = new_width - 1;
@@ -580,7 +583,7 @@ class moving_average_base
         {
             // Вычислить индекс элемента, который должен остаться в буфере.
             // Начать с последнего элемента, который должен остаться.
-            auto idx = ((last_element_idx - i) % old_width);
+            const auto idx = ((last_element_idx - i) % old_width);
 
             // Обновить буфер
             // NOLINTNEXTLINE(*-avoid-unchecked-container-access)

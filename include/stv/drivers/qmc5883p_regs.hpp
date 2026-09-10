@@ -101,8 +101,10 @@ class qmc5883p_status_reg
     explicit operator qmc5883p_reg_type() const
     {
         return static_cast<qmc5883p_reg_type>(
-            (static_cast<std::uint8_t>(ovfl) << ovfl_offset)
-            | (static_cast<std::uint8_t>(drdy) << drdy_offset));
+            (static_cast<std::uint32_t>(ovfl)
+             << static_cast<unsigned>(ovfl_offset))
+            | (static_cast<std::uint32_t>(drdy)
+               << static_cast<unsigned>(drdy_offset)));
     }
 
     /// @brief Оператор присваивания, обновляющий значение регистра.
@@ -143,10 +145,12 @@ class qmc5883p_status_reg
     void parse(
         qmc5883p_reg_type reg)
     {
-        drdy = (reg & (1 << drdy_offset)) ? drdy_t::new_data_is_ready
-                                          : drdy_t::no_new_data;
-        ovfl =
-            (reg & (1 << ovfl_offset)) ? ovfl_t::data_overflow : ovfl_t::normal;
+        drdy = (reg & (std::uint32_t{1} << static_cast<unsigned>(drdy_offset)))
+                   ? drdy_t::new_data_is_ready
+                   : drdy_t::no_new_data;
+        ovfl = (reg & (std::uint32_t{1} << static_cast<unsigned>(ovfl_offset)))
+                   ? ovfl_t::data_overflow
+                   : ovfl_t::normal;
     }
 };
 
@@ -173,10 +177,14 @@ class qmc5883p_ctrl1_reg
     explicit operator qmc5883p_reg_type() const
     {
         return static_cast<qmc5883p_reg_type>(
-            (static_cast<std::uint8_t>(osr2) << osr2_offset)
-            | (static_cast<std::uint8_t>(osr1) << osr1_offset)
-            | (static_cast<std::uint8_t>(odr) << odr_offset)
-            | (static_cast<std::uint8_t>(mode) << mode_offset));
+            (static_cast<std::uint32_t>(osr2)
+             << static_cast<unsigned>(osr2_offset))
+            | (static_cast<std::uint32_t>(osr1)
+               << static_cast<unsigned>(osr1_offset))
+            | (static_cast<std::uint32_t>(odr)
+               << static_cast<unsigned>(odr_offset))
+            | (static_cast<std::uint32_t>(mode)
+               << static_cast<unsigned>(mode_offset)));
     }
 
     /// @brief Оператор присваивания, обновляющий значение регистра.
@@ -243,10 +251,18 @@ class qmc5883p_ctrl1_reg
     void parse(
         qmc5883p_reg_type reg)
     {
-        osr2 = static_cast<osr2_t>((reg >> osr2_offset) & 0x03);
-        osr1 = static_cast<osr1_t>((reg >> osr1_offset) & 0x03);
-        odr  = static_cast<odr_t>((reg >> odr_offset) & 0x03);
-        mode = static_cast<mode_t>((reg >> mode_offset) & 0x03);
+        osr2 = static_cast<osr2_t>((static_cast<std::uint32_t>(reg)
+                                    >> static_cast<unsigned>(osr2_offset))
+                                   & 0x03U);
+        osr1 = static_cast<osr1_t>((static_cast<std::uint32_t>(reg)
+                                    >> static_cast<unsigned>(osr1_offset))
+                                   & 0x03U);
+        odr  = static_cast<odr_t>((static_cast<std::uint32_t>(reg)
+                                   >> static_cast<unsigned>(odr_offset))
+                                  & 0x03U);
+        mode = static_cast<mode_t>((static_cast<std::uint32_t>(reg)
+                                    >> static_cast<unsigned>(mode_offset))
+                                   & 0x03U);
     }
 };
 
@@ -273,11 +289,14 @@ class qmc5883p_ctrl2_reg
     explicit operator qmc5883p_reg_type() const
     {
         return static_cast<qmc5883p_reg_type>(
-            (static_cast<std::uint8_t>(soft_reset) << soft_reset_offset)
-            | (static_cast<std::uint8_t>(self_test) << self_test_offset)
-            | (static_cast<std::uint8_t>(rng) << rng_offset)
-            | (static_cast<std::uint8_t>(set_reset_mode)
-               << set_reset_mode_offset));
+            (static_cast<std::uint32_t>(soft_reset)
+             << static_cast<unsigned>(soft_reset_offset))
+            | (static_cast<std::uint32_t>(self_test)
+               << static_cast<unsigned>(self_test_offset))
+            | (static_cast<std::uint32_t>(rng)
+               << static_cast<unsigned>(rng_offset))
+            | (static_cast<std::uint32_t>(set_reset_mode)
+               << static_cast<unsigned>(set_reset_mode_offset)));
     }
 
     /// @brief Оператор присваивания, обновляющий значение регистра.
@@ -346,13 +365,23 @@ class qmc5883p_ctrl2_reg
     void parse(
         qmc5883p_reg_type reg)
     {
-        soft_reset = (reg & (1 << soft_reset_offset)) ? soft_reset_t::enable
-                                                      : soft_reset_t::normal;
-        self_test  = (reg & (1 << self_test_offset)) ? self_test_t::enable
-                                                     : self_test_t::normal;
-        rng        = static_cast<rng_t>((reg >> rng_offset) & 0x03);
+        soft_reset =
+            (reg
+             & (std::uint32_t{1} << static_cast<unsigned>(soft_reset_offset)))
+                ? soft_reset_t::enable
+                : soft_reset_t::normal;
+        self_test =
+            (reg
+             & (std::uint32_t{1} << static_cast<unsigned>(self_test_offset)))
+                ? self_test_t::enable
+                : self_test_t::normal;
+        rng = static_cast<rng_t>((static_cast<std::uint32_t>(reg)
+                                  >> static_cast<unsigned>(rng_offset))
+                                 & 0x03U);
         set_reset_mode = static_cast<set_reset_mode_t>(
-            (reg >> set_reset_mode_offset) & 0x03);
+            (static_cast<std::uint32_t>(reg)
+             >> static_cast<unsigned>(set_reset_mode_offset))
+            & 0x03U);
     }
 };
 

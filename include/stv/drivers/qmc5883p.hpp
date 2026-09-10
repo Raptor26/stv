@@ -98,12 +98,10 @@ class qmc5883p: public stv::qmc5883p_i2c, public stv::imag<MagType>
                 is_data_valid = false;
             }
 
-            if(is_data_valid)
+            if(is_data_valid
+               && (!is_axis_valid(x) || !is_axis_valid(y) || !is_axis_valid(z)))
             {
-                if(!is_axis_valid(x) || !is_axis_valid(y) || !is_axis_valid(z))
-                {
-                    is_data_valid = false;
-                }
+                is_data_valid = false;
             }
 
             return is_data_valid;
@@ -269,9 +267,11 @@ class qmc5883p: public stv::qmc5883p_i2c, public stv::imag<MagType>
     {
         auto                               is_detected{false};
         static constexpr qmc5883p_reg_type chip_id_valid{
-            qmc5883p_chip_id_reg::expected_value};
+            qmc5883p_chip_id_reg::expected_value,
+        };
         static constexpr qmc5883p_reg_type chip_id_addr{
-            qmc5883p_chip_id_reg::addr};
+            qmc5883p_chip_id_reg::addr,
+        };
         qmc5883p_reg_type chip_id{0x00};
         const auto        is_success =
             i2c->read(static_cast<stv::i2c_interface::byte_type>(
@@ -467,7 +467,7 @@ class qmc5883p: public stv::qmc5883p_i2c, public stv::imag<MagType>
     /// @brief Возвращает true, если новые данные готовы для чтения.
     auto is_data_ready()
     {
-        auto status_reg = read_status_reg();
+        const auto status_reg = read_status_reg();
         return status_reg.drdy
                == qmc5883p_status_reg::drdy_t::new_data_is_ready;
     }
@@ -512,10 +512,12 @@ class qmc5883p: public stv::qmc5883p_i2c, public stv::imag<MagType>
     auto normalize(
         const raw_t &raw_meas)
     {
-        return mag_type{static_cast<value_type>(raw_meas.x) * g_per_lsb_,
-                        static_cast<value_type>(raw_meas.y) * g_per_lsb_,
-                        static_cast<value_type>(raw_meas.z) * g_per_lsb_,
-                        timestamp_};
+        return mag_type{
+            static_cast<value_type>(raw_meas.x) * g_per_lsb_,
+            static_cast<value_type>(raw_meas.y) * g_per_lsb_,
+            static_cast<value_type>(raw_meas.z) * g_per_lsb_,
+            timestamp_,
+        };
     }
 
     /// @brief Читает нормализованные данные с магнитометра.
@@ -544,7 +546,8 @@ class qmc5883p: public stv::qmc5883p_i2c, public stv::imag<MagType>
         std::int32_t delta) -> bool
     {
         constexpr std::int32_t max_delta{
-            std::numeric_limits<std::int16_t>::max()};
+            std::numeric_limits<std::int16_t>::max(),
+        };
 
         const auto abs_delta = (delta < 0) ? -delta : delta;
         return (abs_delta > 0) && (abs_delta < max_delta);

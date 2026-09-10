@@ -107,41 +107,49 @@ TEST_CASE(
             SECTION("If input zero")
             {
                 constexpr in_type_t input{0.0};
-                auto out = ::stv::map(input, in_min, in_max, out_min, out_max);
+                const auto          out =
+                    ::stv::map(input, in_min, in_max, out_min, out_max);
                 REQUIRE_THAT(0.0, Catch::Matchers::WithinRel(out, abs));
 
-                static_assert(std::is_same_v<decltype(out), out_type_t>,
+                static_assert(std::is_same_v<std::remove_const_t<decltype(out)>,
+                                             out_type_t>,
                               "Compile must deduced return type as out_type_t");
             }
 
             SECTION("If input max")
             {
                 constexpr in_type_t input{in_max};
-                auto out = ::stv::map(input, in_min, in_max, out_min, out_max);
+                const auto          out =
+                    ::stv::map(input, in_min, in_max, out_min, out_max);
                 REQUIRE_THAT(out_max, Catch::Matchers::WithinRel(out, abs));
 
-                static_assert(std::is_same_v<decltype(out), out_type_t>,
+                static_assert(std::is_same_v<std::remove_const_t<decltype(out)>,
+                                             out_type_t>,
                               "Compile must deduced return type as out_type_t");
             }
 
             SECTION("If input min")
             {
                 constexpr in_type_t input{in_min};
-                auto out = ::stv::map(input, in_min, in_max, out_min, out_max);
+                const auto          out =
+                    ::stv::map(input, in_min, in_max, out_min, out_max);
                 REQUIRE_THAT(out_min, Catch::Matchers::WithinRel(out, abs));
 
-                static_assert(std::is_same_v<decltype(out), out_type_t>,
+                static_assert(std::is_same_v<std::remove_const_t<decltype(out)>,
+                                             out_type_t>,
                               "Compile must deduced return type as out_type_t");
             }
 
             SECTION("If input half of max")
             {
                 constexpr in_type_t input{in_max * 0.5};
-                auto out = ::stv::map(input, in_min, in_max, out_min, out_max);
+                const auto          out =
+                    ::stv::map(input, in_min, in_max, out_min, out_max);
                 REQUIRE_THAT(out_max * 0.5,
                              Catch::Matchers::WithinRel(out, abs));
 
-                static_assert(std::is_same_v<decltype(out), out_type_t>,
+                static_assert(std::is_same_v<std::remove_const_t<decltype(out)>,
+                                             out_type_t>,
                               "Compile must deduced return type as out_type_t");
             }
         }
@@ -157,31 +165,37 @@ TEST_CASE(
             SECTION("If input middle")
             {
                 constexpr in_type_t input{(in_min + in_max) * 0.5};
-                auto out = ::stv::map(input, in_min, in_max, out_min, out_max);
+                const auto          out =
+                    ::stv::map(input, in_min, in_max, out_min, out_max);
                 REQUIRE_THAT((out_min + out_max) * 0.5,
                              Catch::Matchers::WithinRel(out, abs));
 
-                static_assert(std::is_same_v<decltype(out), out_type_t>,
+                static_assert(std::is_same_v<std::remove_const_t<decltype(out)>,
+                                             out_type_t>,
                               "Compile must deduced return type as out_type_t");
             }
 
             SECTION("If input max")
             {
                 constexpr in_type_t input{in_max};
-                auto out = ::stv::map(input, in_min, in_max, out_min, out_max);
+                const auto          out =
+                    ::stv::map(input, in_min, in_max, out_min, out_max);
                 REQUIRE_THAT(out_max, Catch::Matchers::WithinRel(out, abs));
 
-                static_assert(std::is_same_v<decltype(out), out_type_t>,
+                static_assert(std::is_same_v<std::remove_const_t<decltype(out)>,
+                                             out_type_t>,
                               "Compile must deduced return type as out_type_t");
             }
 
             SECTION("If input min")
             {
                 constexpr in_type_t input{in_min};
-                auto out = ::stv::map(input, in_min, in_max, out_min, out_max);
+                const auto          out =
+                    ::stv::map(input, in_min, in_max, out_min, out_max);
                 REQUIRE_THAT(out_min, Catch::Matchers::WithinRel(out, abs));
 
-                static_assert(std::is_same_v<decltype(out), out_type_t>,
+                static_assert(std::is_same_v<std::remove_const_t<decltype(out)>,
+                                             out_type_t>,
                               "Compile must deduced return type as out_type_t");
             }
         }
@@ -202,21 +216,25 @@ TEST_CASE(
             SECTION("If input middle")
             {
                 constexpr auto input{(in_min + in_max) * 0.5};
-                auto out = ::stv::map(input, in_min, in_max, out_min, out_max);
+                const auto     out =
+                    ::stv::map(input, in_min, in_max, out_min, out_max);
                 REQUIRE_THAT(((out_min + out_max) * 0.5),
                              Catch::Matchers::WithinAbs(out, 1e-6));
 
-                static_assert(std::is_same_v<decltype(out), out_type_t>,
+                static_assert(std::is_same_v<std::remove_const_t<decltype(out)>,
+                                             out_type_t>,
                               "Compile must deduced return type as out_type_t");
             }
 
             SECTION("If input max")
             {
                 constexpr auto input{in_max};
-                auto out = ::stv::map(input, in_min, in_max, out_min, out_max);
+                const auto     out =
+                    ::stv::map(input, in_min, in_max, out_min, out_max);
                 REQUIRE(out_max == out);
 
-                static_assert(std::is_same_v<decltype(out), out_type_t>,
+                static_assert(std::is_same_v<std::remove_const_t<decltype(out)>,
+                                             out_type_t>,
                               "Compile must deduced return type as out_type_t");
             }
         }
@@ -232,21 +250,25 @@ TEST_CASE(
             SECTION("If input middle")
             {
                 constexpr auto input{(in_min + in_max) * 0.5};
-                auto out = ::stv::map(input, in_min, in_max, out_min, out_max);
+                const auto     out =
+                    ::stv::map(input, in_min, in_max, out_min, out_max);
                 REQUIRE_THAT(((out_min + out_max) * 0.5),
                              Catch::Matchers::WithinAbs(out, 1e-6));
 
-                static_assert(std::is_same_v<decltype(out), out_type_t>,
+                static_assert(std::is_same_v<std::remove_const_t<decltype(out)>,
+                                             out_type_t>,
                               "Compile must deduced return type as out_type_t");
             }
 
             SECTION("If input max")
             {
                 constexpr auto input{in_max};
-                auto out = ::stv::map(input, in_min, in_max, out_min, out_max);
+                const auto     out =
+                    ::stv::map(input, in_min, in_max, out_min, out_max);
                 REQUIRE(out_max == out);
 
-                static_assert(std::is_same_v<decltype(out), out_type_t>,
+                static_assert(std::is_same_v<std::remove_const_t<decltype(out)>,
+                                             out_type_t>,
                               "Compile must deduced return type as out_type_t");
             }
         }

@@ -432,15 +432,17 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     /// @return @c true при валидной конфигурации, иначе @c false.
     explicit operator bool() const
     {
-        auto is_mutex_valid{true};
-
-        if constexpr(std::is_pointer_v<decltype(mutex_)>)
-        {
-            if(!mutex_)
+        const auto is_mutex_valid = [this] -> bool {
+            if constexpr(std::is_pointer_v<decltype(mutex_)>)
             {
-                is_mutex_valid = false;
+                return mutex_ != nullptr;
             }
-        }
+            else
+            {
+                static_cast<void>(this);
+                return true;
+            }
+        }();
 
         return stv::all_true(lwrb_, queue_, is_mutex_valid,
                              max_one_message_size_ > 0);
@@ -518,7 +520,8 @@ class serial_parser: virtual private stv::non_movable_non_copyable
         bool                  is_need_continue{false};
 
         constexpr std::size_t need_bytes_available_befor_start{
-            stv::start_frame_and_crc_16::header_size()};
+            stv::start_frame_and_crc_16::header_size(),
+        };
 
         auto how_many_bytes_can_read_in_one_iteration{max_one_message_size_};
 
@@ -528,7 +531,9 @@ class serial_parser: virtual private stv::non_movable_non_copyable
 
             {
                 lwrb_->peek(typename lwrb_base_type::container_type{
-                    reinterpret_cast<std::byte *>(&storage), sizeof(storage)});
+                    reinterpret_cast<std::byte *>(&storage),
+                    sizeof(storage),
+                });
             }
 
             if((storage.start_frame_first
@@ -582,7 +587,8 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     {
         bool       is_need_continue{false};
         const auto expect_total_message_size{
-            stv::start_frame_and_crc_16::header_size() + next_message_size_};
+            stv::start_frame_and_crc_16::header_size() + next_message_size_,
+        };
 
         if(expect_total_message_size > max_one_message_size_)
         {
@@ -597,8 +603,10 @@ class serial_parser: virtual private stv::non_movable_non_copyable
 
         constexpr auto is_isr{false};
         const auto     peek_bytes = lwrb_->peek(
-            typename lwrb_base_type::container_type{msg.data(),
-                                                    msg.size_bytes()},
+            typename lwrb_base_type::container_type{
+                msg.data(),
+                msg.size_bytes(),
+            },
             0, is_isr);
 
         if(peek_bytes == expect_total_message_size)
@@ -786,7 +794,7 @@ class serial_parser_route: virtual public stv::non_movable_non_copyable
             if(router_ptr)
             {
                 // Используем итератор, чтобы избежать исключений.
-                auto dst_buff_key_val_it = hash_to_write_->find(
+                const auto dst_buff_key_val_it = hash_to_write_->find(
                     static_cast<hash_type::key_type>(router_ptr->dst_id));
                 if(dst_buff_key_val_it != hash_to_write_->end())
                 {

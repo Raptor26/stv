@@ -56,8 +56,10 @@ class qma6100_bw_reg
     explicit operator qma6100_reg_type() const
     {
         return static_cast<qma6100_reg_type>(
-            (static_cast<std::uint8_t>(nlpf) << nlpf_offset)
-            | (static_cast<std::uint8_t>(bw) << bw_offset));
+            (static_cast<std::uint32_t>(nlpf)
+             << static_cast<unsigned>(nlpf_offset))
+            | (static_cast<std::uint32_t>(bw)
+               << static_cast<unsigned>(bw_offset)));
     }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
@@ -88,7 +90,7 @@ class qma6100_bw_reg
         /// @brief Усреднение по 4 выборкам.
         average_4,
         /// @brief Усреднение по 16 выборкам.
-        average_16
+        average_16,
     };
 
     /// @brief Текущая настройка цифрового фильтра нижних частот (LPF).
@@ -209,7 +211,7 @@ class qma6100_fsr_reg
         qma6100_reg_type reg)
     {
         constexpr qma6100_reg_type range_mask{0x0F};
-        auto raw_value = (reg >> range_offset) & range_mask;
+        const auto raw_value = (reg >> range_offset) & range_mask;
 
         // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
         switch(static_cast<decltype(range)>(raw_value))
@@ -270,9 +272,12 @@ class qma6100_int_en1_reg
     explicit operator qma6100_reg_type() const
     {
         return static_cast<qma6100_reg_type>(
-            (static_cast<std::uint8_t>(int_fwm_en) << int_fwm_en_offset)
-            | (static_cast<std::uint8_t>(int_ffull_en) << int_ffull_en_offset)
-            | (static_cast<std::uint8_t>(int_data_en) << int_data_en_offset));
+            (static_cast<std::uint32_t>(int_fwm_en)
+             << static_cast<unsigned>(int_fwm_en_offset))
+            | (static_cast<std::uint32_t>(int_ffull_en)
+               << static_cast<unsigned>(int_ffull_en_offset))
+            | (static_cast<std::uint32_t>(int_data_en)
+               << static_cast<unsigned>(int_data_en_offset)));
     }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
@@ -362,8 +367,10 @@ class qma6100_int_map1_reg
     explicit operator qma6100_reg_type() const
     {
         return static_cast<qma6100_reg_type>(
-            (static_cast<std::uint8_t>(int1_no_mot) << int1_no_mot_offset)
-            | (static_cast<std::uint8_t>(int1_any_mot) << int1_any_mot_offset));
+            (static_cast<std::uint32_t>(int1_no_mot)
+             << static_cast<unsigned>(int1_no_mot_offset))
+            | (static_cast<std::uint32_t>(int1_any_mot)
+               << static_cast<unsigned>(int1_any_mot_offset)));
     }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
@@ -455,8 +462,10 @@ class qma6100_int_map3_reg
     explicit operator qma6100_reg_type() const
     {
         return static_cast<qma6100_reg_type>(
-            (static_cast<std::uint8_t>(int2_no_mot) << int2_no_mot_offset)
-            | (static_cast<std::uint8_t>(int2_any_mot) << int2_any_mot_offset));
+            (static_cast<std::uint32_t>(int2_no_mot)
+             << static_cast<unsigned>(int2_no_mot_offset))
+            | (static_cast<std::uint32_t>(int2_any_mot)
+               << static_cast<unsigned>(int2_any_mot_offset)));
     }
 
     /// @brief Перечисление для управления состоянием маппинга прерывания на
@@ -542,13 +551,20 @@ class qma6100_intpin_conf_reg
     explicit operator qma6100_reg_type() const
     {
         return static_cast<qma6100_reg_type>(
-            (static_cast<std::uint8_t>(dis_pu_senb) << dis_pu_senb_offset)
-            | (static_cast<std::uint8_t>(dis_ie_ad0) << dis_ie_ad0_offset)
-            | (static_cast<std::uint8_t>(en_spi3w) << en_spi3w_offset)
-            | (static_cast<std::uint8_t>(int2_od) << int2_od_offset)
-            | (static_cast<std::uint8_t>(int2_lvl) << int2_lvl_offset)
-            | (static_cast<std::uint8_t>(int1_od) << int1_od_offset)
-            | (static_cast<std::uint8_t>(int1_lvl) << int1_lvl_offset));
+            (static_cast<std::uint32_t>(dis_pu_senb)
+             << static_cast<unsigned>(dis_pu_senb_offset))
+            | (static_cast<std::uint32_t>(dis_ie_ad0)
+               << static_cast<unsigned>(dis_ie_ad0_offset))
+            | (static_cast<std::uint32_t>(en_spi3w)
+               << static_cast<unsigned>(en_spi3w_offset))
+            | (static_cast<std::uint32_t>(int2_od)
+               << static_cast<unsigned>(int2_od_offset))
+            | (static_cast<std::uint32_t>(int2_lvl)
+               << static_cast<unsigned>(int2_lvl_offset))
+            | (static_cast<std::uint32_t>(int1_od)
+               << static_cast<unsigned>(int1_od_offset))
+            | (static_cast<std::uint32_t>(int1_lvl)
+               << static_cast<unsigned>(int1_lvl_offset)));
     }
 
     /// @brief Перечисление для управления внутренней подтяжкой вывода PIN_SENB.
@@ -719,12 +735,16 @@ class qma6100_int_cfg_reg
     explicit operator qma6100_reg_type() const
     {
         return static_cast<qma6100_reg_type>(
-            (static_cast<std::uint8_t>(int_rd_clr) << int_rd_clr_offset)
-            | (static_cast<std::uint8_t>(shadow_dis) << shadow_dis_offset)
-            | (static_cast<std::uint8_t>(dis_i2c) << dis_i2c_offset)
-            | (static_cast<std::uint8_t>(latch_int_step)
-               << latch_int_step_offset)
-            | (static_cast<std::uint8_t>(latch_int) << latch_int_offset));
+            (static_cast<std::uint32_t>(int_rd_clr)
+             << static_cast<unsigned>(int_rd_clr_offset))
+            | (static_cast<std::uint32_t>(shadow_dis)
+               << static_cast<unsigned>(shadow_dis_offset))
+            | (static_cast<std::uint32_t>(dis_i2c)
+               << static_cast<unsigned>(dis_i2c_offset))
+            | (static_cast<std::uint32_t>(latch_int_step)
+               << static_cast<unsigned>(latch_int_step_offset))
+            | (static_cast<std::uint32_t>(latch_int)
+               << static_cast<unsigned>(latch_int_offset)));
     }
 
     /// @brief Перечисление для политики очистки флагов прерываний при чтении.
@@ -876,10 +896,12 @@ class qma6100_pm_reg
     explicit operator qma6100_reg_type() const
     {
         return static_cast<qma6100_reg_type>(
-            (static_cast<std::uint8_t>(mode_bit) << mode_bit_offset)
-            | (static_cast<std::uint8_t>(t_rstb_sinc_sel)
-               << t_rstb_sinc_sel_offset)
-            | (static_cast<std::uint8_t>(mclk_sel) << mclk_sel_offset));
+            (static_cast<std::uint32_t>(mode_bit)
+             << static_cast<unsigned>(mode_bit_offset))
+            | (static_cast<std::uint32_t>(t_rstb_sinc_sel)
+               << static_cast<unsigned>(t_rstb_sinc_sel_offset))
+            | (static_cast<std::uint32_t>(mclk_sel)
+               << static_cast<unsigned>(mclk_sel_offset)));
     }
 
     explicit qma6100_pm_reg(
@@ -984,9 +1006,10 @@ class qma6100_st_reg
     explicit operator stv::qma6100_reg_type() const
     {
         return static_cast<stv::qma6100_reg_type>(
-            (static_cast<std::uint8_t>(selftest_bit) << selftest_bit_offset)
-            | (static_cast<std::uint8_t>(selftest_sign)
-               << selftest_sing_offset));
+            (static_cast<std::uint32_t>(selftest_bit)
+             << static_cast<unsigned>(selftest_bit_offset))
+            | (static_cast<std::uint32_t>(selftest_sign)
+               << static_cast<unsigned>(selftest_sing_offset)));
     }
 
   private:

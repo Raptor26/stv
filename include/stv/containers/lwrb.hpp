@@ -113,10 +113,12 @@ class lwrb_base:
         const void *src, std::size_t size, bool write_all_or_nothing,
         bool is_isr = false)
     {
-        const auto flags{write_all_or_nothing ? LWRB_FLAG_WRITE_ALL
-                                              : static_cast<std::uint16_t>(0)};
+        const auto flags{
+            write_all_or_nothing ? LWRB_FLAG_WRITE_ALL
+                                 : static_cast<std::uint16_t>(0),
+        };
 
-        lwrb_sz_t  write_bytes{0};
+        lwrb_sz_t             write_bytes{0};
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
         lwrb_write_ex(&lwrb_, src, static_cast<lwrb_sz_t>(size), &write_bytes,
                       flags);
@@ -128,9 +130,11 @@ class lwrb_base:
         void *dst, std::size_t size, bool read_all_or_nothing,
         bool is_isr = false)
     {
-        const auto flags{read_all_or_nothing ? LWRB_FLAG_READ_ALL
-                                             : static_cast<std::uint16_t>(0)};
-        lwrb_sz_t  read_bytes{0};
+        const auto flags{
+            read_all_or_nothing ? LWRB_FLAG_READ_ALL
+                                : static_cast<std::uint16_t>(0),
+        };
+        lwrb_sz_t read_bytes{0};
         (void)is_isr;
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
         lwrb_read_ex(&lwrb_, dst, static_cast<lwrb_sz_t>(size), &read_bytes,
@@ -324,11 +328,15 @@ class lwrb_base:
         bool is_isr = false)
     {
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
-        return skipable{lwrb_,
-                        get_mutex_ref(),
-                        {static_cast<value_type *>(
-                             lwrb_get_linear_block_read_address(&lwrb_)),
-                         lwrb_get_linear_block_read_length(&lwrb_)}};
+        return skipable{
+            lwrb_,
+            get_mutex_ref(),
+            {
+                static_cast<value_type *>(
+                    lwrb_get_linear_block_read_address(&lwrb_)),
+                lwrb_get_linear_block_read_length(&lwrb_),
+            },
+        };
     }
 
     /// @brief Возвращает std::span, содержащий линейный участок памяти.
@@ -345,9 +353,11 @@ class lwrb_base:
         bool is_isr = false)
     {
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
-        return container_type{static_cast<value_type *>(
-                                  lwrb_get_linear_block_read_address(&lwrb_)),
-                              lwrb_get_linear_block_read_length(&lwrb_)};
+        return container_type{
+            static_cast<value_type *>(
+                lwrb_get_linear_block_read_address(&lwrb_)),
+            lwrb_get_linear_block_read_length(&lwrb_),
+        };
     }
 
     /// @brief Помечает указанное в numb количество байт как прочитанные, т.е.
@@ -386,6 +396,7 @@ class lwrb_base:
     /// чтением данных из буфера.
     ///
     /// @return Количество подсмотренных байт.
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     auto peek(
         container_type dst, std::size_t skip_count = 0, bool is_isr = false)
     {
@@ -393,6 +404,8 @@ class lwrb_base:
         return lwrb_peek(&lwrb_, static_cast<lwrb_sz_t>(skip_count), dst.data(),
                          static_cast<lwrb_sz_t>(dst.size_bytes()));
     }
+
+    // NOLINTEND(bugprone-easily-swappable-parameters)
 
     auto advance(
         std::size_t len, bool is_isr = false)

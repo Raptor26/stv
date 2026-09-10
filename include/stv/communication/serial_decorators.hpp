@@ -113,6 +113,7 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
+#include <memory>
 #include <span>
 
 namespace stv {
@@ -304,12 +305,13 @@ class start_frame_and_crc_16
         const total_message_span &total)
     {
         // Вычисляем ожидаемый CRC по данным (без трейлера).
-        auto expected_crc =
+        const auto expected_crc =
             calculate_crc(total.data(), total.size_bytes() - trailer_size());
 
         // Безопасно читаем полученный CRC из конца буфера.
         crc_type         received_crc{};
-        const std::byte *crc_pos = total.end().base() - trailer_size();
+        const std::byte *crc_pos =
+            std::to_address(total.end()) - trailer_size();
         std::memcpy(&received_crc, crc_pos, sizeof(received_crc));
 
         return received_crc == expected_crc;
@@ -328,26 +330,24 @@ class start_frame_and_crc_16
     static crc_type calculate_crc(
         const std::byte *data, size_t length)
     {
-        // NOLINTBEGIN(hicpp-signed-bitwise)
         // Простая реализация Crc для примера
-        crc_type crc = 0xFFFF;
+        std::uint32_t crc = 0xFFFFU;
         for(size_t i = 0; i < length; ++i)
         {
             crc ^= static_cast<std::uint8_t>(data[i]);
             for(int j = 0; j < 8; ++j)
             {
-                if(crc & 0x0001)
+                if((crc & 0x0001U) != 0U)
                 {
-                    crc = (crc >> 1) ^ 0xA001;
+                    crc = (crc >> 1U) ^ 0xA001U;
                 }
                 else
                 {
-                    crc >>= 1;
+                    crc >>= 1U;
                 }
             }
         }
-        // NOLINTEND(hicpp-signed-bitwise)
-        return crc;
+        return static_cast<crc_type>(crc);
     }
 };
 
@@ -397,8 +397,11 @@ struct head_route {
     /// @param[in] setup Параметры маршрутизации. По умолчанию оба поля
     /// равны нулю.
     explicit head_route(
-        const head_route_setup_t &setup = head_route_setup_t{.dst_id  = 0,
-                                                             .pack_id = 0}):
+        const head_route_setup_t &setup =
+            head_route_setup_t{
+                .dst_id  = 0,
+                .pack_id = 0,
+            }):
         setup_{setup}
     {
     }

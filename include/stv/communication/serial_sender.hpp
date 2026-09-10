@@ -204,11 +204,15 @@ class composite_serial_message
         decorators_{std::forward<Decorators>(decorators)...},
         payload_size_{static_cast<decltype(payload_size_)>(pload.size_bytes())},
         header_size_{
-            static_cast<decltype(header_size_)>(compute_header_size())},
+            static_cast<decltype(header_size_)>(compute_header_size()),
+        },
         trailer_size_{
-            static_cast<decltype(trailer_size_)>(compute_trailer_size())},
-        total_size_{static_cast<decltype(total_size_)>(
-            header_size_ + payload_size_ + trailer_size_)},
+            static_cast<decltype(trailer_size_)>(compute_trailer_size()),
+        },
+        total_size_{
+            static_cast<decltype(total_size_)>(header_size_ + payload_size_
+                                               + trailer_size_),
+        },
         queue_{queue},
         memory_{total_size_}
     {
@@ -289,8 +293,10 @@ class composite_serial_message
     /// @return Изменяемый span размером с полезную нагрузку.
     auto pload_data()
     {
-        return span_type{std::to_address(pload()),
-                         std::to_address(pload() + payload_size_)};
+        return span_type{
+            std::to_address(pload()),
+            std::to_address(pload() + payload_size_),
+        };
     }
 
     /// @brief Возвращает указатель на начало полезной нагрузки.
@@ -779,6 +785,7 @@ class serial_message_buffer_base:
     /// соответствующим декораторам.
     /// @return Объект @ref serial_message<std::remove_const_t<T>>.
     template<typename T, typename... SetupParams>
+    // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
     auto request(
         std::span<const T> span, SetupParams &&...setup_params)
     {

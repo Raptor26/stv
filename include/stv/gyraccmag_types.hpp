@@ -221,8 +221,11 @@ struct inertial_vector: public inertial_sens_storage_proxy<T> {
     constexpr auto operator+(
         const inertial_vector &other) const noexcept -> inertial_vector
     {
-        return {give_x() + other.give_x(), give_y() + other.give_y(),
-                give_z() + other.give_z()};
+        return {
+            give_x() + other.give_x(),
+            give_y() + other.give_y(),
+            give_z() + other.give_z(),
+        };
     }
 
     /// @brief Adds another vector to this vector (+=).
@@ -246,8 +249,11 @@ struct inertial_vector: public inertial_sens_storage_proxy<T> {
     constexpr auto operator-(
         const inertial_vector &other) const noexcept -> inertial_vector
     {
-        return {give_x() - other.give_x(), give_y() - other.give_y(),
-                give_z() - other.give_z()};
+        return {
+            give_x() - other.give_x(),
+            give_y() - other.give_y(),
+            give_z() - other.give_z(),
+        };
     }
 
     /// @brief Subtracts another vector from this vector (-=).
@@ -272,8 +278,11 @@ struct inertial_vector: public inertial_sens_storage_proxy<T> {
     constexpr auto operator*(
         U scalar) const noexcept
     {
-        return inertial_vector{give_x() * scalar, give_y() * scalar,
-                               give_z() * scalar};
+        return inertial_vector{
+            give_x() * scalar,
+            give_y() * scalar,
+            give_z() * scalar,
+        };
     }
 
     /// @brief Scalar and vector multiplication (scalar * vector).
@@ -438,8 +447,12 @@ struct inertial_sensor_common: public stv::inertial_vector<T, Frame> {
     /// @param[in] pack_stamp Timestamp for the measurement packet.
     explicit inertial_sensor_common(
         const base_type &vector, TIMESTAMP pack_stamp = 0U) noexcept:
-        inertial_sensor_common{vector.give_x(), vector.give_y(),
-                               vector.give_z(), pack_stamp}
+        inertial_sensor_common{
+            vector.give_x(),
+            vector.give_y(),
+            vector.give_z(),
+            pack_stamp,
+        }
     {
     }
 
@@ -525,7 +538,8 @@ struct inertial_sensor_common: public stv::inertial_vector<T, Frame> {
         return inertial_sensor_common{
             static_cast<const base_type &>(*this)
                 + static_cast<const base_type &>(other),
-            packstamp};
+            packstamp,
+        };
     }
 
     /// @brief Subtraction operator.
@@ -543,7 +557,8 @@ struct inertial_sensor_common: public stv::inertial_vector<T, Frame> {
         return inertial_sensor_common{
             static_cast<const base_type &>(*this)
                 - static_cast<const base_type &>(other),
-            packstamp};
+            packstamp,
+        };
     }
 
     /// @brief Boolean conversion operator.

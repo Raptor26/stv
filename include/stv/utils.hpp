@@ -311,8 +311,8 @@ template<std::ranges::range Container>
 auto norm(
     const Container &container)
 {
-    using value_type = std::ranges::range_value_t<Container>;
-    auto sum_sq      = std::accumulate(
+    using value_type  = std::ranges::range_value_t<Container>;
+    const auto sum_sq = std::accumulate(
         std::begin(container), std::end(container), value_type{0},
         [](const auto &acc, const auto &axis) { return acc + (axis * axis); });
     return std::sqrt(sum_sq);

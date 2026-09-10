@@ -141,12 +141,10 @@ class mmc3630kj: public stv::mmc3630kj_i2c, public stv::imag<MagType>
                 is_data_valid = false;
             }
 
-            if(is_data_valid)
+            if(is_data_valid
+               && (!is_axis_valid(x) || !is_axis_valid(y) || !is_axis_valid(z)))
             {
-                if(!is_axis_valid(x) || !is_axis_valid(y) || !is_axis_valid(z))
-                {
-                    is_data_valid = false;
-                }
+                is_data_valid = false;
             }
 
             return is_data_valid;
@@ -238,9 +236,9 @@ class mmc3630kj: public stv::mmc3630kj_i2c, public stv::imag<MagType>
     /// @return true, если self-test пройден успешно.
     auto check_self_test()
     {
-        auto is_self_test_valid{true};
+        auto       is_self_test_valid{true};
 
-        auto status_reg = read<mmc3630kj_status_reg>();
+        const auto status_reg = read<mmc3630kj_status_reg>();
 
         if(status_reg.otp_rd_done
            == mmc3630kj_status_reg::otp_rd_done_t::not_able_to_read)
@@ -333,9 +331,11 @@ class mmc3630kj: public stv::mmc3630kj_i2c, public stv::imag<MagType>
     {
         auto                                is_detected{false};
         static constexpr mmc3630kj_reg_type chip_id_valid{
-            mmc3630kj_product_id_reg::expected_value};
+            mmc3630kj_product_id_reg::expected_value,
+        };
         static constexpr mmc3630kj_reg_type chip_id_addr{
-            mmc3630kj_product_id_reg::addr};
+            mmc3630kj_product_id_reg::addr,
+        };
         mmc3630kj_reg_type chip_id{0xFF};
         const auto         is_success =
             i2c->read(static_cast<stv::i2c_interface::byte_type>(
@@ -415,7 +415,8 @@ class mmc3630kj: public stv::mmc3630kj_i2c, public stv::imag<MagType>
             static_cast<value_type>(convert_axis_to_signed(raw.x)) / lsb_per_g_,
             static_cast<value_type>(convert_axis_to_signed(raw.y)) / lsb_per_g_,
             static_cast<value_type>(convert_axis_to_signed(raw.z)) / lsb_per_g_,
-            timestamp_};
+            timestamp_,
+        };
     }
 
     /// @brief Читает нормализованные данные с магнитометра.

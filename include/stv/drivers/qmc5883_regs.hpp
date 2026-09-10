@@ -37,10 +37,14 @@ class qmc5883_ctrl1_reg
     explicit operator qmc5883_reg_type() const
     {
         return static_cast<qmc5883_reg_type>(
-            (static_cast<std::uint8_t>(osr) << osr_offset)
-            | (static_cast<std::uint8_t>(rng) << rng_offset)
-            | (static_cast<std::uint8_t>(odr) << odr_offset)
-            | (static_cast<std::uint8_t>(mode) << mode_offset));
+            (static_cast<std::uint32_t>(osr)
+             << static_cast<unsigned>(osr_offset))
+            | (static_cast<std::uint32_t>(rng)
+               << static_cast<unsigned>(rng_offset))
+            | (static_cast<std::uint32_t>(odr)
+               << static_cast<unsigned>(odr_offset))
+            | (static_cast<std::uint32_t>(mode)
+               << static_cast<unsigned>(mode_offset)));
     }
 
     /// @brief Оператор присваивания, обновляющий значение регистра.
@@ -105,10 +109,18 @@ class qmc5883_ctrl1_reg
     void parse(
         qmc5883_reg_type reg)
     {
-        osr  = static_cast<osr_t>((reg >> osr_offset) & 0x03);
-        rng  = static_cast<rng_t>((reg >> rng_offset) & 0x03);
-        odr  = static_cast<odr_t>((reg >> odr_offset) & 0x03);
-        mode = static_cast<mode_t>((reg >> mode_offset) & 0x03);
+        osr  = static_cast<osr_t>((static_cast<std::uint32_t>(reg)
+                                   >> static_cast<unsigned>(osr_offset))
+                                  & 0x03U);
+        rng  = static_cast<rng_t>((static_cast<std::uint32_t>(reg)
+                                   >> static_cast<unsigned>(rng_offset))
+                                  & 0x03U);
+        odr  = static_cast<odr_t>((static_cast<std::uint32_t>(reg)
+                                   >> static_cast<unsigned>(odr_offset))
+                                  & 0x03U);
+        mode = static_cast<mode_t>((static_cast<std::uint32_t>(reg)
+                                    >> static_cast<unsigned>(mode_offset))
+                                   & 0x03U);
     }
 };
 
@@ -134,9 +146,12 @@ class qmc5883_ctrl2_reg
     explicit operator qmc5883_reg_type() const
     {
         return static_cast<qmc5883_reg_type>(
-            (static_cast<std::uint8_t>(soft_reset) << soft_reset_offset)
-            | (static_cast<std::uint8_t>(rol_pnt) << rol_pnt_offset)
-            | (static_cast<std::uint8_t>(int_enb) << int_enb_offset));
+            (static_cast<std::uint32_t>(soft_reset)
+             << static_cast<unsigned>(soft_reset_offset))
+            | (static_cast<std::uint32_t>(rol_pnt)
+               << static_cast<unsigned>(rol_pnt_offset))
+            | (static_cast<std::uint32_t>(int_enb)
+               << static_cast<unsigned>(int_enb_offset)));
     }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
@@ -178,12 +193,19 @@ class qmc5883_ctrl2_reg
     void parse(
         qmc5883_reg_type reg)
     {
-        soft_reset = (reg & (1 << soft_reset_offset)) ? soft_reset_t::enable
-                                                      : soft_reset_t::normal;
-        rol_pnt    = (reg & (1 << rol_pnt_offset)) ? rol_pnt_t::enable
-                                                   : rol_pnt_t::normal;
-        int_enb    = (reg & (1 << int_enb_offset)) ? int_enb_t::disable
-                                                   : int_enb_t::enable;
+        soft_reset =
+            (reg
+             & (std::uint32_t{1} << static_cast<unsigned>(soft_reset_offset)))
+                ? soft_reset_t::enable
+                : soft_reset_t::normal;
+        rol_pnt =
+            (reg & (std::uint32_t{1} << static_cast<unsigned>(rol_pnt_offset)))
+                ? rol_pnt_t::enable
+                : rol_pnt_t::normal;
+        int_enb =
+            (reg & (std::uint32_t{1} << static_cast<unsigned>(int_enb_offset)))
+                ? int_enb_t::disable
+                : int_enb_t::enable;
     }
 };
 
@@ -246,9 +268,12 @@ class qmc5883_status_reg
     explicit operator qmc5883_reg_type() const
     {
         return static_cast<qmc5883_reg_type>(
-            (static_cast<std::uint8_t>(dor) << dor_offset)
-            | (static_cast<std::uint8_t>(ovl) << ovl_offset)
-            | (static_cast<std::uint8_t>(drdy) << drdy_offset));
+            (static_cast<std::uint32_t>(dor)
+             << static_cast<unsigned>(dor_offset))
+            | (static_cast<std::uint32_t>(ovl)
+               << static_cast<unsigned>(ovl_offset))
+            | (static_cast<std::uint32_t>(drdy)
+               << static_cast<unsigned>(drdy_offset)));
     }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
@@ -298,11 +323,15 @@ class qmc5883_status_reg
     void parse(
         qmc5883_reg_type reg)
     {
-        drdy = (reg & (1 << drdy_offset)) ? drdy_t::new_data_is_ready
-                                          : drdy_t::no_new_data;
-        ovl  = (reg & (1 << ovl_offset)) ? ovl_t::data_overflow : ovl_t::normal;
-        dor  = (reg & (1 << dor_offset)) ? dor_t::data_skipped_for_reading
-                                         : dor_t::normal;
+        drdy = (reg & (std::uint32_t{1} << static_cast<unsigned>(drdy_offset)))
+                   ? drdy_t::new_data_is_ready
+                   : drdy_t::no_new_data;
+        ovl  = (reg & (std::uint32_t{1} << static_cast<unsigned>(ovl_offset)))
+                   ? ovl_t::data_overflow
+                   : ovl_t::normal;
+        dor  = (reg & (std::uint32_t{1} << static_cast<unsigned>(dor_offset)))
+                   ? dor_t::data_skipped_for_reading
+                   : dor_t::normal;
     }
 };
 
