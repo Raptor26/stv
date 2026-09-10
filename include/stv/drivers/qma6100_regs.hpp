@@ -950,6 +950,15 @@ class qma6100_pm_reg
     }
 };
 
+/// @brief Класс для работы с регистром самотестирования (SELF-TEST) QMA6100.
+///
+/// @details Этот класс инкапсулирует логику работы с регистром 0x32 (ST)
+/// датчика QMA6100, который управляет функцией самотестирования
+/// акселерометра. Бит SELFTEST_BIT включает режим самотестирования, а бит
+/// SELFTEST_SIGN задаёт полярность возбуждения при самотестировании
+/// (положительную или отрицательную). Класс предоставляет типобезопасный
+/// интерфейс для работы с этими настройками через перечисления. Поддерживает
+/// преобразование в сырое значение регистра и обратно.
 class qma6100_st_reg
 {
     static constexpr int step_by_axix_offset{0};
@@ -957,25 +966,48 @@ class qma6100_st_reg
     static constexpr int selftest_bit_offset{7};
 
   public:
+    /// @brief Адрес регистра SELF-TEST (ST) в памяти устройства.
     static constexpr stv::qma6100_reg_type addr{0x32};
 
+    /// @brief Перечисление для управления режимом самотестирования.
+    ///
+    /// @details Определяет, включён ли режим самотестирования акселерометра.
     enum struct selftest_bit_t : std::uint8_t {
-        normal  = 0,
-        enabled = 1,
+        normal  = 0, ///< Обычный режим работы (самотестирование выключено).
+        enabled = 1, ///< Режим самотестирования включён.
     };
 
+    /// @brief Перечисление для выбора полярности возбуждения при
+    /// самотестировании.
+    ///
+    /// @details Определяет направление тестового возбуждения, прикладываемого
+    /// к чувствительному элементу в режиме самотестирования.
     enum struct selftest_sign_t : std::uint8_t {
-        negative = 0,
-        positive = 1,
+        negative = 0, ///< Отрицательная полярность возбуждения.
+        positive = 1, ///< Положительная полярность возбуждения.
     };
 
-    selftest_bit_t  selftest_bit{selftest_bit_t::normal};
+    /// @brief Текущая настройка режима самотестирования.
+    selftest_bit_t selftest_bit{selftest_bit_t::normal};
+
+    /// @brief Текущая настройка полярности возбуждения при самотестировании.
     selftest_sign_t selftest_sign{selftest_sign_t::positive};
 
+    /// @brief Конструктор с возможностью инициализации значением регистра.
+    ///
+    /// @details Создаёт объект класса, выполняет парсинг переданного сырого
+    /// значения регистра и заполняет внутренние поля (selftest_bit и
+    /// selftest_sign) соответствующими значениями.
+    /// @param value Начальное сырое значение регистра (по умолчанию 0).
     explicit qma6100_st_reg(
         stv::qma6100_reg_type value = stv::qma6100_reg_type{0})
     { parse(value); }
 
+    /// @brief Оператор преобразования в сырое значение регистра.
+    ///
+    /// @details Собирает текущие настройки полей selftest_bit и selftest_sign
+    /// в одно 8-битное значение, готовое для записи в регистр устройства.
+    /// @return 8-битное значение регистра, собранное из полей.
     explicit operator stv::qma6100_reg_type() const
     {
         return static_cast<stv::qma6100_reg_type>(
@@ -984,13 +1016,19 @@ class qma6100_st_reg
     }
 
   private:
+    /// @brief Парсинг сырого значения регистра в поля класса.
+    ///
+    /// @details Извлекает битовые поля, соответствующие настройкам
+    /// самотестирования (selftest_bit и selftest_sign), из переданного сырого
+    /// значения регистра и сохраняет их в соответствующих полях объекта.
+    /// @param reg Сырое значение регистра для парсинга.
     void parse(
         stv::qma6100_reg_type reg)
     {
         {
-            constexpr qma6100_reg_type selftest_mask{0x01};
+            constexpr qma6100_reg_type selftest_bit_mask{0x01};
             selftest_bit = extract_field<decltype(selftest_bit)>(
-                reg, selftest_bit_offset, selftest_mask);
+                reg, selftest_bit_offset, selftest_bit_mask);
         }
         {
             constexpr qma6100_reg_type selftest_sign_mask{0x01};

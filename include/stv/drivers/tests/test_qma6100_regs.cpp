@@ -797,27 +797,33 @@ TEST_CASE(
 
         SECTION("Ctor")
         {
-            SECTION("reg == 0x00")
+            SECTION("reg == 0b00000000")
             {
-                stv::qma6100_st_reg reg_ctor{stv::qma6100_reg_type{0x00}};
+                constexpr reg_bitset reg_val{std::string{"00000000"}};
+                stv::qma6100_st_reg  reg_ctor{
+                    stv::qma6100_reg_type{reg_val.to_ulong()}};
                 REQUIRE(reg_ctor.selftest_bit
                         == stv::qma6100_st_reg::selftest_bit_t::normal);
                 REQUIRE(reg_ctor.selftest_sign
                         == stv::qma6100_st_reg::selftest_sign_t::negative);
             }
 
-            SECTION("reg == 0x80")
+            SECTION("reg == 0b10000000")
             {
-                stv::qma6100_st_reg reg_ctor{stv::qma6100_reg_type{0x80}};
+                constexpr reg_bitset reg_val{std::string{"10000000"}};
+                stv::qma6100_st_reg  reg_ctor{
+                    stv::qma6100_reg_type{reg_val.to_ulong()}};
                 REQUIRE(reg_ctor.selftest_bit
                         == stv::qma6100_st_reg::selftest_bit_t::enabled);
                 REQUIRE(reg_ctor.selftest_sign
                         == stv::qma6100_st_reg::selftest_sign_t::negative);
             }
 
-            SECTION("reg == 0x04")
+            SECTION("reg == 0b00000100")
             {
-                stv::qma6100_st_reg reg_ctor{stv::qma6100_reg_type{0x04}};
+                constexpr reg_bitset reg_val{std::string{"00000100"}};
+                stv::qma6100_st_reg  reg_ctor{
+                    stv::qma6100_reg_type{reg_val.to_ulong()}};
                 REQUIRE(reg_ctor.selftest_bit
                         == stv::qma6100_st_reg::selftest_bit_t::normal);
                 REQUIRE(reg_ctor.selftest_sign
@@ -827,34 +833,32 @@ TEST_CASE(
 
         SECTION("Round-trip")
         {
+            const auto check_round_trip =
+                [](stv::qma6100_st_reg::selftest_bit_t  bit,
+                   stv::qma6100_st_reg::selftest_sign_t sign) {
+                    stv::qma6100_st_reg reg_out;
+                    reg_out.selftest_bit  = bit;
+                    reg_out.selftest_sign = sign;
+
+                    const stv::qma6100_st_reg reg_in{
+                        static_cast<stv::qma6100_reg_type>(reg_out)};
+
+                    REQUIRE(reg_in.selftest_bit == reg_out.selftest_bit);
+                    REQUIRE(reg_in.selftest_sign == reg_out.selftest_sign);
+                };
+
             SECTION("enabled + negative")
             {
-                stv::qma6100_st_reg reg_out;
-                reg_out.selftest_bit =
-                    stv::qma6100_st_reg::selftest_bit_t::enabled;
-                reg_out.selftest_sign =
-                    stv::qma6100_st_reg::selftest_sign_t::negative;
-
-                const stv::qma6100_st_reg reg_in{
-                    static_cast<stv::qma6100_reg_type>(reg_out)};
-
-                REQUIRE(reg_in.selftest_bit == reg_out.selftest_bit);
-                REQUIRE(reg_in.selftest_sign == reg_out.selftest_sign);
+                check_round_trip(
+                    stv::qma6100_st_reg::selftest_bit_t::enabled,
+                    stv::qma6100_st_reg::selftest_sign_t::negative);
             }
 
             SECTION("normal + positive")
             {
-                stv::qma6100_st_reg reg_out;
-                reg_out.selftest_bit =
-                    stv::qma6100_st_reg::selftest_bit_t::normal;
-                reg_out.selftest_sign =
-                    stv::qma6100_st_reg::selftest_sign_t::positive;
-
-                const stv::qma6100_st_reg reg_in{
-                    static_cast<stv::qma6100_reg_type>(reg_out)};
-
-                REQUIRE(reg_in.selftest_bit == reg_out.selftest_bit);
-                REQUIRE(reg_in.selftest_sign == reg_out.selftest_sign);
+                check_round_trip(
+                    stv::qma6100_st_reg::selftest_bit_t::normal,
+                    stv::qma6100_st_reg::selftest_sign_t::positive);
             }
         }
     }
