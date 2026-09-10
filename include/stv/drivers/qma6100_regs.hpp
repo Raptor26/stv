@@ -953,7 +953,7 @@ class qma6100_pm_reg
 class qma6100_st_reg
 {
     static constexpr int step_by_axix_offset{0};
-    static constexpr int selftest_sing_offset{2};
+    static constexpr int selftest_sign_offset{2};
     static constexpr int selftest_bit_offset{7};
 
   public:
@@ -980,7 +980,7 @@ class qma6100_st_reg
     {
         return static_cast<stv::qma6100_reg_type>(
             field_to_raw(selftest_bit, selftest_bit_offset)
-            | field_to_raw(selftest_sign, selftest_sing_offset));
+            | field_to_raw(selftest_sign, selftest_sign_offset));
     }
 
   private:
@@ -988,14 +988,14 @@ class qma6100_st_reg
         stv::qma6100_reg_type reg)
     {
         {
-            constexpr qma6100_reg_type selftest_mask{0x80};
+            constexpr qma6100_reg_type selftest_mask{0x01};
             selftest_bit = extract_field<decltype(selftest_bit)>(
                 reg, selftest_bit_offset, selftest_mask);
         }
         {
-            constexpr qma6100_reg_type selftest_sign_mask{0x04};
+            constexpr qma6100_reg_type selftest_sign_mask{0x01};
             selftest_sign = extract_field<decltype(selftest_sign)>(
-                reg, selftest_sing_offset, selftest_sign_mask);
+                reg, selftest_sign_offset, selftest_sign_mask);
         }
     }
 };
