@@ -110,6 +110,11 @@ class callback_timer:
     using base_type  = etl::icallback_timer_atomic<std::atomic_uint32_t>;
     using count_type = std::chrono::duration<std::uint32_t, std::micro>;
 
+    // Возвращаем в область видимости перегрузку register_timer() базового
+    // класса, скрытую шаблонной перегрузкой ниже.
+    using etl::callback_timer_atomic<CallbackTimersNumb,
+                                     std::atomic_uint32_t>::register_timer;
+
   private:
     count_type period_{0};
 
@@ -183,6 +188,26 @@ class callback_timer:
         }
 
         return is_period_valid;
+    }
+
+    /// @brief Регистрирует таймер с периодом, заданным в виде
+    /// std::chrono::duration. Период приводится к count_type.
+    /// @param[in] callback Делегат, вызываемый по истечении периода.
+    /// @param[in] period Период вызова делегата.
+    /// @param[in] repeating Признак повторяющегося таймера.
+    /// @return Идентификатор зарегистрированного таймера.
+    template<typename U>
+        requires(stv::is_duration_v<U>)
+    auto register_timer(
+        typename base_type::callback_type callback, U period, bool repeating)
+        -> etl::timer::id::type
+    {
+        return etl::callback_timer_atomic<CallbackTimersNumb,
+                                          std::atomic_uint32_t>::
+            register_timer(
+                callback,
+                std::chrono::duration_cast<count_type>(period).count(),
+                repeating);
     }
 
     /// @brief При получении уведомления о то что прошел период времени,
