@@ -16,9 +16,9 @@
 #include "stv/gyraccmag_types.hpp"
 #include "stv/i2c.hpp"
 
-// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace)
+// NOLINTBEGIN(readability-function-cognitive-complexity)
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 
 TEST_CASE(
     "mc3479", "[stv][drivers]")
@@ -152,6 +152,6 @@ TEST_CASE(
     }
 }
 
-// NOLINTEND(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(readability-function-cognitive-complexity)
+// NOLINTEND(*-magic-numbers, google-build-using-namespace)

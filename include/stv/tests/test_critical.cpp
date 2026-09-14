@@ -11,9 +11,9 @@
 #include "stv/critical.hpp"
 #include "stv/mutex_guard.hpp"
 
-// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace)
+// NOLINTBEGIN(readability-function-cognitive-complexity)
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 
 namespace {
 
@@ -37,7 +37,7 @@ TEST_CASE(
                 stv::critical<lock, unlock> critical;
                 REQUIRE(critical.get_glob_nesting_cnt() == 0U);
 
-                std::scoped_lock lock{critical};
+                const std::scoped_lock lock{critical};
                 REQUIRE(lock_cnt == 1U);
                 REQUIRE(critical.get_glob_nesting_cnt() == 1U);
             }
@@ -50,7 +50,7 @@ TEST_CASE(
             {
                 stv::critical<&lock, &unlock> critical;
 
-                std::scoped_lock              lock{critical};
+                const std::scoped_lock        lock{critical};
                 REQUIRE(lock_cnt == 1U);
             }
             REQUIRE(lock_cnt == 0U);
@@ -65,13 +65,13 @@ TEST_CASE(
         REQUIRE(critical_i2c.get_glob_nesting_cnt()
                 == critical_spi.get_glob_nesting_cnt());
         {
-            std::scoped_lock lock_i2c{critical_i2c};
+            const std::scoped_lock lock_i2c{critical_i2c};
 
             REQUIRE(critical_i2c.get_glob_nesting_cnt() == 1U);
             REQUIRE(critical_i2c.get_glob_nesting_cnt()
                     == critical_spi.get_glob_nesting_cnt());
 
-            std::scoped_lock lock_spi{critical_spi};
+            const std::scoped_lock lock_spi{critical_spi};
 
             // т.к. critical_i2c и critical_spi имеют один глобальный счетчик
             // вложенности, то ожидается, что вызов  std::scoped_lock
@@ -87,7 +87,7 @@ TEST_CASE(
     }
 }
 
-namespace critical_with_isr_test {
+namespace {
 
 struct fixture {
     inline static std::size_t lock_cnt{0};
@@ -115,14 +115,11 @@ struct fixture {
 using critical = stv::critical_with_isr<fixture::lock, fixture::unlock,
                                         fixture::lock_isr, fixture::unlock_isr>;
 
-} // namespace critical_with_isr_test
+} // namespace
 
 TEST_CASE(
     "critical_with_isr", "[stv]")
 {
-    using critical_with_isr_test::critical;
-    using critical_with_isr_test::fixture;
-
     SECTION("std::lock_guard uses non-ISR handlers by default")
     {
         fixture::reset();
@@ -132,7 +129,7 @@ TEST_CASE(
         REQUIRE(critical_section.get_glob_nesting_cnt() == 0U);
 
         {
-            std::lock_guard lock{critical_section};
+            const std::scoped_lock lock{critical_section};
             REQUIRE(fixture::lock_cnt == 1U);
             REQUIRE(fixture::unlock_cnt == 0U);
             REQUIRE(fixture::lock_isr_cnt == 0U);
@@ -156,7 +153,7 @@ TEST_CASE(
         REQUIRE(critical_section.get_glob_nesting_cnt() == 0U);
 
         {
-            stv::lock_guard lock{critical_section, false};
+            const stv::lock_guard lock{critical_section, false};
             REQUIRE(fixture::lock_cnt == 1U);
             REQUIRE(fixture::unlock_cnt == 0U);
             REQUIRE(fixture::lock_isr_cnt == 0U);
@@ -180,7 +177,7 @@ TEST_CASE(
         REQUIRE(critical_section.get_glob_nesting_cnt() == 0U);
 
         {
-            stv::lock_guard lock{critical_section, true};
+            const stv::lock_guard lock{critical_section, true};
             REQUIRE(fixture::lock_cnt == 0U);
             REQUIRE(fixture::unlock_cnt == 0U);
             REQUIRE(fixture::lock_isr_cnt == 1U);
@@ -203,7 +200,7 @@ TEST_CASE(
         critical critical_inner;
 
         {
-            std::lock_guard lock_outer{critical_outer};
+            const std::scoped_lock lock_outer{critical_outer};
             REQUIRE(fixture::lock_cnt == 1U);
             REQUIRE(fixture::unlock_cnt == 0U);
             REQUIRE(fixture::lock_isr_cnt == 0U);
@@ -211,7 +208,7 @@ TEST_CASE(
             REQUIRE(critical_outer.get_glob_nesting_cnt() == 1U);
 
             {
-                std::lock_guard lock_inner{critical_inner};
+                const std::scoped_lock lock_inner{critical_inner};
                 REQUIRE(fixture::lock_cnt == 1U);
                 REQUIRE(fixture::unlock_cnt == 0U);
                 REQUIRE(fixture::lock_isr_cnt == 0U);
@@ -241,7 +238,7 @@ TEST_CASE(
         critical critical_inner;
 
         {
-            stv::lock_guard lock_outer{critical_outer, true};
+            const stv::lock_guard lock_outer{critical_outer, true};
             REQUIRE(fixture::lock_cnt == 0U);
             REQUIRE(fixture::unlock_cnt == 0U);
             REQUIRE(fixture::lock_isr_cnt == 1U);
@@ -249,7 +246,7 @@ TEST_CASE(
             REQUIRE(critical_outer.get_glob_nesting_cnt() == 1U);
 
             {
-                stv::lock_guard lock_inner{critical_inner, false};
+                const stv::lock_guard lock_inner{critical_inner, false};
                 REQUIRE(fixture::lock_cnt == 0U);
                 REQUIRE(fixture::unlock_cnt == 0U);
                 REQUIRE(fixture::lock_isr_cnt == 1U);
@@ -272,6 +269,6 @@ TEST_CASE(
     }
 }
 
-// NOLINTEND(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(readability-function-cognitive-complexity)
+// NOLINTEND(*-magic-numbers, google-build-using-namespace)

@@ -156,6 +156,7 @@
 #ifndef CRSF_HPP
 #define CRSF_HPP
 
+#include "gsl/gsl"
 #include "stv/containers/lwrb.hpp"
 #include "stv/deadline_timer.hpp"
 #include "stv/mutex_guard.hpp"
@@ -340,10 +341,8 @@ consteval void assert_handler_map_capacity()
     for(const std::byte byte: data)
     {
         // Индекс — результат xor двух байт, всегда в диапазоне таблицы (256).
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index,
-        // cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
-        crc = table[static_cast<std::size_t>(
-            crc ^ std::to_integer<decltype(crc)>(byte))];
+        crc = gsl::at(table, static_cast<gsl::index>(
+                                 crc ^ std::to_integer<decltype(crc)>(byte)));
     }
     return crc;
 }
@@ -712,9 +711,9 @@ class crsf_parser
             };
 
             // frame_size проверен выше: crc всегда в пределах кадра.
-            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index,
-            // cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
-            if(crc_actual != context.frame[context.frame_size - crc_size])
+            const auto crc_index =
+                static_cast<gsl::index>(context.frame_size - crc_size);
+            if(crc_actual != gsl::at(context.frame, crc_index))
             {
                 // Лимит resync-потребления исчерпан: кадр не потребляется,
                 // run() неблокирующе возвращает управление; resync
@@ -893,10 +892,10 @@ class crsf_parser
     /// @return Значение указанного канала.
     auto get_channel(
         std::uint8_t ch_numb) const
-    // Номер канала по контракту меньше crsf_rc_channels_count.
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index,
-    // cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
-    { return channels_[ch_numb]; }
+    {
+        // Номер канала по контракту меньше crsf_rc_channels_count.
+        return gsl::at(channels_, ch_numb);
+    }
 
     /// @brief Возвращает статистику канала связи, разобранную из крайнего
     /// принятого кадра link statistics (0x14).
@@ -1033,9 +1032,7 @@ class crsf_parser
                     ((byte >> (bit_index % bits_per_byte)) & 1U) << bit);
             }
             // Номер канала ограничен циклом значением crsf_rc_channels_count.
-            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index,
-            // cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
-            channels_[channel] = value;
+            gsl::at(channels_, static_cast<gsl::index>(channel)) = value;
         }
 
         on_any_rc_frame();

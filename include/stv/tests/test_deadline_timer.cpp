@@ -15,9 +15,9 @@
 #include "stv/deadline_timer.hpp"
 #include "stv/runtime.hpp"
 
-// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace)
+// NOLINTBEGIN(readability-function-cognitive-complexity)
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 
 TEST_CASE(
     "deadline Ctor", "[stv]")
@@ -31,16 +31,16 @@ TEST_CASE(
 
     SECTION("Default Ctor")
     {
-        deadline_setup_type setup;
-        stv::deadline_timer deadline{setup};
+        const deadline_setup_type setup;
+        stv::deadline_timer       deadline{setup};
         REQUIRE_FALSE(deadline);
     }
 
     SECTION("Valid Ctor")
     {
-        Mock<runtime_type>  runtime_mock;
-        deadline_setup_type setup{.runtime = &runtime_mock.get()};
-        stv::deadline_timer deadline{setup};
+        Mock<runtime_type>        runtime_mock;
+        const deadline_setup_type setup{.runtime = &runtime_mock.get()};
+        stv::deadline_timer       deadline{setup};
         REQUIRE(deadline);
     }
 }
@@ -62,14 +62,15 @@ TEST_CASE(
     SECTION(
         "Check elapsed if not started with is_elapsed_if_not_started = false")
     {
-        stv::deadline_timer deadline{
-            deadline_setup_type{.runtime = &runtime_mock.get(),
-                                .is_elapsed_if_not_started = false}};
+        const stv::deadline_timer deadline{deadline_setup_type{
+            .runtime                   = &runtime_mock.get(),
+            .is_elapsed_if_not_started = false,
+        }};
         REQUIRE_FALSE(deadline.is_elapsed());
     }
 
-    deadline_setup_type setup{.runtime = &runtime_mock.get()};
-    stv::deadline_timer deadline{setup};
+    const deadline_setup_type setup{.runtime = &runtime_mock.get()};
+    stv::deadline_timer       deadline{setup};
     REQUIRE(deadline);
 
     SECTION("Check elapsed if not started") { REQUIRE(deadline.is_elapsed()); }
@@ -110,8 +111,10 @@ TEST_CASE(
             constexpr runtime_counter_type elapsed_time{2s};
             When(Method(runtime_mock, get)).Return(0s, elapsed_time - 100ms);
 
-            stv::deadline_timer deadline_started{deadline_setup_type{
-                .runtime = &runtime_mock.get(), .delay = elapsed_time}};
+            const stv::deadline_timer deadline_started{deadline_setup_type{
+                .runtime = &runtime_mock.get(),
+                .delay   = elapsed_time,
+            }};
             REQUIRE_FALSE(deadline_started.is_elapsed());
 
             When(Method(runtime_mock, get)).AlwaysReturn(elapsed_time);
@@ -224,9 +227,10 @@ TEST_CASE(
         Mock<runtime_type> runtime_mock;
         Fake(Method(runtime_mock, get));
 
-        stv::deadline_timer deadline{
-            deadline_setup_type{.runtime = &runtime_mock.get(),
-                                .is_elapsed_if_not_started = false}};
+        stv::deadline_timer deadline{deadline_setup_type{
+            .runtime                   = &runtime_mock.get(),
+            .is_elapsed_if_not_started = false,
+        }};
 
         REQUIRE(deadline.set_delay(1h));
         REQUIRE(deadline.set_delay(std::chrono::hours{1}));
@@ -251,9 +255,10 @@ TEST_CASE(
         Mock<runtime_type> runtime_mock;
         Fake(Method(runtime_mock, get));
 
-        stv::deadline_timer deadline{
-            deadline_setup_type{.runtime = &runtime_mock.get(),
-                                .is_elapsed_if_not_started = false}};
+        stv::deadline_timer deadline{deadline_setup_type{
+            .runtime                   = &runtime_mock.get(),
+            .is_elapsed_if_not_started = false,
+        }};
 
         REQUIRE(deadline.set_delay(1h));
         REQUIRE(deadline.set_delay(std::chrono::hours{1}));
@@ -280,9 +285,10 @@ TEST_CASE(
         Mock<runtime_type> runtime_mock;
         Fake(Method(runtime_mock, get));
 
-        stv::deadline_timer deadline{
-            deadline_setup_type{.runtime = &runtime_mock.get(),
-                                .is_elapsed_if_not_started = false}};
+        stv::deadline_timer deadline{deadline_setup_type{
+            .runtime                   = &runtime_mock.get(),
+            .is_elapsed_if_not_started = false,
+        }};
 
         REQUIRE(deadline.set_delay(1h));
         REQUIRE(deadline.set_delay(std::chrono::hours{1}));
@@ -295,6 +301,6 @@ TEST_CASE(
     }
 }
 
-// NOLINTEND(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(readability-function-cognitive-complexity)
+// NOLINTEND(*-magic-numbers, google-build-using-namespace)

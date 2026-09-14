@@ -20,9 +20,9 @@
 #include "stv/gyraccmag_types.hpp"
 #include "stv/i2c.hpp"
 
-// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-complexity,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace)
+// NOLINTBEGIN(readability-function-cognitive-complexity)
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 
 TEST_CASE(
     "QMC5883P Regs")
@@ -272,9 +272,9 @@ TEST_CASE(
     {
         SECTION("All bits is reset")
         {
-            const reg_bitset    expect_reg_val{std::string{"00000000"}};
+            const reg_bitset          expect_reg_val{std::string{"00000000"}};
 
-            qmc5883p_status_reg status_reg{
+            const qmc5883p_status_reg status_reg{
                 static_cast<std::uint8_t>(expect_reg_val.to_ulong())};
             REQUIRE(status_reg.ovfl == qmc5883p_status_reg::ovfl_t::normal);
             REQUIRE(status_reg.drdy
@@ -299,9 +299,9 @@ TEST_CASE(
 
         SECTION("Set only DRDY bit")
         {
-            const reg_bitset    expect_reg_val{std::string{"00000001"}};
+            const reg_bitset          expect_reg_val{std::string{"00000001"}};
 
-            qmc5883p_status_reg status_reg{
+            const qmc5883p_status_reg status_reg{
                 static_cast<std::uint8_t>(expect_reg_val.to_ulong())};
             REQUIRE(status_reg.ovfl == qmc5883p_status_reg::ovfl_t::normal);
             REQUIRE(status_reg.drdy
@@ -310,9 +310,9 @@ TEST_CASE(
 
         SECTION("Set only OVFL bit")
         {
-            const reg_bitset    expect_reg_val{std::string{"00000010"}};
+            const reg_bitset          expect_reg_val{std::string{"00000010"}};
 
-            qmc5883p_status_reg status_reg{
+            const qmc5883p_status_reg status_reg{
                 static_cast<std::uint8_t>(expect_reg_val.to_ulong())};
             REQUIRE(status_reg.ovfl
                     == qmc5883p_status_reg::ovfl_t::data_overflow);
@@ -322,9 +322,9 @@ TEST_CASE(
 
         SECTION("Set DRDY and OVFL bits")
         {
-            const reg_bitset    expect_reg_val{std::string{"00000011"}};
+            const reg_bitset          expect_reg_val{std::string{"00000011"}};
 
-            qmc5883p_status_reg status_reg{
+            const qmc5883p_status_reg status_reg{
                 static_cast<std::uint8_t>(expect_reg_val.to_ulong())};
             REQUIRE(status_reg.ovfl
                     == qmc5883p_status_reg::ovfl_t::data_overflow);
@@ -343,7 +343,7 @@ TEST_CASE(
 
         SECTION("Check default value")
         {
-            qmc5883p_chip_id_reg reg;
+            const qmc5883p_chip_id_reg reg;
             REQUIRE(static_cast<std::uint8_t>(reg) == 0x00);
         }
 
@@ -371,7 +371,7 @@ SCENARIO(
 
     GIVEN("Default initialize setup")
     {
-        qmc5883p_setup setup;
+        const qmc5883p_setup setup;
 
         WHEN("Initialize with default setup")
         {
@@ -392,6 +392,8 @@ SCENARIO(
         std::map<std::uint8_t, std::uint8_t> reg_map;
 
         When(Method(i2c_mock, write))
+            // сигнатура задана i2c_interface
+            // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
             .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                           stv::i2c_interface::byte_type reg_addr,
                           stv::i2c_interface::byte_type value) -> bool {
@@ -406,6 +408,8 @@ SCENARIO(
         std::array<std::uint8_t, 6U> data2{0xC8, 0x00, 0xC8, 0x00, 0xC8, 0x00};
 
         When(Method(i2c_mock, read))
+            // сигнатура задана i2c_interface
+            // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
             .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                           stv::i2c_interface::byte_type reg_addr, void *dst,
                           std::size_t len) -> bool {
@@ -426,9 +430,9 @@ SCENARIO(
                 }
                 else
                 {
-                    const auto it = reg_map.find(addr);
+                    const auto reg_it = reg_map.find(addr);
                     *static_cast<std::uint8_t *>(dst) =
-                        (it != reg_map.end()) ? it->second : 0x00;
+                        (reg_it != reg_map.end()) ? reg_it->second : 0x00;
                 }
                 return true;
             });
@@ -450,6 +454,8 @@ SCENARIO(
                 const reg_bitset expect_reg_val{std::string{"00000001"}};
 
                 When(Method(i2c_mock, read))
+                    // сигнатура задана i2c_interface
+                    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                     .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                                   stv::i2c_interface::byte_type reg_addr,
                                   void *dst, std::size_t len) -> bool {
@@ -470,6 +476,8 @@ SCENARIO(
                 const reg_bitset expect_reg_val{std::string{"00000000"}};
 
                 When(Method(i2c_mock, read))
+                    // сигнатура задана i2c_interface
+                    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                     .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                                   stv::i2c_interface::byte_type reg_addr,
                                   void *dst, std::size_t len) -> bool {
@@ -490,8 +498,10 @@ SCENARIO(
         {
             std::uint32_t             delay_ms{0};
             qmc5883p<stv::mag<float>> driver{setup};
-            const auto                init_result = driver.init(
-                setup, true, [&delay_ms](std::uint32_t ms) { delay_ms = ms; });
+            const auto                init_result =
+                driver.init(setup, true, [&delay_ms](std::uint32_t delay) {
+                    delay_ms = delay;
+                });
 
             THEN("Init succeeds, self-test is valid and delay callback is "
                  "called with 5 ms")
@@ -509,7 +519,7 @@ SCENARIO(
             driver.init(setup);
 
             const auto self_test_result = driver.check_self_test(
-                [&delay_ms](std::uint32_t ms) { delay_ms = ms; });
+                [&delay_ms](std::uint32_t delay) { delay_ms = delay; });
 
             THEN("Delay callback is called with 5 ms")
             { REQUIRE(delay_ms == 5); }
@@ -565,6 +575,8 @@ SCENARIO(
             AND_WHEN("Status register has overflow bit set")
             {
                 When(Method(i2c_mock, read))
+                    // сигнатура задана i2c_interface
+                    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                     .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                                   stv::i2c_interface::byte_type reg_addr,
                                   void *dst, std::size_t len) -> bool {
@@ -574,8 +586,12 @@ SCENARIO(
                         if((addr == static_cast<std::uint8_t>(0x01))
                            && (len == 6U))
                         {
+                            // Проверка противоречит сама себе для std::array.
+                            // NOLINTBEGIN(readability-trailing-comma)
                             constexpr std::array<std::uint8_t, 6U> data{
-                                0x64, 0x00, 0x64, 0x00, 0x64, 0x00};
+                                0x64, 0x00, 0x64, 0x00, 0x64, 0x00,
+                            };
+                            // NOLINTEND(readability-trailing-comma)
                             std::memcpy(dst, data.data(), data.size());
                         }
                         else if(addr
@@ -597,6 +613,8 @@ SCENARIO(
             AND_WHEN("All axes are zero")
             {
                 When(Method(i2c_mock, read))
+                    // сигнатура задана i2c_interface
+                    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                     .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                                   stv::i2c_interface::byte_type reg_addr,
                                   void *dst, std::size_t len) -> bool {
@@ -628,6 +646,8 @@ SCENARIO(
             AND_WHEN("I2C read of axis data fails")
             {
                 When(Method(i2c_mock, read))
+                    // сигнатура задана i2c_interface
+                    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                     .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                                   stv::i2c_interface::byte_type reg_addr,
                                   void *dst, std::size_t len) -> bool {
@@ -662,8 +682,12 @@ SCENARIO(
             qmc5883p<stv::mag<float>> driver{setup};
             driver.init(setup);
 
-            const qmc5883p<stv::mag<float>>::raw_t raw_meas{100, 200, -300,
-                                                            0x01};
+            const qmc5883p<stv::mag<float>>::raw_t raw_meas{
+                .x          = 100,
+                .y          = 200,
+                .z          = -300,
+                .status_reg = 0x01,
+            };
             const auto normalized = driver.normalize(raw_meas);
 
             THEN("Normalized values are multiplied by g_per_lsb")
@@ -688,6 +712,8 @@ SCENARIO(
         WHEN("I2C write fails")
         {
             When(Method(i2c_mock, write))
+                // сигнатура задана i2c_interface
+                // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                 .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                               stv::i2c_interface::byte_type reg_addr,
                               stv::i2c_interface::byte_type value) -> bool {
@@ -695,15 +721,14 @@ SCENARIO(
                     (void)value;
                     const auto addr = static_cast<std::uint8_t>(reg_addr);
 
-                    if(addr
-                       == static_cast<std::uint8_t>(qmc5883p_ctrl1_reg::addr))
-                    {
-                        return false;
-                    }
-                    return true;
+                    return addr
+                           != static_cast<std::uint8_t>(
+                               qmc5883p_ctrl1_reg::addr);
                 });
 
             When(Method(i2c_mock, read))
+                // сигнатура задана i2c_interface
+                // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                 .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                               stv::i2c_interface::byte_type reg_addr, void *dst,
                               std::size_t len) -> bool {
@@ -729,6 +754,8 @@ SCENARIO(
             std::map<std::uint8_t, std::uint8_t> reg_map;
 
             When(Method(i2c_mock, write))
+                // сигнатура задана i2c_interface
+                // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                 .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                               stv::i2c_interface::byte_type reg_addr,
                               stv::i2c_interface::byte_type value) -> bool {
@@ -739,6 +766,8 @@ SCENARIO(
                 });
 
             When(Method(i2c_mock, read))
+                // сигнатура задана i2c_interface
+                // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                 .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                               stv::i2c_interface::byte_type reg_addr, void *dst,
                               std::size_t len) -> bool {
@@ -753,9 +782,9 @@ SCENARIO(
                         return true;
                     }
 
-                    const auto it = reg_map.find(addr);
+                    const auto reg_it = reg_map.find(addr);
                     *static_cast<std::uint8_t *>(dst) =
-                        (it != reg_map.end()) ? it->second : 0x00;
+                        (reg_it != reg_map.end()) ? reg_it->second : 0x00;
                     return true;
                 });
 
@@ -777,6 +806,8 @@ SCENARIO(
         WHEN("Chip ID matches expected value")
         {
             When(Method(i2c_mock, read))
+                // сигнатура задана i2c_interface
+                // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                 .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                               stv::i2c_interface::byte_type reg_addr, void *dst,
                               std::size_t len) -> bool {
@@ -798,6 +829,8 @@ SCENARIO(
         WHEN("Chip ID does not match expected value")
         {
             When(Method(i2c_mock, read))
+                // сигнатура задана i2c_interface
+                // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                 .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                               stv::i2c_interface::byte_type reg_addr, void *dst,
                               std::size_t len) -> bool {
@@ -828,6 +861,6 @@ SCENARIO(
     }
 }
 
-// NOLINTEND(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-complexity,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(readability-function-cognitive-complexity)
+// NOLINTEND(*-magic-numbers, google-build-using-namespace)

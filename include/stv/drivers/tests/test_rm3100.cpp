@@ -11,9 +11,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <fakeit.hpp>
 
-// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace)
+// NOLINTBEGIN(readability-function-cognitive-complexity)
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 
 TEST_CASE(
     "rm3100", "[stv][drivers]")
@@ -35,7 +35,7 @@ TEST_CASE(
 {
     SECTION("CMM default")
     {
-        stv::rm3100_cmm_reg reg;
+        const stv::rm3100_cmm_reg reg;
         REQUIRE_FALSE(reg.start);
         REQUIRE(reg.drdm == stv::rm3100_cmm_drdm::after_all_axes);
         REQUIRE_FALSE(reg.cmx);
@@ -125,8 +125,8 @@ TEST_CASE(
     Fake(Method(i2c, write));
     Fake(Method(i2c, read));
 
-    stv::rm3100_setup<mag_type> setup{{.i2c = &i2c.get()}};
-    rm3100                      mag{setup};
+    const stv::rm3100_setup<mag_type> setup{{.i2c = &i2c.get()}};
+    rm3100                            mag{setup};
     REQUIRE(mag);
 
     SECTION("is_detected returns true for expected REVID")
@@ -299,10 +299,10 @@ TEST_CASE(
     Fake(Method(i2c, write));
     Fake(Method(i2c, read));
 
-    stv::rm3100_setup<mag_type> setup{{.i2c = &i2c.get()}};
-    rm3100                      mag{setup};
+    const stv::rm3100_setup<mag_type> setup{{.i2c = &i2c.get()}};
+    rm3100                            mag{setup};
 
-    stv::rm3100_regs_setup      regs;
+    stv::rm3100_regs_setup            regs;
     regs.ccx.cycle_count = 200;
     regs.ccy.cycle_count = 200;
     regs.ccz.cycle_count = 200;
@@ -384,25 +384,25 @@ TEST_CASE(
         raw_t all_zero{};
         REQUIRE_FALSE(all_zero);
 
-        raw_t valid{1, 1, 1};
+        raw_t valid{.x = 1, .y = 1, .z = 1};
         REQUIRE(valid);
 
-        raw_t min_x{-0x800000, 1, 1};
+        raw_t min_x{.x = -0x800000, .y = 1, .z = 1};
         REQUIRE_FALSE(min_x);
 
-        raw_t max_x{0x7FFFFF, 1, 1};
+        raw_t max_x{.x = 0x7FFFFF, .y = 1, .z = 1};
         REQUIRE_FALSE(max_x);
 
-        raw_t min_y{1, -0x800000, 1};
+        raw_t min_y{.x = 1, .y = -0x800000, .z = 1};
         REQUIRE_FALSE(min_y);
 
-        raw_t max_y{1, 0x7FFFFF, 1};
+        raw_t max_y{.x = 1, .y = 0x7FFFFF, .z = 1};
         REQUIRE_FALSE(max_y);
 
-        raw_t min_z{1, 1, -0x800000};
+        raw_t min_z{.x = 1, .y = 1, .z = -0x800000};
         REQUIRE_FALSE(min_z);
 
-        raw_t max_z{1, 1, 0x7FFFFF};
+        raw_t max_z{.x = 1, .y = 1, .z = 0x7FFFFF};
         REQUIRE_FALSE(max_z);
     }
 
@@ -412,10 +412,10 @@ TEST_CASE(
         Fake(Method(i2c, write));
         Fake(Method(i2c, read));
 
-        stv::rm3100_setup<mag_type> setup{{.i2c = &i2c.get()}};
-        rm3100                      mag{setup};
+        const stv::rm3100_setup<mag_type> setup{{.i2c = &i2c.get()}};
+        rm3100                            mag{setup};
 
-        stv::rm3100_regs_setup      regs;
+        stv::rm3100_regs_setup            regs;
         regs.ccx.cycle_count = 100;
         regs.ccy.cycle_count = 100;
         regs.ccz.cycle_count = 100;
@@ -485,10 +485,10 @@ TEST_CASE(
         Fake(Method(i2c, write));
         Fake(Method(i2c, read));
 
-        stv::rm3100_setup<mag_type> setup{{.i2c = &i2c.get()}};
-        rm3100                      mag{setup};
+        const stv::rm3100_setup<mag_type> setup{{.i2c = &i2c.get()}};
+        rm3100                            mag{setup};
 
-        stv::rm3100_regs_setup      regs;
+        stv::rm3100_regs_setup            regs;
         regs.ccx.cycle_count = 400;
         regs.ccy.cycle_count = 400;
         regs.ccz.cycle_count = 400;
@@ -564,12 +564,12 @@ TEST_CASE(
     Fake(Method(i2c, write));
     Fake(Method(i2c, read));
 
-    stv::rm3100_setup<mag_type> setup{{.i2c = &i2c.get()}};
-    rm3100                      mag{setup};
+    const stv::rm3100_setup<mag_type> setup{{.i2c = &i2c.get()}};
+    rm3100                            mag{setup};
 
     SECTION("read returns invalid raw")
     {
-        stv::rm3100_regs_setup regs;
+        const stv::rm3100_regs_setup regs;
         When(Method(i2c, write)).AlwaysReturn(true);
         When(Method(i2c, read))
             .AlwaysDo([](auto slave_addr, auto reg_addr, void *dst, auto len) {
@@ -614,7 +614,7 @@ TEST_CASE(
 
     SECTION("I2C read error returns invalid field")
     {
-        stv::rm3100_regs_setup regs;
+        const stv::rm3100_regs_setup regs;
         When(Method(i2c, write)).AlwaysReturn(true);
         When(Method(i2c, read)).AlwaysReturn(false);
         REQUIRE_FALSE(mag.init(regs));
@@ -632,11 +632,11 @@ TEST_CASE(
     Fake(Method(i2c, write));
     Fake(Method(i2c, read));
 
-    stv::rm3100_setup<mag_type> setup{{.i2c = &i2c.get()}};
-    rm3100                      mag{setup};
+    const stv::rm3100_setup<mag_type> setup{{.i2c = &i2c.get()}};
+    rm3100                            mag{setup};
 
-    stv::rm3100_reg_type        latest_written_reg_value{0x00};
-    std::size_t                 status_read_count{0};
+    stv::rm3100_reg_type              latest_written_reg_value{0x00};
+    std::size_t                       status_read_count{0};
 
     When(Method(i2c, write))
         .AlwaysDo([&](auto slave_addr, auto reg_addr, auto value) {
@@ -792,10 +792,10 @@ TEST_CASE(
     Fake(Method(i2c, write));
     Fake(Method(i2c, read));
 
-    stv::rm3100_setup<mag_type> setup{{.i2c = &i2c.get()}};
-    rm3100                      mag{setup};
+    const stv::rm3100_setup<mag_type> setup{{.i2c = &i2c.get()}};
+    rm3100                            mag{setup};
 
-    stv::rm3100_reg_type        latest_written_reg_value{0x00};
+    stv::rm3100_reg_type              latest_written_reg_value{0x00};
     When(Method(i2c, write))
         .AlwaysDo([&](auto slave_addr, auto reg_addr, auto value) {
             (void)slave_addr;
@@ -826,7 +826,7 @@ TEST_CASE(
 
     SECTION("is_data_ready returns true when STATUS DRDY bit is set")
     {
-        stv::rm3100_regs_setup regs;
+        const stv::rm3100_regs_setup regs;
         REQUIRE(mag.init(regs));
 
         When(Method(i2c, read))
@@ -858,7 +858,7 @@ TEST_CASE(
 
     SECTION("is_data_ready returns false when STATUS DRDY bit is cleared")
     {
-        stv::rm3100_regs_setup regs;
+        const stv::rm3100_regs_setup regs;
         REQUIRE(mag.init(regs));
 
         When(Method(i2c, read))
@@ -890,7 +890,7 @@ TEST_CASE(
 
     SECTION("read_status_reg returns the STATUS register value")
     {
-        stv::rm3100_regs_setup regs;
+        const stv::rm3100_regs_setup regs;
         REQUIRE(mag.init(regs));
 
         When(Method(i2c, read))
@@ -924,7 +924,7 @@ TEST_CASE(
 
     SECTION("read_revid_reg returns the REVID register value")
     {
-        stv::rm3100_regs_setup regs;
+        const stv::rm3100_regs_setup regs;
         REQUIRE(mag.init(regs));
 
         When(Method(i2c, read))
@@ -1008,6 +1008,6 @@ TEST_CASE(
     }
 }
 
-// NOLINTEND(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(readability-function-cognitive-complexity)
+// NOLINTEND(*-magic-numbers, google-build-using-namespace)

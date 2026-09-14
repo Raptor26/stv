@@ -19,9 +19,9 @@
 #include "stv/gyraccmag_types.hpp"
 #include "stv/i2c.hpp"
 
-// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace)
+// NOLINTBEGIN(readability-function-cognitive-complexity)
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 
 TEST_CASE(
     "QMC5883 Regs")
@@ -239,8 +239,8 @@ TEST_CASE(
 
         SECTION("Check non zero with Ctor")
         {
-            constexpr std::uint8_t       expect_reg_val{0xFF};
-            qmc5883_set_reset_period_reg reg_with_ctor{expect_reg_val};
+            constexpr std::uint8_t             expect_reg_val{0xFF};
+            const qmc5883_set_reset_period_reg reg_with_ctor{expect_reg_val};
             REQUIRE(static_cast<uint8_t>(reg_with_ctor) == expect_reg_val);
         }
     }
@@ -249,9 +249,9 @@ TEST_CASE(
     {
         SECTION("All bits is reset")
         {
-            const reg_bitset   expect_reg_val{std::string{"00000000"}};
+            const reg_bitset         expect_reg_val{std::string{"00000000"}};
 
-            qmc5883_status_reg status_reg{
+            const qmc5883_status_reg status_reg{
                 static_cast<std::uint8_t>(expect_reg_val.to_ulong())};
             REQUIRE(status_reg.dor == qmc5883_status_reg::dor_t::normal);
             REQUIRE(status_reg.ovl == qmc5883_status_reg::ovl_t::normal);
@@ -276,9 +276,9 @@ TEST_CASE(
 
         SECTION("Set only DRDY bit")
         {
-            const reg_bitset   expect_reg_val{std::string{"00000001"}};
+            const reg_bitset         expect_reg_val{std::string{"00000001"}};
 
-            qmc5883_status_reg status_reg{
+            const qmc5883_status_reg status_reg{
                 static_cast<std::uint8_t>(expect_reg_val.to_ulong())};
             REQUIRE(status_reg.dor == qmc5883_status_reg::dor_t::normal);
             REQUIRE(status_reg.ovl == qmc5883_status_reg::ovl_t::normal);
@@ -288,9 +288,9 @@ TEST_CASE(
 
         SECTION("Set only OVL bit")
         {
-            const reg_bitset   expect_reg_val{std::string{"00000010"}};
+            const reg_bitset         expect_reg_val{std::string{"00000010"}};
 
-            qmc5883_status_reg status_reg{
+            const qmc5883_status_reg status_reg{
                 static_cast<std::uint8_t>(expect_reg_val.to_ulong())};
             REQUIRE(status_reg.dor == qmc5883_status_reg::dor_t::normal);
             REQUIRE(status_reg.ovl == qmc5883_status_reg::ovl_t::data_overflow);
@@ -299,9 +299,9 @@ TEST_CASE(
 
         SECTION("Set only DOR bit")
         {
-            const reg_bitset   expect_reg_val{std::string{"00000100"}};
+            const reg_bitset         expect_reg_val{std::string{"00000100"}};
 
-            qmc5883_status_reg status_reg{
+            const qmc5883_status_reg status_reg{
                 static_cast<std::uint8_t>(expect_reg_val.to_ulong())};
             REQUIRE(status_reg.dor
                     == qmc5883_status_reg::dor_t::data_skipped_for_reading);
@@ -319,7 +319,7 @@ SCENARIO(
 
     GIVEN("Default initialize setup")
     {
-        qmc5883_setup setup;
+        const qmc5883_setup setup;
 
         WHEN("Initialize with default setup")
         {
@@ -341,6 +341,8 @@ SCENARIO(
             std::map<std::uint8_t, std::uint8_t> reg_map;
 
             When(Method(i2c_mock, write))
+                // сигнатура задана i2c_interface
+                // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                 .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                               stv::i2c_interface::byte_type reg_addr,
                               stv::i2c_interface::byte_type value) -> bool {
@@ -351,15 +353,17 @@ SCENARIO(
                 });
 
             When(Method(i2c_mock, read))
+                // сигнатура задана i2c_interface
+                // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                 .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                               stv::i2c_interface::byte_type reg_addr, void *dst,
                               std::size_t len) -> bool {
                     (void)slave_addr;
                     (void)len;
-                    const auto it =
+                    const auto reg_it =
                         reg_map.find(static_cast<std::uint8_t>(reg_addr));
                     *static_cast<std::uint8_t *>(dst) =
-                        (it != reg_map.end()) ? it->second : 0x00;
+                        (reg_it != reg_map.end()) ? reg_it->second : 0x00;
                     return true;
                 });
 
@@ -377,6 +381,8 @@ SCENARIO(
                 const reg_bitset expect_reg_val{std::string{"00000001"}};
 
                 When(Method(i2c_mock, read))
+                    // сигнатура задана i2c_interface
+                    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                     .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                                   stv::i2c_interface::byte_type reg_addr,
                                   void *dst, std::size_t len) -> bool {
@@ -397,6 +403,8 @@ SCENARIO(
                 const reg_bitset expect_reg_val{std::string{"00000000"}};
 
                 When(Method(i2c_mock, read))
+                    // сигнатура задана i2c_interface
+                    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                     .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                                   stv::i2c_interface::byte_type reg_addr,
                                   void *dst, std::size_t len) -> bool {
@@ -422,16 +430,20 @@ SCENARIO(
                 static_cast<std::uint8_t>(setup.set_reset_period_reg),
                 static_cast<std::uint8_t>(setup.ctrl1_reg),
                 static_cast<std::uint8_t>(setup.ctrl2_reg),
-                static_cast<std::uint8_t>(setup.ctrl1_reg)};
+                static_cast<std::uint8_t>(setup.ctrl1_reg),
+            };
 
             When(Method(i2c_mock, read))
+                // сигнатура задана i2c_interface
+                // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                 .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                               stv::i2c_interface::byte_type reg_addr, void *dst,
                               std::size_t len) -> bool {
                     (void)slave_addr;
                     (void)reg_addr;
                     (void)len;
-                    *static_cast<std::uint8_t *>(dst) = reg_vals[ret_val_cnt];
+                    *static_cast<std::uint8_t *>(dst) =
+                        reg_vals.at(ret_val_cnt);
                     ++ret_val_cnt;
                     return true;
                 });
@@ -454,6 +466,8 @@ SCENARIO(
         WHEN("Chip ID matches expected value")
         {
             When(Method(i2c_mock, read))
+                // сигнатура задана i2c_interface
+                // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                 .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                               stv::i2c_interface::byte_type reg_addr, void *dst,
                               std::size_t len) -> bool {
@@ -472,6 +486,8 @@ SCENARIO(
         WHEN("Chip ID does not match expected value")
         {
             When(Method(i2c_mock, read))
+                // сигнатура задана i2c_interface
+                // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                 .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                               stv::i2c_interface::byte_type reg_addr, void *dst,
                               std::size_t len) -> bool {
@@ -562,6 +578,6 @@ TEST_CASE(
     }
 }
 
-// NOLINTEND(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-complexity,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(readability-function-cognitive-complexity)
+// NOLINTEND(*-magic-numbers, google-build-using-namespace)

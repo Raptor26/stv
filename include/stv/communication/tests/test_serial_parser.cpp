@@ -26,41 +26,40 @@
 #include "stv/containers/simbuff.hpp"
 #include "stv/mutex_guard.hpp"
 
-// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace)
+// NOLINTBEGIN(readability-function-cognitive-complexity)
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 
-std::array<char, 64> memory_to_serial_parser;
-int                  alloc_cnt;
+namespace {
 
 template<typename T>
 class custom_allocator
 {
-    inline static std::size_t alloc_size_{};
+    inline static std::size_t alloc_size{};
 
   public:
     using value_type = T;
 
-    custom_allocator() {}
+    custom_allocator() = default;
 
     template<typename U>
-    custom_allocator(
-        const custom_allocator<U> &)
+    explicit custom_allocator(
+        const custom_allocator<U> & /*unused*/)
     {
     }
 
     T *allocate(
         std::size_t n)
     {
-        alloc_size_ = n;
+        alloc_size = n;
         ++alloc_cnt;
         return reinterpret_cast<T *>(memory_to_serial_parser.data());
     }
 
     void deallocate(
-        T *p, std::size_t n)
+        T *ptr, std::size_t n)
     {
-        (void)p;
+        (void)ptr;
         (void)n;
         --alloc_cnt;
     }
@@ -72,8 +71,14 @@ class custom_allocator
 
     static auto data() { return memory_to_serial_parser.data(); }
 
-    static auto get_last_alloc_size() { return alloc_size_; }
+    static auto get_last_alloc_size() { return alloc_size; }
+
+  private:
+    inline static std::array<char, 64> memory_to_serial_parser{};
+    inline static int                  alloc_cnt{};
 };
+
+} // namespace
 
 TEST_CASE(
     "Serial Parser", "[stv][communication]")
@@ -133,7 +138,8 @@ TEST_CASE(
                 SECTION("Without offset")
                 {
                     {
-                        auto msg = serial_message_buffer.request(test_message);
+                        const auto msg =
+                            serial_message_buffer.request(test_message);
 
                         // В деструкторе msg будет записан вызван декоратор,
                         // который вычислит CRC.
@@ -156,7 +162,8 @@ TEST_CASE(
                     {
                         // А это уже запись обернутого с помощью декоратора
                         // сообщения.
-                        auto msg = serial_message_buffer.request(test_message);
+                        const auto msg =
+                            serial_message_buffer.request(test_message);
 
                         // В деструкторе msg будет записан вызван декоратор,
                         // который вычислит CRC.
@@ -190,14 +197,16 @@ TEST_CASE(
                 constexpr std::string_view test_message_two{"World"};
 
                 {
-                    auto msg = serial_message_buffer.request(test_message_one);
+                    const auto msg =
+                        serial_message_buffer.request(test_message_one);
 
                     // В деструкторе msg будет записан вызван декоратор, который
                     // вычислит CRC.
                 }
 
                 {
-                    auto msg = serial_message_buffer.request(test_message_two);
+                    const auto msg =
+                        serial_message_buffer.request(test_message_two);
 
                     // В деструкторе msg будет записан вызван декоратор, который
                     // вычислит CRC.
@@ -243,14 +252,16 @@ TEST_CASE(
                 constexpr std::string_view test_message_two{"World"};
 
                 {
-                    auto msg = serial_message_buffer.request(test_message_one);
+                    const auto msg =
+                        serial_message_buffer.request(test_message_one);
 
                     // В деструкторе msg будет записан вызван декоратор, который
                     // вычислит CRC.
                 }
 
                 {
-                    auto msg = serial_message_buffer.request(test_message_two);
+                    const auto msg =
+                        serial_message_buffer.request(test_message_two);
 
                     // В деструкторе msg будет записан вызван декоратор, который
                     // вычислит CRC.
@@ -304,12 +315,14 @@ TEST_CASE(
                     std::byte{0x00}, std::byte{0x01}, std::byte{0x02},
                     std::byte{0x03}, std::byte{0x04}, std::byte{0x05},
                     std::byte{0x06}, std::byte{0x07}, std::byte{0x08},
-                    std::byte{0x09}, std::byte{0x0A}};
+                    std::byte{0x09}, std::byte{0x0A},
+                };
 
                 constexpr std::string_view test_message{"B"};
 
                 {
-                    auto msg = serial_message_buffer.request(test_message);
+                    const auto msg =
+                        serial_message_buffer.request(test_message);
                     (void)msg;
                 }
 
@@ -352,7 +365,8 @@ TEST_CASE(
                 constexpr std::string_view test_message{"Hello world"};
 
                 {
-                    auto msg = serial_message_buffer.request(test_message);
+                    const auto msg =
+                        serial_message_buffer.request(test_message);
                 }
 
                 decltype(auto) queue_instance =
@@ -391,7 +405,8 @@ TEST_CASE(
                 constexpr std::string_view test_message{"Hello world"};
 
                 {
-                    auto msg = serial_message_buffer.request(test_message);
+                    const auto msg =
+                        serial_message_buffer.request(test_message);
                 }
 
                 decltype(auto) queue_instance =
@@ -430,7 +445,8 @@ TEST_CASE(
                 // После восстановления следующее валидное сообщение должно
                 // быть распарсено.
                 {
-                    auto msg = serial_message_buffer.request(test_message);
+                    const auto msg =
+                        serial_message_buffer.request(test_message);
                 }
 
                 {
@@ -462,7 +478,8 @@ TEST_CASE(
                 for(std::size_t i{0}; i < parsed_msg_queue.capacity(); ++i)
                 {
                     {
-                        auto msg = serial_message_buffer.request(test_message);
+                        const auto msg =
+                            serial_message_buffer.request(test_message);
                     }
 
                     decltype(auto) msg = queue_instance.front();
@@ -476,7 +493,8 @@ TEST_CASE(
                 // Очередь заполнена: следующее сообщение должно быть
                 // отброшено без порчи очереди.
                 {
-                    auto msg = serial_message_buffer.request(test_message);
+                    const auto msg =
+                        serial_message_buffer.request(test_message);
                 }
 
                 {
@@ -496,7 +514,8 @@ TEST_CASE(
                 }
 
                 {
-                    auto msg = serial_message_buffer.request(test_message);
+                    const auto msg =
+                        serial_message_buffer.request(test_message);
                 }
 
                 {
@@ -545,14 +564,14 @@ TEST_CASE(
             constexpr std::string_view test_message{"Hello world"};
             SECTION("If valid key ID")
             {
-                stv::stvlink_route_tx::setup_t route_setup{
+                const stv::stvlink_route_tx::setup_t route_setup{
                     .dst_id  = parsed_msg_queue_id,
                     .pack_id = 0,
                 };
 
                 {
-                    auto msg = serial_message_buffer.request(test_message,
-                                                             route_setup);
+                    const auto msg = serial_message_buffer.request(test_message,
+                                                                   route_setup);
                 }
 
                 REQUIRE(route.run());
@@ -577,13 +596,13 @@ TEST_CASE(
                     std::move(empty_msg));
 
                 // Добавляем валидное сообщение после пустого
-                stv::stvlink_route_tx::setup_t route_setup{
+                const stv::stvlink_route_tx::setup_t route_setup{
                     .dst_id  = parsed_msg_queue_id,
                     .pack_id = 0,
                 };
                 {
-                    auto msg = serial_message_buffer.request(test_message,
-                                                             route_setup);
+                    const auto msg = serial_message_buffer.request(test_message,
+                                                                   route_setup);
                 }
 
                 // route.run() должен пропустить пустое сообщение
@@ -602,20 +621,19 @@ TEST_CASE(
 
             SECTION("Drop message when destination queue is full")
             {
-                stv::stvlink_route_tx::setup_t route_setup{
+                const stv::stvlink_route_tx::setup_t route_setup{
                     .dst_id  = parsed_msg_queue_id,
                     .pack_id = 0,
                 };
 
-                decltype(auto) src_queue =
-                    serial_message_buffer.queue_instance();
+                const auto &src_queue = serial_message_buffer.queue_instance();
 
                 // Заполняем целевую очередь до ее емкости.
                 for(std::size_t i{0}; i < parsed_msg_queue.capacity(); ++i)
                 {
                     {
-                        auto msg = serial_message_buffer.request(test_message,
-                                                                 route_setup);
+                        const auto msg = serial_message_buffer.request(
+                            test_message, route_setup);
                     }
                     REQUIRE(route.run());
                     REQUIRE(parsed_msg_queue.size() == i + 1);
@@ -624,8 +642,8 @@ TEST_CASE(
                 // Целевая очередь переполнена: сообщение отбрасывается, но
                 // удаляется из входной очереди и не ломает целевую.
                 {
-                    auto msg = serial_message_buffer.request(test_message,
-                                                             route_setup);
+                    const auto msg = serial_message_buffer.request(test_message,
+                                                                   route_setup);
                 }
                 REQUIRE_FALSE(route.run());
                 REQUIRE(src_queue.empty());
@@ -636,8 +654,8 @@ TEST_CASE(
                 parsed_msg_queue.pop();
 
                 {
-                    auto msg = serial_message_buffer.request(test_message,
-                                                             route_setup);
+                    const auto msg = serial_message_buffer.request(test_message,
+                                                                   route_setup);
                 }
                 REQUIRE(route.run());
                 REQUIRE(parsed_msg_queue.full());
@@ -677,7 +695,7 @@ TEST_CASE(
         constexpr std::string_view test_message{"A"};
 
         {
-            auto msg = serial_message_buffer.request(test_message);
+            const auto msg = serial_message_buffer.request(test_message);
         }
 
         decltype(auto) queue_instance = serial_message_buffer.queue_instance();
@@ -696,6 +714,6 @@ TEST_CASE(
     }
 }
 
-// NOLINTEND(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-complexity,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(readability-function-cognitive-complexity)
+// NOLINTEND(*-magic-numbers, google-build-using-namespace)

@@ -242,9 +242,14 @@ SCENARIO(
 
     GIVEN("Строка \"123456789\"")
     {
+        // clang-tidy 23 ошибочно колеблется: для этого списка требует и
+        // запрещает висячую запятую одновременно; формат соответствует
+        // .clang-format.
+        // NOLINTBEGIN(readability-trailing-comma)
         static constexpr std::array<char, 9> chars{
             '1', '2', '3', '4', '5', '6', '7', '8', '9',
         };
+        // NOLINTEND(readability-trailing-comma)
         const auto data = std::as_bytes(std::span{chars});
 
         THEN("crc равен контрольному значению crc-8/dvb-s2")

@@ -144,8 +144,8 @@ struct inertial_vector: public inertial_sens_storage_proxy<T> {
     [[nodiscard]] auto give_z() -> decltype(auto)
     { return base_type::operator[](2); }
 
-    // NOLINTBEGIN(readability-identifier-length,
-    // bugprone-easily-swappable-parameters)
+    // NOLINTBEGIN(readability-identifier-length)
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     /// @brief Constructs sensor measurements with specified values.
     ///
     /// @param[in] x_axis X-axis measurement value.
@@ -160,8 +160,8 @@ struct inertial_vector: public inertial_sens_storage_proxy<T> {
     {
     }
 
-    // NOLINTEND(readability-identifier-length,
-    // bugprone-easily-swappable-parameters)
+    // NOLINTEND(bugprone-easily-swappable-parameters)
+    // NOLINTEND(readability-identifier-length)
     /// @brief Constructs sensor measurements from array.
     ///
     /// @param[in] array_of_axis Array with measurements.
@@ -421,8 +421,8 @@ struct inertial_sensor_common: public stv::inertial_vector<T, Frame> {
     /// @brief Packet timestamp counter.
     TIMESTAMP packstamp{0};
 
-    // NOLINTBEGIN(readability-identifier-length,
-    // bugprone-easily-swappable-parameters)
+    // NOLINTBEGIN(readability-identifier-length)
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters)
     /// @brief Constructs sensor measurements with specified values.
     ///
     /// @param[in] x_axis X-axis measurement value.
@@ -439,8 +439,8 @@ struct inertial_sensor_common: public stv::inertial_vector<T, Frame> {
     {
     }
 
-    // NOLINTEND(readability-identifier-length,
-    // bugprone-easily-swappable-parameters)
+    // NOLINTEND(bugprone-easily-swappable-parameters)
+    // NOLINTEND(readability-identifier-length)
     /// @brief Constructs sensor measurements from a Vector and timestamp.
     ///
     /// @param[in] vector The vector containing axis measurements.

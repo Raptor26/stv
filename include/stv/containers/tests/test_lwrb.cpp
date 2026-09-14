@@ -17,9 +17,9 @@
 #include "stv/containers/lwrb.hpp"
 #include "stv/mutex_guard.hpp"
 
-// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace)
+// NOLINTBEGIN(readability-function-cognitive-complexity)
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 
 TEMPLATE_PRODUCT_TEST_CASE(
     "lwrb", "[stv][containers]", (stv::lwrb_setup),
@@ -30,9 +30,12 @@ TEMPLATE_PRODUCT_TEST_CASE(
     using lwrb_base_type = stv::lwrb_base<setup_type>;
     constexpr std::size_t buffer_size{20};
 
-    std::recursive_mutex  std_mutex{};
+    // адрес берётся как T* в if constexpr
+    // NOLINTNEXTLINE(misc-const-correctness)
+    std::recursive_mutex std_mutex{};
     (void)std_mutex;
-
+    // адрес берётся как T* в if constexpr
+    // NOLINTNEXTLINE(misc-const-correctness)
     stv::empty_mutex empty_mutex;
     (void)empty_mutex;
 
@@ -72,6 +75,8 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
         SECTION("Write as_ c-style string")
         {
+            // str — строковый литерал
+            // NOLINTNEXTLINE(bugprone-suspicious-stringview-data-usage)
             REQUIRE(buff.write(str.data()) == str.size());
             REQUIRE(buff.get_full() == str.size());
             buff.reset();
@@ -85,10 +90,10 @@ TEMPLATE_PRODUCT_TEST_CASE(
         {
             {
                 const auto linear_addr_in_buff = buff.read_linear_addr();
-                REQUIRE(std::strcmp(reinterpret_cast<const char *>(
-                                        linear_addr_in_buff.data()),
-                                    str.data())
-                        == 0);
+                REQUIRE(std::string_view{reinterpret_cast<const char *>(
+                                             linear_addr_in_buff.data()),
+                                         str.size()}
+                        == str);
             }
             REQUIRE(buff.is_empty());
         }
@@ -96,10 +101,10 @@ TEMPLATE_PRODUCT_TEST_CASE(
         SECTION("Skip")
         {
             const auto linear_addr_in_buff = buff.get_linear_addr();
-            REQUIRE(std::strcmp(reinterpret_cast<const char *>(
-                                    linear_addr_in_buff.data()),
-                                str.data())
-                    == 0);
+            REQUIRE(std::string_view{reinterpret_cast<const char *>(
+                                         linear_addr_in_buff.data()),
+                                     str.size()}
+                    == str);
 
             REQUIRE_FALSE(buff.is_empty());
 
@@ -112,9 +117,9 @@ TEMPLATE_PRODUCT_TEST_CASE(
         {
             std::array<std::byte, buffer_size> dst{};
             REQUIRE(buff.read(dst) == str.size());
-            REQUIRE(std::strcmp(reinterpret_cast<const char *>(dst.data()),
-                                str.data())
-                    == 0);
+            REQUIRE(std::string_view{reinterpret_cast<const char *>(dst.data()),
+                                     str.size()}
+                    == str);
         }
 
         SECTION("Read like std::span")
@@ -123,9 +128,9 @@ TEMPLATE_PRODUCT_TEST_CASE(
             REQUIRE(buff.read(std::span<typename lwrb_base_type::value_type>{
                         dst.data(), dst.size()})
                     == str.size());
-            REQUIRE(std::strcmp(reinterpret_cast<const char *>(dst.data()),
-                                str.data())
-                    == 0);
+            REQUIRE(std::string_view{reinterpret_cast<const char *>(dst.data()),
+                                     str.size()}
+                    == str);
         }
 
         SECTION("Read like span in zero buffer")
@@ -153,8 +158,9 @@ TEMPLATE_PRODUCT_TEST_CASE(
                     == str_second.size());
             REQUIRE(buff_second.is_empty());
 
-            const std::string     expected{std::string{str_first}
-                                           + std::string{str_second}};
+            const std::string expected{
+                std::string{str_first} + std::string{str_second},
+            };
             std::array<char, 128> tmp{};
             REQUIRE(buff_first.read(tmp) == expected.size());
             REQUIRE(std::strcmp(tmp.data(), expected.c_str()) == 0);
@@ -204,8 +210,9 @@ TEMPLATE_PRODUCT_TEST_CASE(
                     == str_second.size());
             REQUIRE(buff_second.get_full() == str_second.size());
 
-            const std::string     expected{std::string{str_first}
-                                           + std::string{str_second}};
+            const std::string expected{
+                std::string{str_first} + std::string{str_second},
+            };
             std::array<char, 128> tmp{};
             REQUIRE(buff_first.read(tmp) == expected.size());
             REQUIRE(std::strcmp(tmp.data(), expected.c_str()) == 0);
@@ -213,7 +220,8 @@ TEMPLATE_PRODUCT_TEST_CASE(
             // Данные в буфере-источнике сохранились.
             std::array<char, 128> tmp_src{};
             REQUIRE(buff_second.read(tmp_src) == str_second.size());
-            REQUIRE(std::strcmp(tmp_src.data(), str_second.data()) == 0);
+            REQUIRE(std::string_view{tmp_src.data(), str_second.size()}
+                    == str_second);
         }
 
         SECTION("Not enough free space")
@@ -245,6 +253,6 @@ TEMPLATE_PRODUCT_TEST_CASE(
     }
 }
 
-// NOLINTEND(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-complexity,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(readability-function-cognitive-complexity)
+// NOLINTEND(*-magic-numbers, google-build-using-namespace)

@@ -13,9 +13,9 @@
 #include "stv/mutex_guard.hpp"
 #include "stv/runtime.hpp"
 
-// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace)
+// NOLINTBEGIN(readability-function-cognitive-complexity)
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 
 TEMPLATE_PRODUCT_TEST_CASE(
     "runtime", "[stv][containers]", (stv::runtime_setup),
@@ -28,9 +28,13 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
     using setup_type = TestType;
 
+    // адрес берётся как T* в if constexpr
+    // NOLINTNEXTLINE(misc-const-correctness)
     std::recursive_mutex std_mutex{};
     (void)std_mutex;
 
+    // адрес берётся как T* в if constexpr
+    // NOLINTNEXTLINE(misc-const-correctness)
     stv::empty_mutex empty_mutex;
     (void)empty_mutex;
 
@@ -48,6 +52,8 @@ TEMPLATE_PRODUCT_TEST_CASE(
             using namespace std::chrono_literals;
             constexpr auto expected_elapsed_time =
                 stv::runtime_counter_type{1s};
+            // поле задаётся в if constexpr
+            // NOLINTNEXTLINE(misc-const-correctness)
             setup_type setup{.increment_period = expected_elapsed_time};
 
             if constexpr(std::is_same_v<typename setup_type::mutex_type,
@@ -89,6 +95,6 @@ TEMPLATE_PRODUCT_TEST_CASE(
     }
 }
 
-// NOLINTEND(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(readability-function-cognitive-complexity)
+// NOLINTEND(*-magic-numbers, google-build-using-namespace)

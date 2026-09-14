@@ -22,9 +22,9 @@
 #include "stv/mutex_guard.hpp"
 #include "stv/wrappers.hpp"
 
-// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace)
+// NOLINTBEGIN(readability-function-cognitive-complexity)
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 
 TEST_CASE(
     "Usage example (no multithread)", "[stv][filters]")
@@ -72,14 +72,14 @@ TEST_CASE(
 TEST_CASE(
     "Usage example (with custom guard)", "[stv][moving_average]")
 {
-    struct CustomGuard {
+    struct custom_guard {
         void lock() {}
 
         void unlock() {}
     };
 
     // Объявление псевдонима структуры инициализации.
-    using TMovingAverageSetup = stv::moving_average_setup<float, CustomGuard>;
+    using TMovingAverageSetup = stv::moving_average_setup<float, custom_guard>;
 
     // Объявление псевдонима базового класса, который обеспечивает необходимый
     // функционал/
@@ -98,25 +98,25 @@ TEST_CASE(
     "Usage example (with custom guard by pointer and interface)",
     "[stv][filters]")
 {
-    struct ICustomGuard {
-        virtual ~ICustomGuard() = default;
-        virtual void lock()     = 0;
-        virtual void unlock()   = 0;
+    struct i_custom_guard {
+        virtual ~i_custom_guard() = default;
+        virtual void lock()       = 0;
+        virtual void unlock()     = 0;
     };
 
-    struct CustomGuard final: public ICustomGuard {
-        ~CustomGuard() override = default;
+    struct custom_guard final: public i_custom_guard {
+        ~custom_guard() override = default;
 
         void lock() override {}
 
         void unlock() override {}
     };
 
-    CustomGuard custom_guard;
+    custom_guard guard_instance;
 
     // Объявление псевдонима структуры инициализации.
     using TMovingAverageSetup =
-        stv::moving_average_setup<float, ICustomGuard *>;
+        stv::moving_average_setup<float, i_custom_guard *>;
 
     // Объявление псевдонима базового класса, который обеспечивает необходимый
     // функционал/
@@ -125,7 +125,7 @@ TEST_CASE(
     // Инициализация класса фильтра скользящего среднего.
     // NOLINTNEXTLINE(misc-const-correctness)
     stv::moving_average<TIMovingAverage, 20> moving_average{
-        TMovingAverageSetup{.window_width = 10U, .mutex = &custom_guard}};
+        TMovingAverageSetup{.window_width = 10U, .mutex = &guard_instance}};
     assert(moving_average);
 
     // Теперь фильтр готов к использованию. ------------------------------------
@@ -134,16 +134,16 @@ TEST_CASE(
     // Создадим еще один экземпляр фильтра с другой реализацией защиты.
     // -------------------------------------------------------------------------
 
-    struct CustomGuardV2: public ICustomGuard {
+    struct custom_guard_v2: public i_custom_guard {
         void lock() override {}
 
         void unlock() override {}
     };
 
-    CustomGuardV2 custom_guard_v2;
+    custom_guard_v2 guard_instance_v2;
     // NOLINTNEXTLINE(misc-const-correctness)
     stv::moving_average<TIMovingAverage, 20> moving_average_v2{
-        TMovingAverageSetup{.window_width = 10U, .mutex = &custom_guard_v2}};
+        TMovingAverageSetup{.window_width = 10U, .mutex = &guard_instance_v2}};
     assert(moving_average_v2);
 }
 
@@ -161,7 +161,7 @@ TEST_CASE(
 
     // Инициализация класса фильтра скользящего среднего на куче через
     // std::unique_ptr.
-    auto moving_average =
+    const auto moving_average =
         std::make_unique<stv::moving_average<TIMovingAverage, 20>>(
             TMovingAverageSetup{.window_width = 10U});
     assert(moving_average);        ///< true если память на куче выделена
@@ -203,7 +203,8 @@ TEST_CASE(
     SECTION("Normal window width")
     {
         constexpr decltype(std::declval<TSetup>().window_width) window_width{
-            10};
+            10,
+        };
         const TSetup init{.window_width = window_width};
         REQUIRE(init.window_width == window_width);
 
@@ -235,12 +236,15 @@ TEMPLATE_PRODUCT_TEST_CASE(
     SECTION("Object of the class that publicly inherits moving_average and "
             "uses protected <buffer> from base class")
     {
+        // NOLINTNEXTLINE(misc-const-correctness) тип участвует в if constexpr
         std::recursive_mutex std_mutex{};
         (void)std_mutex;
 
+        // NOLINTNEXTLINE(misc-const-correctness) тип участвует в if constexpr
         stv::empty_mutex empty_mutex;
         (void)empty_mutex;
 
+        // NOLINTNEXTLINE(misc-const-correctness) поле задаётся в if constexpr
         TSetup attr;
         if constexpr(std::is_same_v<typename TSetup::mutex_type,
                                     decltype(std_mutex) *>)
@@ -310,12 +314,15 @@ TEMPLATE_PRODUCT_TEST_CASE(
             auto src_buffer_span = src_average.buffer_;
 
             moving_average<TBase, window_width> dst_average{
-                std::move(src_average)};
+                std::move(src_average),
+            };
 
             THEN("<buffer> from <dst_average> should point to new memory "
                  "address")
             {
                 REQUIRE(std::addressof(dst_average.buffer_)
+                        // берётся только адрес
+                        // NOLINTNEXTLINE(bugprone-use-after-move)
                         != std::addressof(src_average.buffer_));
                 REQUIRE(std::addressof(dst_average.mutex_)
                         != std::addressof(src_average.mutex_));
@@ -349,6 +356,8 @@ TEMPLATE_PRODUCT_TEST_CASE(
                  "address")
             {
                 REQUIRE(std::addressof(dst_average.buffer_)
+                        // берётся только адрес
+                        // NOLINTNEXTLINE(bugprone-use-after-move)
                         != std::addressof(src.buffer_));
             }
 
@@ -371,9 +380,11 @@ TEMPLATE_PRODUCT_TEST_CASE(
     constexpr decltype(std::declval<TSetup>().window_width) window_width{15};
     TSetup                                                  attr;
 
-    std::recursive_mutex                                    std_mutex{};
+    // NOLINTNEXTLINE(misc-const-correctness) тип участвует в if constexpr
+    std::recursive_mutex std_mutex{};
     (void)std_mutex;
 
+    // NOLINTNEXTLINE(misc-const-correctness) тип участвует в if constexpr
     stv::empty_mutex empty_mutex;
     (void)empty_mutex;
 
@@ -445,7 +456,8 @@ TEMPLATE_PRODUCT_TEST_CASE(
         const std::array<TData, 8> samples{
             static_cast<TData>(1), static_cast<TData>(2), static_cast<TData>(3),
             static_cast<TData>(4), static_cast<TData>(5), static_cast<TData>(6),
-            static_cast<TData>(7), static_cast<TData>(8)};
+            static_cast<TData>(7), static_cast<TData>(8),
+        };
 
         constexpr double eps{0.01};
         for(const auto &new_sample: samples)
@@ -466,12 +478,14 @@ TEMPLATE_PRODUCT_TEST_CASE(
         const std::array<TData, 8> samples{
             static_cast<TData>(1), static_cast<TData>(2), static_cast<TData>(3),
             static_cast<TData>(4), static_cast<TData>(5), static_cast<TData>(6),
-            static_cast<TData>(7), static_cast<TData>(8)};
+            static_cast<TData>(7), static_cast<TData>(8),
+        };
 
         const std::array<TData, 8> expected{
             static_cast<TData>(1), static_cast<TData>(2), static_cast<TData>(2),
             static_cast<TData>(3), static_cast<TData>(4), static_cast<TData>(5),
-            static_cast<TData>(6), static_cast<TData>(7)};
+            static_cast<TData>(6), static_cast<TData>(7),
+        };
 
         CHECK(samples.size() == expected.size());
 
@@ -526,7 +540,8 @@ TEMPLATE_PRODUCT_TEST_CASE(
             static_cast<TData>(30),  static_cast<TData>(100),
             static_cast<TData>(-20), static_cast<TData>(500),
             static_cast<TData>(400), static_cast<TData>(-20),
-            static_cast<TData>(300), static_cast<TData>(20)};
+            static_cast<TData>(300), static_cast<TData>(20),
+        };
 
         // Index of sample values from which lower window width begins.
         constexpr std::size_t       width_lower_first_idx = 6;
@@ -536,7 +551,8 @@ TEMPLATE_PRODUCT_TEST_CASE(
             static_cast<TData>(30),  static_cast<TData>(100),
             static_cast<TData>(64),  static_cast<TData>(162),
             static_cast<TData>(293), static_cast<TData>(293),
-            static_cast<TData>(227), static_cast<TData>(100)};
+            static_cast<TData>(227), static_cast<TData>(100),
+        };
 
         CHECK(samples.size() == expected.size());
 
@@ -572,7 +588,8 @@ TEMPLATE_PRODUCT_TEST_CASE(
             static_cast<TData>(30),  static_cast<TData>(100),
             static_cast<TData>(-20), static_cast<TData>(500),
             static_cast<TData>(400), static_cast<TData>(-20),
-            static_cast<TData>(300), static_cast<TData>(20)};
+            static_cast<TData>(300), static_cast<TData>(20),
+        };
 
         // Index of sample values from which greater window width begins.
         constexpr std::size_t       width_greater_first_idx = 6;
@@ -582,7 +599,8 @@ TEMPLATE_PRODUCT_TEST_CASE(
             static_cast<TData>(80),  static_cast<TData>(110),
             static_cast<TData>(37),  static_cast<TData>(193),
             static_cast<TData>(400), static_cast<TData>(192),
-            static_cast<TData>(232), static_cast<TData>(240)};
+            static_cast<TData>(232), static_cast<TData>(240),
+        };
 
         CHECK(samples.size() == expected.size());
 
@@ -613,7 +631,8 @@ TEMPLATE_PRODUCT_TEST_CASE(
         const std::array<TData, 8> samples{
             static_cast<TData>(1), static_cast<TData>(2), static_cast<TData>(3),
             static_cast<TData>(4), static_cast<TData>(5), static_cast<TData>(6),
-            static_cast<TData>(7), static_cast<TData>(8)};
+            static_cast<TData>(7), static_cast<TData>(8),
+        };
 
         constexpr double eps{0.01};
 
@@ -635,6 +654,6 @@ TEMPLATE_PRODUCT_TEST_CASE(
     }
 }
 
-// NOLINTEND(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-complexity,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(readability-function-cognitive-complexity)
+// NOLINTEND(*-magic-numbers, google-build-using-namespace)

@@ -11,9 +11,9 @@
 #include "stv/drivers/qma6100_regs.hpp"
 #include "stv/drivers/qma6100_types.hpp"
 
-// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace)
+// NOLINTBEGIN(readability-function-cognitive-complexity)
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 
 TEST_CASE(
     "qma6100 regs", "[qma6100][drivers]")
@@ -77,8 +77,8 @@ TEST_CASE(
 
         SECTION("Ctor")
         {
-            constexpr reg_bitset expect_reg_val{std::string{"01000110"}};
-            stv::qma6100_bw_reg  reg_ctor{
+            constexpr reg_bitset      expect_reg_val{std::string{"01000110"}};
+            const stv::qma6100_bw_reg reg_ctor{
                 stv::qma6100_reg_type{expect_reg_val.to_ulong()}};
             REQUIRE(reg_ctor.nlpf == qma6100_bw_reg::nlpf_t::average_4);
             REQUIRE(reg_ctor.bw == qma6100_bw_reg::bw_t::mclk_2048_244_hz);
@@ -140,7 +140,7 @@ TEST_CASE(
         {
             SECTION("RANGE == g_32")
             {
-                stv::qma6100_fsr_reg reg{qma6100_reg_type{0x0F}};
+                const stv::qma6100_fsr_reg reg{qma6100_reg_type{0x0F}};
 
                 REQUIRE(reg.range == stv::qma6100_fsr_reg::range_t::g_32);
             }
@@ -1056,8 +1056,8 @@ TEST_CASE(
         {
             SECTION("reg == 0b00000000")
             {
-                constexpr reg_bitset reg_val{std::string{"00000000"}};
-                stv::qma6100_st_reg  reg_ctor{
+                constexpr reg_bitset      reg_val{std::string{"00000000"}};
+                const stv::qma6100_st_reg reg_ctor{
                     stv::qma6100_reg_type{reg_val.to_ulong()}};
                 REQUIRE(reg_ctor.selftest_bit
                         == stv::qma6100_st_reg::selftest_bit_t::normal);
@@ -1067,8 +1067,8 @@ TEST_CASE(
 
             SECTION("reg == 0b10000000")
             {
-                constexpr reg_bitset reg_val{std::string{"10000000"}};
-                stv::qma6100_st_reg  reg_ctor{
+                constexpr reg_bitset      reg_val{std::string{"10000000"}};
+                const stv::qma6100_st_reg reg_ctor{
                     stv::qma6100_reg_type{reg_val.to_ulong()}};
                 REQUIRE(reg_ctor.selftest_bit
                         == stv::qma6100_st_reg::selftest_bit_t::enabled);
@@ -1078,8 +1078,8 @@ TEST_CASE(
 
             SECTION("reg == 0b00000100")
             {
-                constexpr reg_bitset reg_val{std::string{"00000100"}};
-                stv::qma6100_st_reg  reg_ctor{
+                constexpr reg_bitset      reg_val{std::string{"00000100"}};
+                const stv::qma6100_st_reg reg_ctor{
                     stv::qma6100_reg_type{reg_val.to_ulong()}};
                 REQUIRE(reg_ctor.selftest_bit
                         == stv::qma6100_st_reg::selftest_bit_t::normal);
@@ -1121,6 +1121,6 @@ TEST_CASE(
     }
 }
 
-// NOLINTEND(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-complexity,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(readability-function-cognitive-complexity)
+// NOLINTEND(*-magic-numbers, google-build-using-namespace)
