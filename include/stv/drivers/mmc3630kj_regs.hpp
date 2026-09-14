@@ -8,6 +8,7 @@
 #define MMC3630KJ_REGS_HPP
 
 #include "mmc3630kj_types.hpp"
+#include "stv/register_field.hpp"
 #include <cstdint>
 
 namespace stv {
@@ -52,11 +53,11 @@ class mmc3630kj_status_reg
     explicit operator mmc3630kj_reg_type() const
     {
         return static_cast<mmc3630kj_reg_type>(
-            (static_cast<std::uint8_t>(otp_rd_done) << otp_rd_done_offset)
-            | (static_cast<std::uint8_t>(pump_on) << pump_on_offset)
-            | (static_cast<std::uint8_t>(motion_detect) << motion_detect_offset)
-            | (static_cast<std::uint8_t>(meas_t_done) << meas_t_done_offset)
-            | (static_cast<std::uint8_t>(meas_m_done) << meas_m_done_offset));
+            field_to_raw(otp_rd_done, otp_rd_done_offset)
+            | field_to_raw(pump_on, pump_on_offset)
+            | field_to_raw(motion_detect, motion_detect_offset)
+            | field_to_raw(meas_t_done, meas_t_done_offset)
+            | field_to_raw(meas_m_done, meas_m_done_offset));
     }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
@@ -70,7 +71,7 @@ class mmc3630kj_status_reg
     /// @brief Перечисление состояний готовности чтения OTP.
     enum struct otp_rd_done_t : std::uint8_t {
         not_able_to_read = 0, ///< OTP не прочитано.
-        able_to_read     = 1  ///< OTP успешно прочитано.
+        able_to_read     = 1, ///< OTP успешно прочитано.
     };
 
     /// @brief Указывает, смог ли чип успешно прочитать свою OTP память.
@@ -82,7 +83,7 @@ class mmc3630kj_status_reg
     /// @brief Перечисление состояний зарядного насоса.
     enum struct pump_on_t : std::uint8_t {
         charge_pump_complete = 0, ///< Зарядный насос завершил работу.
-        charge_pump_active   = 1  ///< Зарядный насос активен.
+        charge_pump_active   = 1, ///< Зарядный насос активен.
     };
 
     /// @brief Указывает состояние зарядного насоса.
@@ -142,21 +143,20 @@ class mmc3630kj_status_reg
     void parse(
         mmc3630kj_reg_type reg)
     {
-        otp_rd_done   = (reg & (1 << otp_rd_done_offset))
-                            ? otp_rd_done_t::able_to_read
-                            : otp_rd_done_t::not_able_to_read;
-        pump_on       = (reg & (1 << pump_on_offset))
-                            ? pump_on_t::charge_pump_active
-                            : pump_on_t::charge_pump_complete;
-        motion_detect = (reg & (1 << motion_detect_offset))
-                            ? motion_detected_t::motion_detect
-                            : motion_detected_t::no_motion;
-        meas_t_done   = (reg & (1 << meas_t_done_offset))
-                            ? meas_t_done_t::finished
-                            : meas_t_done_t::not_ready;
-        meas_m_done   = (reg & (1 << meas_m_done_offset))
-                            ? meas_m_done_t::finished
-                            : meas_m_done_t::not_ready;
+        otp_rd_done =
+            parse_flag(reg, otp_rd_done_offset, otp_rd_done_t::able_to_read,
+                       otp_rd_done_t::not_able_to_read);
+        pump_on = parse_flag(reg, pump_on_offset, pump_on_t::charge_pump_active,
+                             pump_on_t::charge_pump_complete);
+        motion_detect = parse_flag(reg, motion_detect_offset,
+                                   motion_detected_t::motion_detect,
+                                   motion_detected_t::no_motion);
+        meas_t_done =
+            parse_flag(reg, meas_t_done_offset, meas_t_done_t::finished,
+                       meas_t_done_t::not_ready);
+        meas_m_done =
+            parse_flag(reg, meas_m_done_offset, meas_m_done_t::finished,
+                       meas_m_done_t::not_ready);
     }
 };
 
@@ -204,13 +204,12 @@ class mmc3630kj_ctrl0_reg
     explicit operator mmc3630kj_reg_type() const
     {
         return static_cast<mmc3630kj_reg_type>(
-            (static_cast<std::uint8_t>(otr_read) << otr_read_offset)
-            | (static_cast<std::uint8_t>(refill_cap) << refill_cap_offset)
-            | (static_cast<std::uint8_t>(reset) << reset_offset)
-            | (static_cast<std::uint8_t>(set) << set_offset)
-            | (static_cast<std::uint8_t>(start_mdt) << start_mdt_offset)
-            | (static_cast<std::uint8_t>(tm_t) << tm_t_offset)
-            | (static_cast<std::uint8_t>(tm_m) << tm_m_offset));
+            field_to_raw(otr_read, otr_read_offset)
+            | field_to_raw(refill_cap, refill_cap_offset)
+            | field_to_raw(reset, reset_offset) | field_to_raw(set, set_offset)
+            | field_to_raw(start_mdt, start_mdt_offset)
+            | field_to_raw(tm_t, tm_t_offset)
+            | field_to_raw(tm_m, tm_m_offset));
     }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
@@ -345,22 +344,21 @@ class mmc3630kj_ctrl0_reg
     void parse(
         mmc3630kj_reg_type reg)
     {
-        otr_read   = (reg & (1 << otr_read_offset))
-                         ? otp_read_t::let_device_to_read_otp_data_again
-                         : otp_read_t::reset;
-        refill_cap = (reg & (1 << refill_cap_offset))
-                         ? refill_cap_t::request_recharge_capacity
-                         : refill_cap_t::reset;
+        otr_read   = parse_flag(reg, otr_read_offset,
+                                otp_read_t::let_device_to_read_otp_data_again,
+                                otp_read_t::reset);
+        refill_cap = parse_flag(reg, refill_cap_offset,
+                                refill_cap_t::request_recharge_capacity,
+                                refill_cap_t::reset);
         reset =
-            (reg & (1 << reset_offset)) ? reset_t::enable : reset_t::disable;
-        set       = (reg & (1 << set_offset)) ? set_t::enable : set_t::disable;
-        start_mdt = (reg & (1 << start_mdt_offset))
-                        ? start_mdt_t::enable
-                        : start_mdt_t::disable_or_motion_is_detect;
-        tm_t      = (reg & (1 << tm_t_offset)) ? tm_t_t::initiate_measurement
-                                               : tm_t_t::reset;
-        tm_m      = (reg & (1 << tm_m_offset)) ? tm_m_t::initiate_measurement
-                                               : tm_m_t::reset;
+            parse_flag(reg, reset_offset, reset_t::enable, reset_t::disable);
+        set       = parse_flag(reg, set_offset, set_t::enable, set_t::disable);
+        start_mdt = parse_flag(reg, start_mdt_offset, start_mdt_t::enable,
+                               start_mdt_t::disable_or_motion_is_detect);
+        tm_t      = parse_flag(reg, tm_t_offset, tm_t_t::initiate_measurement,
+                               tm_t_t::reset);
+        tm_m      = parse_flag(reg, tm_m_offset, tm_m_t::initiate_measurement,
+                               tm_m_t::reset);
     }
 };
 
@@ -410,11 +408,11 @@ class mmc3630kj_ctrl1_reg
     explicit operator mmc3630kj_reg_type() const
     {
         return static_cast<mmc3630kj_reg_type>(
-            (static_cast<std::uint8_t>(sw_reset) << sw_reset_offset)
-            | (static_cast<std::uint8_t>(z_inhibit) << z_inhibit_offset)
-            | (static_cast<std::uint8_t>(y_inhibit) << y_inhibit_offset)
-            | (static_cast<std::uint8_t>(x_inhibit) << x_inhibit_offset)
-            | (static_cast<std::uint8_t>(bw) << bw_offset));
+            field_to_raw(sw_reset, sw_reset_offset)
+            | field_to_raw(z_inhibit, z_inhibit_offset)
+            | field_to_raw(y_inhibit, y_inhibit_offset)
+            | field_to_raw(x_inhibit, x_inhibit_offset)
+            | field_to_raw(bw, bw_offset));
     }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
@@ -503,16 +501,16 @@ class mmc3630kj_ctrl1_reg
     void parse(
         mmc3630kj_reg_type reg)
     {
-        sw_reset  = (reg & (1 << sw_reset_offset)) ? sw_rst_t::enable
-                                                   : sw_rst_t::disable;
-        z_inhibit = (reg & (1 << z_inhibit_offset)) ? z_inhibit_t::disable
-                                                    : z_inhibit_t::enable;
-        y_inhibit = (reg & (1 << y_inhibit_offset)) ? y_inhibit_t::disable
-                                                    : y_inhibit_t::enable;
-        x_inhibit = (reg & (1 << x_inhibit_offset)) ? x_inhibit_t::disable
-                                                    : x_inhibit_t::enable;
+        sw_reset  = parse_flag(reg, sw_reset_offset, sw_rst_t::enable,
+                               sw_rst_t::disable);
+        z_inhibit = parse_flag(reg, z_inhibit_offset, z_inhibit_t::disable,
+                               z_inhibit_t::enable);
+        y_inhibit = parse_flag(reg, y_inhibit_offset, y_inhibit_t::disable,
+                               y_inhibit_t::enable);
+        x_inhibit = parse_flag(reg, x_inhibit_offset, x_inhibit_t::disable,
+                               x_inhibit_t::enable);
         constexpr mmc3630kj_reg_type bw_mask{0x03};
-        bw = static_cast<bw_t>(reg & bw_mask);
+        bw = extract_field<bw_t>(reg, 0, bw_mask);
     }
 };
 
@@ -566,10 +564,9 @@ class mmc3630kj_ctrl2_reg
     explicit operator mmc3630kj_reg_type() const
     {
         return static_cast<mmc3630kj_reg_type>(
-            (static_cast<std::uint8_t>(int_meas_done_en)
-             << int_meas_done_en_offset)
-            | (static_cast<std::uint8_t>(int_mdt_en) << int_mdt_en_offset)
-            | (static_cast<std::uint8_t>(cm_freq) << cm_freq_offset));
+            field_to_raw(int_meas_done_en, int_meas_done_en_offset)
+            | field_to_raw(int_mdt_en, int_mdt_en_offset)
+            | field_to_raw(cm_freq, cm_freq_offset));
     }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
@@ -648,13 +645,13 @@ class mmc3630kj_ctrl2_reg
     void parse(
         mmc3630kj_reg_type reg)
     {
-        int_meas_done_en = (reg & (1 << int_meas_done_en_offset))
-                               ? int_meas_done_en_t::enable
-                               : int_meas_done_en_t::disable;
-        int_mdt_en = (reg & (1 << int_mdt_en_offset)) ? int_mdt_en_t::enable
-                                                      : int_mdt_en_t::disable;
+        int_meas_done_en =
+            parse_flag(reg, int_meas_done_en_offset, int_meas_done_en_t::enable,
+                       int_meas_done_en_t::disable);
+        int_mdt_en = parse_flag(reg, int_mdt_en_offset, int_mdt_en_t::enable,
+                                int_mdt_en_t::disable);
         constexpr mmc3630kj_reg_type cm_freq_mask{0x1F};
-        cm_freq = static_cast<cm_freq_t>(reg & cm_freq_mask);
+        cm_freq = extract_field<cm_freq_t>(reg, 0, cm_freq_mask);
     }
 };
 

@@ -4,13 +4,10 @@
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
-#include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <mutex>
 
 #include "stv/mutex_guard.hpp"
-#include <mutex>
 
 TEST_CASE(
     "Mutex", "[stv][moving_average]")

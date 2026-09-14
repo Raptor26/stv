@@ -684,15 +684,17 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     /// @return @c true при валидной конфигурации, иначе @c false.
     explicit operator bool() const
     {
-        auto is_mutex_valid{true};
-
-        if constexpr(std::is_pointer_v<decltype(mutex_)>)
-        {
-            if(!mutex_)
+        const auto is_mutex_valid = [this] -> bool {
+            if constexpr(std::is_pointer_v<decltype(mutex_)>)
             {
-                is_mutex_valid = false;
+                return mutex_ != nullptr;
             }
-        }
+            else
+            {
+                static_cast<void>(this);
+                return true;
+            }
+        }();
 
         const auto are_queues_valid =
             [&]<std::size_t... Is>(std::index_sequence<Is...>) {
@@ -946,8 +948,10 @@ class serial_parser: virtual private stv::non_movable_non_copyable
 
         constexpr auto is_isr{false};
         const auto     peek_bytes = lwrb_->peek(
-            typename lwrb_base_type::container_type{msg.data(),
-                                                    msg.size_bytes()},
+            typename lwrb_base_type::container_type{
+                msg.data(),
+                msg.size_bytes(),
+            },
             0, is_isr);
 
         if(peek_bytes == expect_total_message_size)

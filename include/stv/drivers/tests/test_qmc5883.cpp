@@ -4,13 +4,20 @@
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
-#include "stv/drivers/qmc5883.hpp"
-#include "stv/drivers/qmc5883_regs.hpp"
 #include <array>
 #include <bitset>
 #include <catch2/catch_test_macros.hpp>
+#include <cstddef>
+#include <cstdint>
 #include <fakeit.hpp>
+#include <functional>
 #include <map>
+#include <string>
+
+#include "stv/drivers/qmc5883.hpp"
+#include "stv/drivers/qmc5883_regs.hpp"
+#include "stv/gyraccmag_types.hpp"
+#include "stv/i2c.hpp"
 
 // NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
 // readability-function-cognitive-,

@@ -4,13 +4,21 @@
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
-#include "stv/drivers/mmc3630kj.hpp"
-#include "stv/drivers/mmc3630kj_regs.hpp"
+#include <algorithm>
 #include <array>
 #include <bitset>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <cstdint>
+#include <cstring>
 #include <fakeit.hpp>
+#include <functional>
+#include <string>
+
+#include "stv/drivers/mmc3630kj.hpp"
+#include "stv/drivers/mmc3630kj_regs.hpp"
+#include "stv/gyraccmag_types.hpp"
+#include "stv/i2c.hpp"
 
 // NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
 // readability-function-cognitive-,

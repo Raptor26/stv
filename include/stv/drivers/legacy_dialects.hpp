@@ -8,7 +8,6 @@
 #define STV_DRIVERS_LEGACY_DIALECTS_HPP
 
 #include "stv/gyraccmag_types.hpp"
-#include <string_view>
 
 namespace stv::drivers {
 
@@ -65,11 +64,18 @@ class i_magnetic: public i_magnetic_latest<NormalizeMeasType>
     [[nodiscard]] virtual auto freq() const -> float
     { return static_cast<value_type>(0); }
 
-    [[nodiscard]] virtual auto give_name() const -> std::string_view
-    { return {"Unknown"}; }
-
     [[nodiscard]] virtual auto is_self_test_valid() const -> bool
     { return false; }
+
+    /// @brief Признак наличия у датчика аппаратного вывода готовности данных
+    /// (DRDY/INT).
+    /// @return true если датчик формирует импульс готовности данных на
+    /// выделенном выводе (прерывание EXTI), false если готовность данных
+    /// доступна только опросом бита в регистре статуса.
+    /// @note Датчики без DRDY (например QMC5883P) не могут служить источником
+    /// внешнего прерывания: для них запрещено отключение SysTick и переход в
+    /// глубокий сон, чтение выполняется по программному таймеру.
+    [[nodiscard]] virtual auto has_drdy() const -> bool { return true; }
 
   protected:
     i_magnetic() = default;

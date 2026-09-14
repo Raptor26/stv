@@ -132,7 +132,7 @@ class qma6100:
             raw_value = std::byteswap(raw_value);
         }
 
-        // NOLINTNEXTLINE(hicpp-signed-bitwise)
+        // NOLINTNEXTLINE(hicpp-signed-bitwise, bugprone-signed-bitwise)
         return static_cast<std::int16_t>(raw_value >> 2U);
     }
 

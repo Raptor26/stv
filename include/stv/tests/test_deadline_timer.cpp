@@ -4,15 +4,16 @@
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
-#include "stv/deadline_timer.hpp"
-#include "stv/runtime.hpp"
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <chrono>
+#include <cstdint>
 #include <fakeit.hpp>
 #include <limits>
 #include <ratio>
+#include <string>
+
+#include "stv/deadline_timer.hpp"
+#include "stv/runtime.hpp"
 
 // NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
 // readability-function-cognitive-,

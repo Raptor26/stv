@@ -8,6 +8,7 @@
 #define QMC5883_REGS_HPP
 
 #include "qmc5883_types.hpp"
+#include "stv/register_field.hpp"
 #include <cstdint>
 
 namespace stv {
@@ -37,10 +38,8 @@ class qmc5883_ctrl1_reg
     explicit operator qmc5883_reg_type() const
     {
         return static_cast<qmc5883_reg_type>(
-            (static_cast<std::uint8_t>(osr) << osr_offset)
-            | (static_cast<std::uint8_t>(rng) << rng_offset)
-            | (static_cast<std::uint8_t>(odr) << odr_offset)
-            | (static_cast<std::uint8_t>(mode) << mode_offset));
+            field_to_raw(osr, osr_offset) | field_to_raw(rng, rng_offset)
+            | field_to_raw(odr, odr_offset) | field_to_raw(mode, mode_offset));
     }
 
     /// @brief Оператор присваивания, обновляющий значение регистра.
@@ -105,10 +104,10 @@ class qmc5883_ctrl1_reg
     void parse(
         qmc5883_reg_type reg)
     {
-        osr  = static_cast<osr_t>((reg >> osr_offset) & 0x03);
-        rng  = static_cast<rng_t>((reg >> rng_offset) & 0x03);
-        odr  = static_cast<odr_t>((reg >> odr_offset) & 0x03);
-        mode = static_cast<mode_t>((reg >> mode_offset) & 0x03);
+        osr  = extract_field<osr_t>(reg, osr_offset, 0x03U);
+        rng  = extract_field<rng_t>(reg, rng_offset, 0x03U);
+        odr  = extract_field<odr_t>(reg, odr_offset, 0x03U);
+        mode = extract_field<mode_t>(reg, mode_offset, 0x03U);
     }
 };
 
@@ -134,9 +133,9 @@ class qmc5883_ctrl2_reg
     explicit operator qmc5883_reg_type() const
     {
         return static_cast<qmc5883_reg_type>(
-            (static_cast<std::uint8_t>(soft_reset) << soft_reset_offset)
-            | (static_cast<std::uint8_t>(rol_pnt) << rol_pnt_offset)
-            | (static_cast<std::uint8_t>(int_enb) << int_enb_offset));
+            field_to_raw(soft_reset, soft_reset_offset)
+            | field_to_raw(rol_pnt, rol_pnt_offset)
+            | field_to_raw(int_enb, int_enb_offset));
     }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
@@ -178,12 +177,12 @@ class qmc5883_ctrl2_reg
     void parse(
         qmc5883_reg_type reg)
     {
-        soft_reset = (reg & (1 << soft_reset_offset)) ? soft_reset_t::enable
-                                                      : soft_reset_t::normal;
-        rol_pnt    = (reg & (1 << rol_pnt_offset)) ? rol_pnt_t::enable
-                                                   : rol_pnt_t::normal;
-        int_enb    = (reg & (1 << int_enb_offset)) ? int_enb_t::disable
-                                                   : int_enb_t::enable;
+        soft_reset = parse_flag(reg, soft_reset_offset, soft_reset_t::enable,
+                                soft_reset_t::normal);
+        rol_pnt    = parse_flag(reg, rol_pnt_offset, rol_pnt_t::enable,
+                                rol_pnt_t::normal);
+        int_enb    = parse_flag(reg, int_enb_offset, int_enb_t::disable,
+                                int_enb_t::enable);
     }
 };
 
@@ -245,10 +244,9 @@ class qmc5883_status_reg
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator qmc5883_reg_type() const
     {
-        return static_cast<qmc5883_reg_type>(
-            (static_cast<std::uint8_t>(dor) << dor_offset)
-            | (static_cast<std::uint8_t>(ovl) << ovl_offset)
-            | (static_cast<std::uint8_t>(drdy) << drdy_offset));
+        return static_cast<qmc5883_reg_type>(field_to_raw(dor, dor_offset)
+                                             | field_to_raw(ovl, ovl_offset)
+                                             | field_to_raw(drdy, drdy_offset));
     }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
@@ -298,11 +296,11 @@ class qmc5883_status_reg
     void parse(
         qmc5883_reg_type reg)
     {
-        drdy = (reg & (1 << drdy_offset)) ? drdy_t::new_data_is_ready
-                                          : drdy_t::no_new_data;
-        ovl  = (reg & (1 << ovl_offset)) ? ovl_t::data_overflow : ovl_t::normal;
-        dor  = (reg & (1 << dor_offset)) ? dor_t::data_skipped_for_reading
-                                         : dor_t::normal;
+        drdy = parse_flag(reg, drdy_offset, drdy_t::new_data_is_ready,
+                          drdy_t::no_new_data);
+        ovl  = parse_flag(reg, ovl_offset, ovl_t::data_overflow, ovl_t::normal);
+        dor  = parse_flag(reg, dor_offset, dor_t::data_skipped_for_reading,
+                          dor_t::normal);
     }
 };
 
