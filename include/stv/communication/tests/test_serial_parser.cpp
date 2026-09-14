@@ -15,9 +15,13 @@
 #include <utility>
 
 #include "etl/unordered_map.h"
+#include "stv/communication/parsed_queue.hpp"
 #include "stv/communication/serial_decorators.hpp"
 #include "stv/communication/serial_parser.hpp"
 #include "stv/communication/serial_sender.hpp"
+#include "stv/communication/stvlink_frame.hpp"
+#include "stv/communication/stvlink_route.hpp"
+#include "stv/communication/stvlink_sender.hpp"
 #include "stv/containers/lwrb.hpp"
 #include "stv/containers/simbuff.hpp"
 #include "stv/mutex_guard.hpp"
@@ -92,27 +96,28 @@ TEST_CASE(
         /// @brief Объект используется для создания сообщений требуемой для
         /// проверки парсера структуры.
         auto serial_message_buffer = make_serial_message_buffer(
-            serial_msg_queue, stv::start_frame_and_crc_16{});
+            serial_msg_queue, stv::stvlink_frame_tx{});
 
         using serial_parser_setup_type =
-            stv::serial_parser_setup<lwrb_base_type, queue_type>;
+            stv::serial_parser_setup<lwrb_base_type, queue_type,
+                                     stv::empty_mutex, stv::stvlink_frame>;
 
         SECTION("Invalid Setup")
         {
             const serial_parser_setup_type setup;
-            auto                           parser =
-                stv::make_serial_parser<serial_parser_setup_type>(setup);
+            auto parser = stv::make_serial_parser<serial_parser_setup_type,
+                                                  stv::stvlink_frame>(setup);
             REQUIRE_FALSE(parser);
         }
 
         SECTION("Valid Setup")
         {
             serial_parser_setup_type setup;
-            setup.lwrb  = &lwrb;
-            setup.queue = &parsed_msg_queue;
+            setup.lwrb = &lwrb;
+            setup.set_queue<stv::stvlink_frame>(parsed_msg_queue);
 
-            auto parser =
-                stv::make_serial_parser<serial_parser_setup_type>(setup);
+            auto parser = stv::make_serial_parser<serial_parser_setup_type,
+                                                  stv::stvlink_frame>(setup);
             REQUIRE(parser);
 
             SECTION("Parse per message")
@@ -341,6 +346,176 @@ TEST_CASE(
                     parsed_msg_queue.pop();
                 }
             }
+
+            SECTION("Incomplete frame waits for remaining bytes")
+            {
+                constexpr std::string_view test_message{"Hello world"};
+
+                {
+                    auto msg = serial_message_buffer.request(test_message);
+                }
+
+                decltype(auto) queue_instance =
+                    serial_message_buffer.queue_instance();
+                auto msg = queue_instance.front();
+
+                // Записываем только часть кадра: заголовок и часть полезной
+                // нагрузки.
+                constexpr std::size_t partial_size{8};
+                lwrb.write(msg.begin(), msg.begin() + partial_size);
+
+                // Парсер должен дождаться остатка кадра, не помещая
+                // сообщение в очередь и не блокируясь внутри run().
+                REQUIRE_FALSE(parser.run());
+                REQUIRE(parsed_msg_queue.empty());
+
+                // Дописываем остаток кадра: сообщение должно быть
+                // распарсено на следующем вызове run().
+                lwrb.write(msg.begin() + partial_size, msg.end());
+                queue_instance.pop();
+
+                REQUIRE(parser.run());
+                REQUIRE(parsed_msg_queue.size() == 1);
+
+                {
+                    auto parsed_msg = std::move(parsed_msg_queue.front());
+                    REQUIRE(memcmp(test_message.data(), parsed_msg.data(),
+                                   test_message.size())
+                            == 0);
+                    parsed_msg_queue.pop();
+                }
+            }
+
+            SECTION("Stalled frame recovered by timeout")
+            {
+                constexpr std::string_view test_message{"Hello world"};
+
+                {
+                    auto msg = serial_message_buffer.request(test_message);
+                }
+
+                decltype(auto) queue_instance =
+                    serial_message_buffer.queue_instance();
+
+                // Записываем только заголовок кадра: отправитель «оборвал»
+                // передачу посреди кадра.
+                {
+                    decltype(auto) msg = queue_instance.front();
+                    lwrb.write(msg.begin(),
+                               msg.begin()
+                                   + static_cast<std::ptrdiff_t>(
+                                       stv::stvlink_frame_tx::header_size()));
+                    queue_instance.pop();
+                }
+
+                // Каждый вызов run() - это опрос неполного кадра. Первый
+                // вызов фиксирует число байт в буфере, каждый следующий
+                // без новых байт - тик таймаута: после
+                // max_wait_message_ready_polls тиков парсер отбрасывает
+                // стартовый кадр и возвращается к поиску заголовка.
+                for(std::size_t i{0};
+                    i < (decltype(parser)::max_wait_message_ready_polls + 1U);
+                    ++i)
+                {
+                    REQUIRE_FALSE(parser.run());
+                }
+
+                // Восстановление произошло именно по таймауту, а не по
+                // приходу новых байт: отброшен один байт ложного заголовка,
+                // остальные байты будут отброшены при обработке следующего
+                // валидного кадра.
+                REQUIRE(lwrb.get_full()
+                        == (stv::stvlink_frame_tx::header_size() - 1U));
+
+                // После восстановления следующее валидное сообщение должно
+                // быть распарсено.
+                {
+                    auto msg = serial_message_buffer.request(test_message);
+                }
+
+                {
+                    decltype(auto) msg = queue_instance.front();
+                    lwrb.write(msg.begin(), msg.end());
+                    queue_instance.pop();
+                }
+
+                REQUIRE(parser.run());
+                REQUIRE(parsed_msg_queue.size() == 1);
+
+                {
+                    auto parsed_msg = std::move(parsed_msg_queue.front());
+                    REQUIRE(memcmp(test_message.data(), parsed_msg.data(),
+                                   test_message.size())
+                            == 0);
+                    parsed_msg_queue.pop();
+                }
+            }
+
+            SECTION("Full output queue drops message without corruption")
+            {
+                constexpr std::string_view test_message{"Hello world"};
+
+                decltype(auto)             queue_instance =
+                    serial_message_buffer.queue_instance();
+
+                // Заполняем выходную очередь до ее емкости.
+                for(std::size_t i{0}; i < parsed_msg_queue.capacity(); ++i)
+                {
+                    {
+                        auto msg = serial_message_buffer.request(test_message);
+                    }
+
+                    decltype(auto) msg = queue_instance.front();
+                    lwrb.write(msg.begin(), msg.end());
+                    queue_instance.pop();
+
+                    REQUIRE(parser.run());
+                    REQUIRE(parsed_msg_queue.size() == i + 1);
+                }
+
+                // Очередь заполнена: следующее сообщение должно быть
+                // отброшено без порчи очереди.
+                {
+                    auto msg = serial_message_buffer.request(test_message);
+                }
+
+                {
+                    decltype(auto) msg = queue_instance.front();
+                    lwrb.write(msg.begin(), msg.end());
+                    queue_instance.pop();
+                }
+
+                REQUIRE_FALSE(parser.run());
+                REQUIRE(parsed_msg_queue.full());
+
+                // Очередь не сломана: после освобождения места разбор
+                // продолжается.
+                while(!parsed_msg_queue.empty())
+                {
+                    parsed_msg_queue.pop();
+                }
+
+                {
+                    auto msg = serial_message_buffer.request(test_message);
+                }
+
+                {
+                    decltype(auto) msg = queue_instance.front();
+                    lwrb.write(msg.begin(), msg.end());
+                    queue_instance.pop();
+                }
+
+                REQUIRE(parser.run());
+                REQUIRE(parsed_msg_queue.size() == 1);
+
+                {
+                    auto parsed_msg = std::move(parsed_msg_queue.front());
+                    REQUIRE(memcmp(test_message.data(), parsed_msg.data(),
+                                   test_message.size())
+                            == 0);
+                    parsed_msg_queue.pop();
+                }
+            }
         }
     }
 
@@ -348,13 +523,12 @@ TEST_CASE(
     {
         using hash_type = etl::iunordered_map<int, queue_base_type *>;
         using serial_route_setup_type =
-            stv::serial_route_setup<queue_base_type, hash_type>;
-        using serial_route_type =
-            stv::serial_parser_route<serial_route_setup_type>;
+            stv::stvlink_route_setup<queue_base_type, hash_type>;
+        using serial_route_type = stv::stvlink_route<serial_route_setup_type>;
         queue_type queue{};
 
         auto       serial_message_buffer =
-            make_serial_message_buffer(queue, stv::head_route{});
+            make_serial_message_buffer(queue, stv::stvlink_route_tx{});
 
         etl::unordered_map<int, queue_base_type *, 10U> hash_table;
         constexpr int                                   parsed_msg_queue_id{10};
@@ -371,7 +545,7 @@ TEST_CASE(
             constexpr std::string_view test_message{"Hello world"};
             SECTION("If valid key ID")
             {
-                stv::head_route::head_route_setup_t route_setup{
+                stv::stvlink_route_tx::setup_t route_setup{
                     .dst_id  = parsed_msg_queue_id,
                     .pack_id = 0,
                 };
@@ -386,7 +560,7 @@ TEST_CASE(
                     hash_table.at(parsed_msg_queue_id);
                 REQUIRE_FALSE(queue_to_check->empty());
                 auto msg = queue_to_check->front();
-                msg.trim_head(stv::head_route::header_size());
+                msg.trim_head(stv::stvlink_route_tx::header_size());
                 REQUIRE(
                     memcmp(test_message.data(), msg.data(), test_message.size())
                     == 0);
@@ -403,7 +577,7 @@ TEST_CASE(
                     std::move(empty_msg));
 
                 // Добавляем валидное сообщение после пустого
-                stv::head_route::head_route_setup_t route_setup{
+                stv::stvlink_route_tx::setup_t route_setup{
                     .dst_id  = parsed_msg_queue_id,
                     .pack_id = 0,
                 };
@@ -419,13 +593,106 @@ TEST_CASE(
                     hash_table.at(parsed_msg_queue_id);
                 REQUIRE_FALSE(queue_to_check->empty());
                 auto msg = queue_to_check->front();
-                msg.trim_head(stv::head_route::header_size());
+                msg.trim_head(stv::stvlink_route_tx::header_size());
                 REQUIRE(
                     memcmp(test_message.data(), msg.data(), test_message.size())
                     == 0);
                 queue_to_check->pop();
             }
+
+            SECTION("Drop message when destination queue is full")
+            {
+                stv::stvlink_route_tx::setup_t route_setup{
+                    .dst_id  = parsed_msg_queue_id,
+                    .pack_id = 0,
+                };
+
+                decltype(auto) src_queue =
+                    serial_message_buffer.queue_instance();
+
+                // Заполняем целевую очередь до ее емкости.
+                for(std::size_t i{0}; i < parsed_msg_queue.capacity(); ++i)
+                {
+                    {
+                        auto msg = serial_message_buffer.request(test_message,
+                                                                 route_setup);
+                    }
+                    REQUIRE(route.run());
+                    REQUIRE(parsed_msg_queue.size() == i + 1);
+                }
+
+                // Целевая очередь переполнена: сообщение отбрасывается, но
+                // удаляется из входной очереди и не ломает целевую.
+                {
+                    auto msg = serial_message_buffer.request(test_message,
+                                                             route_setup);
+                }
+                REQUIRE_FALSE(route.run());
+                REQUIRE(src_queue.empty());
+                REQUIRE(parsed_msg_queue.full());
+
+                // Целевая очередь не сломана: после освобождения места
+                // маршрутизация продолжается.
+                parsed_msg_queue.pop();
+
+                {
+                    auto msg = serial_message_buffer.request(test_message,
+                                                             route_setup);
+                }
+                REQUIRE(route.run());
+                REQUIRE(parsed_msg_queue.full());
+            }
         }
+    }
+
+    SECTION("null queue of any decorator")
+    {
+        using serial_parser_setup_type =
+            stv::serial_parser_setup<lwrb_base_type, queue_type,
+                                     stv::empty_mutex, stv::stvlink_frame>;
+        serial_parser_setup_type setup;
+        setup.lwrb = &lwrb;
+        setup.set_queue<stv::stvlink_frame>(static_cast<queue_type *>(nullptr));
+
+        auto parser = stv::make_serial_parser<serial_parser_setup_type,
+                                              stv::stvlink_frame>(setup);
+        REQUIRE_FALSE(parser);
+    }
+
+    SECTION("single decorator still works")
+    {
+        using serial_parser_setup_type =
+            stv::serial_parser_setup<lwrb_base_type, queue_type,
+                                     stv::empty_mutex, stv::stvlink_frame>;
+        serial_parser_setup_type setup;
+        setup.lwrb = &lwrb;
+        setup.set_queue<stv::stvlink_frame>(parsed_msg_queue);
+
+        auto parser = stv::make_serial_parser<serial_parser_setup_type,
+                                              stv::stvlink_frame>(setup);
+        REQUIRE(parser);
+
+        auto serial_message_buffer = make_serial_message_buffer(
+            serial_msg_queue, stv::stvlink_frame_tx{});
+        constexpr std::string_view test_message{"A"};
+
+        {
+            auto msg = serial_message_buffer.request(test_message);
+        }
+
+        decltype(auto) queue_instance = serial_message_buffer.queue_instance();
+        auto           msg            = queue_instance.front();
+        lwrb.write(msg.begin(), msg.end());
+        queue_instance.pop();
+
+        REQUIRE(parser.run());
+        REQUIRE(parsed_msg_queue.size() == 1);
+
+        auto parsed_msg = std::move(parsed_msg_queue.front());
+        REQUIRE(
+            memcmp(test_message.data(), parsed_msg.data(), test_message.size())
+            == 0);
+        parsed_msg_queue.pop();
     }
 }
 

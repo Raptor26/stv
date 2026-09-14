@@ -10,12 +10,15 @@
 
 #include "stv/communication/serial_decorators.hpp"
 #include "stv/communication/serial_sender.hpp"
+#include "stv/communication/stvlink_sender.hpp"
 #include "stv/containers/simbuff.hpp"
 #include "stv/mutex_guard.hpp"
 
 namespace bm = benchmark;
 
-static void request(
+namespace {
+
+void request(
     bm::State &state)
 {
     using namespace stv;
@@ -24,7 +27,7 @@ static void request(
     using queue_type    = etl::queue<sim_buff_type, 10>;
     queue_type queue{};
 
-    struct UserData {
+    struct user_data {
         std::uint8_t i{11};
         std::uint8_t j{22};
         std::uint8_t k{33};
@@ -32,17 +35,20 @@ static void request(
     };
 
     auto serial_message_buffer = make_serial_message_buffer(
-        queue, stv::start_frame_and_crc_16{}, stv::head_route{});
+        queue, stv::stvlink_frame_tx{}, stv::stvlink_route_tx{});
 
-    for(auto unused: state)
+    for(const auto unused: state)
     {
-        auto msg = serial_message_buffer.request<UserData>();
+        (void)unused;
+        auto msg = serial_message_buffer.request<user_data>();
 
         msg->i = 1;
         msg->j = 2;
         msg->z = 4;
     }
 }
+
+} // namespace
 
 BENCHMARK(request);
 

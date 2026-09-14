@@ -297,6 +297,10 @@ class callback_timer_context: public TBase
         }
     }
 
+    // Базовый класс TBase — параметр шаблона; корректность virtual-деструктора
+    // определяется конкретной специализацией.
+    // NOLINTNEXTLINE(cppcoreguidelines-explicit-virtual-functions,
+    // hicpp-use-override, modernize-use-override)
     virtual ~callback_timer_context()
     {
         if(callback_timer_->unregister_timer(id_))

@@ -34,8 +34,9 @@
 ///         перемещение.
 ///
 ///     serial_message_buffer<TQueue, Decorators...>
-///         Адаптация базового буфера для очередей на базе
-///         etl::iqueue, хранящих элементы типа stv::sim_buff.
+///         Адаптация базового буфера для очередей, удовлетворяющих
+///         stv::serial_queue_concept (etl::queue, etl::queue_spsc_atomic,
+///         etl::iqueue и др.), хранящих элементы типа stv::sim_buff.
 ///
 ///     make_serial_message_buffer(queue, decorators...)
 ///         Фабричная функция, упрощающая создание
@@ -57,6 +58,7 @@
 ///     стартовым кадром, CRC и маршрутизацией:
 ///     ```cpp
 ///     #include <stv/communication/serial_sender.hpp>
+///     #include <stv/communication/stvlink_sender.hpp>
 ///     #include <stv/containers/simbuff.hpp>
 ///     #include <stv/mutex_guard.hpp>
 ///     #include <etl/queue.h>
@@ -76,10 +78,10 @@
 ///         queue_type queue{};
 ///
 ///         auto serial_message_buffer = make_serial_message_buffer(
-///             queue, start_frame_and_crc_16{}, head_route{});
+///             queue, stvlink_frame_tx{}, stvlink_route_tx{});
 ///
 ///         auto msg = serial_message_buffer.request<UserData>(
-///             head_route::head_route_setup_t{
+///             stvlink_route_tx::setup_t{
 ///                 .dst_id = 1, .pack_id = 7});
 ///
 ///         if (msg) {
@@ -104,7 +106,7 @@
 ///     Пример передачи массива с параметрами декоратора:
 ///     ```cpp
 ///     std::array<std::uint16_t, 3> data{11, 22, 33};
-///     head_route::head_route_setup_t route{
+///     stvlink_route_tx::setup_t route{
 ///         .dst_id = 1, .pack_id = 7};
 ///     auto msg = serial_message_buffer.request(data, route);
 ///     ```
@@ -117,6 +119,7 @@
 
 #include "etl/queue.h"
 #include "serial_decorators.hpp"
+#include "stv/concepts.hpp"
 #include "stv/containers/simbuff.hpp"
 #include <array>
 #include <cassert>
@@ -785,8 +788,8 @@ class serial_message_buffer_base:
     /// соответствующим декораторам.
     /// @return Объект @ref serial_message<std::remove_const_t<T>>.
     template<typename T, typename... SetupParams>
-    // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
     auto request(
+        // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
         std::span<const T> span, SetupParams &&...setup_params)
     {
         return request_impl<std::remove_const_t<T>>(
@@ -885,17 +888,36 @@ class serial_message_buffer_base:
     /// - проверить через operator bool() что память успешно выделена.
     /// - в случае успешного выделения памяти, можно ее заполнить через
     ///   оператор operator->().
+    ///
+    /// Если запрос отклонён декоратором (превышен предел размера полезной
+    /// нагрузки max_pload_size() либо apply_setup() вернул false),
+    /// возвращается невалидное сообщение: оно не выделяет память и не
+    /// попадает в очередь (как сообщение из request_null()).
     template<typename UserData, typename... SetupParams>
     auto request_impl(
         const span_type &pload, SetupParams &&...setup_params)
     {
         auto decorators_copy = decorators_;
 
+        // Декоратор может отклонить запрос: через предел размера полезной
+        // нагрузки (max_pload_size()) либо через отказ принять параметр
+        // (apply_setup(), возвращающий bool).
+        // NOLINTNEXTLINE(misc-const-correctness)
+        bool is_request_valid{is_pload_size_accepted(pload.size_bytes())};
+
         // Сопоставление каждого аргумента из пачки параметров setup_params с
         // каждым декоратором.
-        (apply_param_to_decorators(decorators_copy,
+        (apply_param_to_decorators(is_request_valid, decorators_copy,
                                    std::forward<SetupParams>(setup_params)),
          ...);
+
+        if(!is_request_valid)
+        {
+            // Отклонённый запрос: возвращается невалидное сообщение,
+            // аналогичное результату request_null().
+            return serial_message<UserData, queue_base_type, Decorators...>(
+                nullptr, queue_);
+        }
 
         // Конструирование объекта serial_message из updated_decorators.
         return std::apply(
@@ -906,54 +928,156 @@ class serial_message_buffer_base:
             decorators_copy);
     }
 
+    /// @brief Проверяет, что размер полезной нагрузки укладывается в
+    ///     ограничения всех декораторов.
+    ///
+    /// @param[in] pload_size Размер полезной нагрузки в байтах.
+    /// @return @c true, если все декораторы принимают такой размер;
+    ///     @c false в противном случае.
+    [[nodiscard]] auto is_pload_size_accepted(
+        std::size_t pload_size) const -> bool
+    {
+        return std::apply(
+            [pload_size](const auto &...decorators) {
+                return (is_pload_size_accepted_by(decorators, pload_size)
+                        && ...);
+            },
+            decorators_);
+    }
+
+    /// @brief Проверяет размер полезной нагрузки против предела одного
+    ///     декоратора.
+    ///
+    /// @details
+    /// Декоратор может объявить предел размера полезной нагрузки статическим
+    /// методом @c max_pload_size(). Декоратор без такого метода принимает
+    /// любой размер.
+    ///
+    /// @tparam Decorator Тип декоратора.
+    /// @param[in] pload_size Размер полезной нагрузки в байтах.
+    /// @return @c true, если размер не превышает предел декоратора;
+    ///     @c false в противном случае.
+    template<typename Decorator>
+    static constexpr auto is_pload_size_accepted_by(
+        const Decorator & /*decorator*/, std::size_t pload_size) -> bool
+    {
+        if constexpr(requires { Decorator::max_pload_size(); })
+        {
+            return pload_size <= Decorator::max_pload_size();
+        }
+        else
+        {
+            return true;
+        }
+    }
+
     template<typename Param>
     void apply_param_to_decorators(
-        auto &tuple_of_decorators, const Param &param)
+        bool &is_request_valid, auto &tuple_of_decorators, const Param &param)
     {
         std::apply(
-            [&param, this](auto &...decorators) {
+            [&param, &is_request_valid, this](auto &...decorators) {
                 (void)this;
-                (apply_to_single_decorator(decorators, param), ...);
+                ((is_request_valid =
+                      apply_to_single_decorator(decorators, param)
+                      && is_request_valid),
+                 ...);
             },
             tuple_of_decorators);
     }
 
-    // Универсальная проверка - пытаемся сконструировать декоратор из параметра
+    /// @brief Применяет параметр запроса к каждому декоратору сообщения.
+    ///
+    /// @details
+    /// Вызывается из request_impl() для каждого аргумента, переданного в
+    /// request() после полезной нагрузки. Существует два способа, которыми
+    /// декоратор может принять параметр запроса:
+    ///
+    /// 1. Метод apply_setup(const Param &) — декоратор обновляет только те
+    ///    поля, которые описаны в параметре, сохраняя своё внутреннее
+    ///    состояние. Способ выбирается, если метод существует. Если метод
+    ///    возвращает bool, значение false означает отказ принять параметр:
+    ///    request() вернёт невалидное сообщение.
+    ///
+    /// 2. Пересоздание decorator = Decorator(param) — декоратор полностью
+    ///    заменяется новым экземпляром, сконструированным из параметра.
+    ///    Способ выбирается, если метод apply_setup отсутствует, а декоратор
+    ///    конструируем из параметра.
+    ///
+    /// Если декоратору не подходит ни один способ, параметр для него
+    /// игнорируется.
+    ///
+    /// Выбор способа выполняется на этапе компиляции (if constexpr),
+    /// накладных расходов в runtime нет.
+    ///
+    /// @note Рекомендация для новых декораторов:
+    /// - Если декоратор НЕ хранит состояния и полностью описывается
+    ///   параметром запроса (как stv::stvlink_route_tx), apply_setup
+    ///   реализовывать НЕ нужно — достаточно конструктора из параметра.
+    /// - Если декоратор хранит состояние, заданное при создании буфера
+    ///   (например, идентификатор отправителя или указатель на счётчик,
+    ///   как декоратор кадра KrdLink из karavan), apply_setup НЕОБХОДИМ:
+    ///   пересоздание из параметра запроса уничтожило бы это состояние.
+    ///
+    /// @param[in,out] decorator Декоратор, к которому применяется параметр.
+    /// @param[in] param Параметр запроса из request().
+    /// @return @c false, если декоратор отклонил параметр (apply_setup,
+    ///     возвращающий bool, вернул false); иначе @c true.
     template<typename Decorator, typename Param>
-    void apply_to_single_decorator(
-        Decorator &decorator, const Param &param)
+    static auto apply_to_single_decorator(
+        Decorator &decorator, const Param &param) -> bool
     {
-        if constexpr(std::is_constructible_v<Decorator, const Param &>)
+        if constexpr(requires {
+                         {
+                             decorator.apply_setup(param)
+                         } -> std::convertible_to<bool>;
+                     })
+        {
+            return static_cast<bool>(decorator.apply_setup(param));
+        }
+        else if constexpr(requires { decorator.apply_setup(param); })
+        {
+            decorator.apply_setup(param);
+            return true;
+        }
+        else if constexpr(std::is_constructible_v<Decorator, const Param &>)
         {
             decorator = Decorator(param);
+            return true;
+        }
+        else
+        {
+            return true;
         }
     }
 };
 
-/// @brief Буфер серийных сообщений для очередей на базе etl::iqueue.
+/// @brief Буфер серийных сообщений для очередей с интерфейсом ETL.
 ///
 /// @details
 /// Наследует функциональность @ref serial_message_buffer_base и адаптирует
-/// её для работы с очередью типа etl::iqueue<sim_buff<...>>. Позволяет
-/// создавать сообщения, которые затем передаются в последовательный порт,
-/// радиоканал или другой транспорт.
+/// её для работы с любой очередью, удовлетворяющей
+/// @ref stv::serial_queue_concept: value_type, full() и push(T&&). Поддерживает
+/// etl::iqueue, etl::queue, etl::queue_spsc_atomic и другие совместимые
+/// очереди. Позволяет создавать сообщения, которые затем передаются в
+/// последовательный порт, радиоканал или другой транспорт.
 ///
-/// @tparam TQueue Тип очереди, производной от etl::iqueue. Её value_type
-/// должен быть совместим с @ref sim_buff.
+/// @tparam TQueue Тип очереди. Её value_type должен быть совместим с
+/// @ref sim_buff.
 /// @tparam Decorators Декораторы, применяемые к каждому сообщению.
 template<typename TQueue, typename... Decorators>
+    requires(stv::serial_queue_concept<TQueue>)
 class serial_message_buffer:
-    public serial_message_buffer_base<etl::iqueue<typename TQueue::value_type>,
-                                      Decorators...>
+    public serial_message_buffer_base<TQueue, Decorators...>
 {
     /// @brief Тип элемента очереди.
-    using queue_item_type = TQueue::value_type;
+    using queue_item_type = typename TQueue::value_type;
 
     /// @brief Тип симуляционного буфера, хранящегося в очереди.
     using sim_buff_type = queue_item_type;
 
     /// @brief Базовый тип очереди, передаваемый в базовый класс.
-    using queue_base_type = etl::iqueue<sim_buff_type>;
+    using queue_base_type = TQueue;
 
     /// @brief Базовый класс.
     using base_type =

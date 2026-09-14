@@ -24,6 +24,7 @@ add_subdirectory(third_party/fpm SYSTEM)
 add_subdirectory(third_party/lwrb SYSTEM)
 add_subdirectory(third_party/frozen SYSTEM)
 add_subdirectory(third_party/HFSM2 SYSTEM)
+add_subdirectory(third_party/qvm SYSTEM)
 
 if((STV_IS_STANDALONE OR UTEST) AND TARGET lwrb)
   target_compile_definitions(lwrb PUBLIC -DLWRB_DISABLE_ATOMIC)
@@ -47,8 +48,15 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/include/stv/)
 target_include_directories(${PROJECT_NAME}
                            INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include/")
 
-target_link_libraries(stv INTERFACE Microsoft.GSL::GSL etl::etl fpm lwrb_ex
-                                    frozen::frozen hfsm2::hfsm2)
+target_link_libraries(
+  stv
+  INTERFACE Microsoft.GSL::GSL
+            etl::etl
+            fpm
+            lwrb_ex
+            frozen::frozen
+            hfsm2::hfsm2
+            Boost::qvm)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   target_compile_options(

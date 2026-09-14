@@ -5,67 +5,52 @@
 /// See LICENSE file in the project root for full license information.
 ///
 /// NAME
-///     stv::serial_parser -- парсер серийных
-///     сообщений и маршрутизатор пакетов.
+///     stv::serial_parser -- парсер серийных сообщений.
 ///
 /// DESCRIPTION
 ///     serial_parser выделяет сообщения из потока
 ///     байт кольцевого буфера и помещает готовые
-///     пакеты в выходную очередь. serial_parser_route
-///     читает очередь распарсенных сообщений,
-///     извлекает из заголовка stv::head_route
-///     идентификатор получателя dst_id и
-///     перенаправляет пакет в целевую очередь.
+///     пакеты в выходную очередь, соответствующую
+///     формату кадра. Маршрутизация распарсенных
+///     пакетов stvlink выполняется маршрутизатором
+///     stv::stvlink_route (см. stvlink_route.hpp).
 ///
 ///     serial_parser_setup<TlwrbBase, TQueue,
-///         TMutexOrPtr>
+///         TMutexOrPtr, Decorators...>
 ///         Параметры инициализации парсера.
 ///         Задают указатель на кольцевой буфер lwrb,
-///         очередь queue, максимальный размер одного
-///         сообщения max_one_message_size и, при
-///         необходимости, мьютекс. Если
-///         max_one_message_size равен 0, используется
-///         емкость кольцевого буфера.
+///         максимальный размер одного сообщения
+///         max_one_message_size, мьютекс и набор
+///         декораторов кадров. Каждому декоратору
+///         через parsed_queue<Декоратор> сопоставляется
+///         своя выходная очередь. Порядок указания
+///         декораторов и очередей не важен.
 ///
 ///     serial_parser<TSetup, Decorators...>
 ///         Конечный автомат из двух состояний:
-///         поиск начала кадра 0xAA 0xAA и поля
-///         размера, ожидание полного кадра и проверка
-///         CRC-16. Метод run() выполняет один цикл
-///         парсинга и возвращает true, если хотя бы
-///         одно сообщение было успешно обработано.
-///         Метод queue_instance() возвращает ссылку на
-///         выходную очередь. Оператор bool проверяет
-///         корректность инициализации.
+///         поиск начала кадра и поля размера,
+///         ожидание полного кадра и проверка CRC.
+///         Декоратор выбирается по стартовой
+///         последовательности; далее все проверки
+///         размера, CRC и обрезка служебных полей
+///         выполняются через выбранный декоратор.
+///         Метод run() выполняет один цикл парсинга
+///         и возвращает true, если хотя бы одно
+///         сообщение было успешно обработано.
 ///
 ///     make_serial_parser<TSetup, Decorators...>(
 ///         setup)
 ///         Фабричная функция для удобного создания
 ///         парсера.
 ///
-///     serial_route_setup<TQueue, THash,
-///         TMutexOrPtr>
-///         Параметры инициализации маршрутизатора.
-///         Задают входную очередь queue_to_read и
-///         хэш-таблицу hash_to_write, где ключом
-///         служит dst_id, а значением -- указатель на
-///         очередь получателя.
-///
-///     serial_parser_route<TSetup>
-///         Маршрутизатор сообщений. Метод run()
-///         обрабатывает все сообщения во входной
-///         очереди. Если dst_id отсутствует в таблице
-///         или сообщение пустое, пакет удаляется из
-///         входной очереди без передачи получателю.
-///         Возвращает количество успешно
-///         маршрутизованных сообщений.
-///
 /// EXAMPLE
 ///     Пример приема и маршрутизации сообщения:
 ///     ```cpp
 ///     #include "stv/communication/serial_parser.hpp"
 ///     #include "stv/communication/serial_sender.hpp"
-///     #include "stv/communication/serial_decorators.hpp"
+///     #include "stv/communication/stvlink_frame.hpp"
+///     #include "stv/communication/stvlink_route.hpp"
+///     #include "stv/communication/stvlink_sender.hpp"
 ///     #include "stv/containers/lwrb.hpp"
 ///     #include "stv/containers/simbuff.hpp"
 ///     #include "etl/queue.h"
@@ -75,47 +60,39 @@
 ///     int main() {
 ///         using namespace stv;
 ///
-///         // Кольцевой буфер и очереди для примера.
 ///         using sim_buffer_type = stv::sim_buff<stv::empty_mutex>;
-///         using queue_type = etl::queue<sim_buffer_type, 10>;
+///         using queue_type      = etl::queue<sim_buffer_type, 10>;
 ///         using lwrb_setup_type = stv::lwrb_setup<stv::empty_mutex>;
-///         using lwrb_base_type = stv::lwrb_base<lwrb_setup_type>;
+///         using lwrb_base_type  = stv::lwrb_base<lwrb_setup_type>;
 ///
 ///         queue_type parsed_msg_queue;
 ///         queue_type serial_msg_queue;
 ///         stv::lwrb<lwrb_base_type, 128> lwrb{lwrb_setup_type{}};
 ///
-///         // Буфер для формирования кадра с CRC и
-///         // маршрутизацией.
 ///         auto serial_message_buffer = make_serial_message_buffer(
 ///             serial_msg_queue,
-///             stv::start_frame_and_crc_16{},
-///             stv::head_route{});
+///             stv::stvlink_frame_tx{});
 ///
-///         // Формируем сообщение с полезной нагрузкой
-///         // и dst_id.
 ///         constexpr std::string_view payload{"Hello world"};
-///         stv::head_route::head_route_setup_t route{
-///             .dst_id = 1, .pack_id = 0};
 ///         {
-///             auto msg = serial_message_buffer.request(payload, route);
+///             auto msg = serial_message_buffer.request(payload);
 ///         }
 ///
-///         // Переносим готовый кадр в кольцевой буфер.
 ///         auto &tx_queue = serial_message_buffer.queue_instance();
 ///         auto frame = tx_queue.front();
 ///         lwrb.write(frame.begin(), frame.end());
 ///         tx_queue.pop();
 ///
-///         // Создаем и запускаем парсер.
 ///         using parser_setup_type =
-///             stv::serial_parser_setup<lwrb_base_type, queue_type>;
+///             stv::serial_parser_setup<lwrb_base_type, queue_type,
+///                                      stv::stvlink_frame>;
 ///         parser_setup_type parser_setup;
 ///         parser_setup.lwrb = &lwrb;
-///         parser_setup.queue = &parsed_msg_queue;
+///         parser_setup.set_queue<stv::stvlink_frame>(
+///             parsed_msg_queue);
 ///
-///         auto parser = stv::make_serial_parser<parser_setup_type>(
-///             parser_setup);
+///         auto parser = stv::make_serial_parser<
+///             parser_setup_type, stv::stvlink_frame>(parser_setup);
 ///         if (!parser) {
 ///             std::cerr << "Invalid parser setup\n";
 ///             return 1;
@@ -126,19 +103,17 @@
 ///                       << parsed_msg_queue.size() << "\n";
 ///         }
 ///
-///         // Маршрутизация распарсенных сообщений по
-///         // dst_id.
 ///         using hash_type = etl::iunordered_map<int, queue_type *>;
 ///         etl::unordered_map<int, queue_type *, 10> hash_table;
 ///         hash_table.insert({1, &parsed_msg_queue});
 ///
 ///         using route_setup_type =
-///             stv::serial_route_setup<queue_type, hash_type>;
+///             stv::stvlink_route_setup<queue_type, hash_type>;
 ///         route_setup_type route_setup;
 ///         route_setup.queue_to_read = &parsed_msg_queue;
 ///         route_setup.hash_to_write = &hash_table;
 ///
-///         stv::serial_parser_route<route_setup_type> router(route_setup);
+///         stv::stvlink_route<route_setup_type> router(route_setup);
 ///         if (router.run()) {
 ///             std::cout << "Message routed to destination\n";
 ///         }
@@ -152,19 +127,23 @@
 ///     test_serial_parser.cpp.
 ///
 /// SEE ALSO
-///     serial_decorators.hpp, serial_sender.hpp,
+///     parsed_queue.hpp, serial_decorators.hpp,
+///     serial_sender.hpp, stvlink_route.hpp,
 ///     test_serial_parser.cpp.
 
 #ifndef SERIAL_PARSER_HPP
 #define SERIAL_PARSER_HPP
 
 #include "lwrb/lwrb.h"
+#include "stv/communication/parsed_queue.hpp"
 #include "stv/communication/serial_decorators.hpp"
 #include "stv/mutex_guard.hpp"
 #include "stv/utils.hpp"
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <functional>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -173,21 +152,23 @@ namespace stv {
 /// @brief Параметры инициализации парсера сообщений.
 ///
 /// @details
-/// Структура задает источник байт (кольцевой буфер), приемник готовых
-/// сообщений (очередь), максимальный размер одного сообщения и,
-/// при необходимости, мьютекс для защиты внутреннего состояния парсера.
-/// Если @c TMutexOrPtr является указателем на мьютекс, парсер
-/// использует внешний мьютекс; в противном случае синхронизация
-/// отсутствует (заглушка @ref stv::empty_mutex).
+/// Структура задает источник байт (кольцевой буфер), приемники готовых
+/// сообщений (по одной очереди на каждый декоратор кадра), максимальный
+/// размер одного сообщения и, при необходимости, мьютекс для защиты
+/// внутреннего состояния парсера. Если @c TMutexOrPtr является указателем
+/// на мьютекс, парсер использует внешний мьютекс; в противном случае
+/// синхронизация отсутствует (заглушка @ref stv::empty_mutex).
 ///
 /// @tparam TlwrbBase Тип кольцевого буфера, предоставляющего поток байт.
 ///     Должен быть совместим с @ref stv::lwrb_base.
-/// @tparam TQueue Тип очереди для готовых сообщений. Её value_type
+/// @tparam TQueue Общий тип очередей для готовых сообщений. Её value_type
 ///     должен предоставлять непрерывный буфер байт.
 /// @tparam TMutexOrPtr Тип мьютекса либо указатель на него.
 ///     По умолчанию используется @ref stv::empty_mutex.
-template<typename TlwrbBase, typename TQueue,
-         typename TMutexOrPtr = stv::empty_mutex>
+/// @tparam Decorators Набор декораторов кадра. Каждому декоратору в
+///     структуре соответствует одна очередь @ref parsed_queue.
+template<typename TlwrbBase, typename TQueue, typename TMutexOrPtr,
+         typename... Decorators>
 class serial_parser_setup
 {
     /// @brief Базовый тип мьютекса (без указателя).
@@ -201,22 +182,25 @@ class serial_parser_setup
         std::conditional_t<is_external_mutex, mutex_base_type *,
                            std::monostate>;
 
+    /// @brief Проверяет, что @c D входит в пакет декораторов.
+    template<typename D>
+    static constexpr bool is_decorator = (std::is_same_v<D, Decorators> || ...);
+
   public:
     /// @brief Тип кольцевого буфера.
     using lwrb_base_type = TlwrbBase;
 
-    /// @brief Тип очереди для готовых сообщений.
+    /// @brief Тип очередей для готовых сообщений.
     using queue_type = TQueue;
 
     /// @brief Тип мьютекса или указателя на него.
     using mutex_type = TMutexOrPtr;
 
+    /// @brief Пакет декораторов кадра в виде кортежа типов.
+    using decorator_types = std::tuple<Decorators...>;
+
     /// @brief Указатель на кольцевой буфер с входящим потоком байт.
     lwrb_base_type *lwrb{nullptr};
-
-    /// @brief Указатель на очередь, в которую помещаются распарсенные
-    /// сообщения.
-    queue_type *queue{nullptr};
 
     /// @brief Максимальный допустимый размер одного сообщения в байтах.
     ///
@@ -232,6 +216,60 @@ class serial_parser_setup
     /// При использовании внешнего мьютекса следует передать его адрес.
     /// При использовании @ref stv::empty_mutex поле остается пустым.
     mutex_condition_type mutex{};
+
+    /// @brief Устанавливает очередь для декоратора @c Decorator.
+    ///
+    /// @tparam Decorator Декоратор кадра, для которого устанавливается
+    ///     очередь.
+    /// @param[in,out] queue Очередь, в которую будут помещаться распарсенные
+    ///     кадры, соответствующие декоратору @c Decorator.
+    template<typename Decorator>
+    void set_queue(
+        queue_type &queue)
+    {
+        static_assert(is_decorator<Decorator>,
+                      "Decorator is not registered in this setup");
+        std::get<parsed_queue<Decorator, queue_type>>(queues_) =
+            parsed_queue<Decorator, queue_type>{queue};
+    }
+
+    /// @brief Устанавливает указатель на очередь для декоратора @c Decorator.
+    ///
+    /// @tparam Decorator Декоратор кадра, для которого устанавливается
+    ///     очередь.
+    /// @param[in] queue Указатель на очередь. Может быть @c nullptr.
+    template<typename Decorator>
+    void set_queue(
+        queue_type *queue)
+    {
+        static_assert(is_decorator<Decorator>,
+                      "Decorator is not registered in this setup");
+        std::get<parsed_queue<Decorator, queue_type>>(queues_) =
+            parsed_queue<Decorator, queue_type>{queue};
+    }
+
+    /// @brief Возвращает связку очереди с декоратором @c Decorator.
+    ///
+    /// @tparam Decorator Декоратор кадра.
+    /// @return Ссылка на @ref parsed_queue<Decorator, queue_type>.
+    template<typename Decorator>
+    auto queue() -> parsed_queue<Decorator, queue_type> &
+    {
+        static_assert(is_decorator<Decorator>,
+                      "Decorator is not registered in this setup");
+        return std::get<parsed_queue<Decorator, queue_type>>(queues_);
+    }
+
+    /// @brief Возвращает кортеж связок очередей со всеми декораторами.
+    ///
+    /// @return Константная ссылка на кортеж @ref parsed_queue.
+    [[nodiscard]] auto queues() const
+        -> const std::tuple<parsed_queue<Decorators, queue_type>...> &
+    { return queues_; }
+
+  private:
+    /// @brief Кортеж типизированных связок очередей с декораторами.
+    std::tuple<parsed_queue<Decorators, queue_type>...> queues_{};
 };
 
 /// @brief Парсер сообщений из потока байт кольцевого буфера.
@@ -241,22 +279,23 @@ class serial_parser_setup
 ///   - поиск стартового кадра и размера сообщения;
 ///   - ожидание появления в буфере полного кадра и проверка CRC.
 ///
-/// Ожидаемый формат кадра формируется декоратором
-/// @ref stv::start_frame_and_crc_16: два байта 0xAA, 16-битное поле
-/// размера оставшейся части кадра, полезная нагрузка, CRC-16.
-/// После успешной проверки CRC заголовок и хвост отрезаются, а чистая
-/// полезная нагрузка перемещается в выходную очередь.
+/// Ожидаемый формат кадра определяется переданным пакетом декораторов
+/// @c Decorators. Парсер выбирает декоратор по стартовой последовательности,
+/// после чего использует его правила для проверки размера, CRC и обрезки
+/// служебных полей. Готовая полезная нагрузка (вместе с внутренним
+/// заголовком маршрутизации, если он есть) помещается в очередь,
+/// сопоставленную выбранному декоратору.
 ///
-/// Парсер безопасно вызывать из одного потока/контекста; если передан
-/// мьютекс, внутреннее состояние защищено при переключении состояний.
-/// Для извлечения нескольких сообщений за один вызов метод run()
-/// обрабатывает состояния в цикле.
+/// Парсер должен вызываться из одного потока/контекста. Если передан
+/// мьютекс, он защищает отдельные чтения и записи внутреннего состояния
+/// конечного автомата от коротких ISR-style обращений, но не делает
+/// метод run() полностью реентерабельным. Для извлечения нескольких
+/// сообщений за один вызов метод run() обрабатывает состояния в цикле.
 ///
 /// @tparam TSetup Тип параметров инициализации, например
 ///     @ref serial_parser_setup.
-/// @tparam Decorators Зарезервированный пакет декораторов. В текущей
-///     реализации не используется при парсинге, сохранен для совместимости
-///     с API отправителя.
+/// @tparam Decorators Пакет декораторов кадра. Должен совпадать с пакетом
+///     декораторов, указанным в @c TSetup.
 template<typename TSetup, typename... Decorators>
 class serial_parser: virtual private stv::non_movable_non_copyable
 {
@@ -269,6 +308,33 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     using queue_type     = typename setup_type::queue_type;
     using container_type = typename queue_type::value_type;
     using mutex_type     = typename TSetup::mutex_type;
+    using decorators_t   = std::tuple<Decorators...>;
+
+    /// @brief true, если тип @c T входит в пакет @c Us.
+    template<typename T, typename... Us>
+    static constexpr bool is_one_of_v = (std::is_same_v<T, Us> || ...);
+
+    /// @brief true, если два кортежа типов содержат один и тот же набор
+    ///     типов (без учёта порядка и дубликатов).
+    template<typename Tuple1, typename Tuple2>
+    static constexpr bool is_same_set_v = false;
+
+    /// @brief Специализация is_same_set_v для двух кортежей типов.
+    template<typename... Ts1, typename... Ts2>
+    static constexpr bool
+        is_same_set_v<std::tuple<Ts1...>, std::tuple<Ts2...>> =
+            (sizeof...(Ts1) == sizeof...(Ts2))
+            && (is_one_of_v<Ts1, Ts2...> && ...)
+            && (is_one_of_v<Ts2, Ts1...> && ...);
+
+    static_assert(
+        is_same_set_v<typename setup_type::decorator_types, decorators_t>,
+        "Decorator tags in setup must match the parser template arguments");
+    static_assert(sizeof...(Decorators) > 0,
+                  "at least one frame decorator is required");
+
+    /// @brief Число декораторов в пакете.
+    static constexpr std::size_t decorators_count{sizeof...(Decorators)};
 
     /// @brief Тип указателя на метод-обработчик состояния парсера.
     ///
@@ -299,29 +365,46 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     /// @brief Кольцевой буфер с входящим потоком байт.
     lwrb_base_type *lwrb_{nullptr};
 
-    /// @brief Очередь для готовых сообщений.
-    queue_type *queue_{nullptr};
+    /// @brief Очереди для готовых сообщений (по одной на декоратор).
+    std::array<queue_type *, decorators_count> queues_{};
 
     /// @brief Максимальный допустимый размер одного сообщения.
     const std::size_t max_one_message_size_{0};
 
     /// @brief Счетчик успешно распарсенных сообщений.
-    std::size_t parsed_cnt_{};
+    std::size_t parsed_cnt_{0U};
 
-    /// @brief Размер следующего сообщения, найденного в состоянии
-    /// @c start_frame_and_size.
-    std::size_t next_message_size_{0};
+    /// @brief Размер оставшейся части кадра (после заголовка), найденный в
+    /// состоянии @c start_frame_and_size.
+    std::size_t next_message_size_{0U};
+
+    /// @brief Индекс декоратора, выбранного в состоянии
+    /// @c start_frame_and_size. Значение @c decorators_count означает, что
+    /// декоратор еще не выбран.
+    std::size_t selected_decorator_idx_{decorators_count};
+
+    /// @brief Счетчик подряд идущих опросов неполного кадра без новых
+    /// байт в состоянии @c wait_message_ready.
+    std::size_t wait_message_ready_polls_{0U};
+
+    /// @brief Число байт в буфере на момент последнего опроса неполного
+    /// кадра. Изменение значения означает приход новых байт и сбрасывает
+    /// счетчик @c wait_message_ready_polls_.
+    std::size_t wait_message_ready_bytes_seen_{0U};
 
     /// @brief Заполняет таблицу указателей на обработчики состояний.
     ///
     /// @return Массив с указателями на методы состояний.
-    static constexpr auto construct_states_hash()
+    static consteval auto construct_states_hash()
     {
         hash_type hash{};
+        // Индексы — значения enum states, ограничены размером таблицы.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
         hash[std::to_underlying(states::start_frame_and_size)] =
             &stv::serial_parser<TSetup,
                                 Decorators...>::start_frame_and_size_state;
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
         hash[std::to_underlying(states::wait_message_ready)] =
             &stv::serial_parser<TSetup,
                                 Decorators...>::wait_message_ready_state;
@@ -358,15 +441,74 @@ class serial_parser: virtual private stv::non_movable_non_copyable
         }
     }
 
-    /// @brief Устанавливает размер следующего ожидаемого сообщения.
+    /// @brief Описание выбранного кадра: индекс декоратора и размер
+    ///     оставшейся части кадра.
+    struct frame_selection {
+        /// @brief Индекс выбранного декоратора.
+        std::size_t decorator_idx;
+
+        /// @brief Размер оставшейся части кадра.
+        std::size_t remaining_size;
+    };
+
+    /// @brief Устанавливает выбранный декоратор и размер оставшегося кадра.
     ///
-    /// @param[in] next_message_size Размер полезной нагрузки и хвоста
-    ///     (без стартового кадра).
-    void set_next_message_size(
-        std::size_t next_message_size)
+    /// @param[in] selection Структура с индексом декоратора и размером
+    ///     оставшейся части кадра.
+    void set_frame_selection(
+        frame_selection selection)
     {
         const stv::lock_guard critical{get_mutex_ref()};
-        next_message_size_ = next_message_size;
+        selected_decorator_idx_ = selection.decorator_idx;
+        next_message_size_      = selection.remaining_size;
+    }
+
+    /// @brief Сбрасывает таймаут ожидания неполного кадра.
+    ///
+    /// @details
+    /// Вызывается при выходе из состояния @c wait_message_ready и при
+    /// сборке кадра целиком, чтобы новый цикл ожидания начинал отсчет
+    /// с нуля.
+    void reset_wait_message_ready_timeout()
+    {
+        wait_message_ready_polls_      = 0U;
+        wait_message_ready_bytes_seen_ = 0U;
+    }
+
+    /// @brief Ведет таймаут ожидания неполного кадра.
+    ///
+    /// @details
+    /// Вызывается из состояния @c wait_message_ready, когда кадр еще не
+    /// собран целиком. Приход новых байт сбрасывает отсчет: медленный,
+    /// но живой отправитель таймаут не вызывает. Если за
+    /// @c max_wait_message_ready_polls подряд идущих опросов новых байт
+    /// не появилось, отбрасывается один байт и парсер возвращается к
+    /// побайтному поиску начала кадра, как и при ошибке CRC.
+    void track_incomplete_frame_timeout()
+    {
+        const auto bytes_available = lwrb_->get_full();
+
+        if(bytes_available != wait_message_ready_bytes_seen_)
+        {
+            // Пришли новые байты: отправитель живой, отсчет таймаута
+            // начинается заново.
+            wait_message_ready_bytes_seen_ = bytes_available;
+            wait_message_ready_polls_      = 0U;
+            return;
+        }
+
+        if(++wait_message_ready_polls_ < max_wait_message_ready_polls)
+        {
+            return;
+        }
+
+        // Отправитель оборвал передачу посреди кадра (либо заголовок
+        // ложный). Отбрасываем один байт, чтобы продолжить побайтный
+        // поиск настоящей границы кадра.
+        lwrb_->skip(1U);
+        set_state(states::start_frame_and_size);
+        set_frame_selection(frame_selection{decorators_count, 0});
+        reset_wait_message_ready_timeout();
     }
 
     /// @brief Вычисляет максимальный размер одного сообщения.
@@ -396,20 +538,132 @@ class serial_parser: virtual private stv::non_movable_non_copyable
         return 0;
     }
 
+    /// @brief Возвращает максимальный размер заголовка среди всех
+    /// декораторов.
+    ///
+    /// @return Максимальный размер заголовка в байтах.
+    static constexpr std::size_t max_header_size()
+    { return std::max({Decorators::header_size()...}); }
+
+    /// @brief Возвращает индекс декоратора @c D в пакете.
+    ///
+    /// @tparam D Искомый декоратор.
+    /// @return Индекс декоратора или @c decorators_count, если декоратор
+    ///     не найден.
+    template<typename D>
+    static constexpr auto index_of_decorator()
+    {
+        constexpr std::array<bool, decorators_count> matches{
+            std::is_same_v<D, Decorators>...};
+
+        std::size_t index{0};
+        for(const bool is_match: matches)
+        {
+            if(is_match)
+            {
+                return index;
+            }
+            ++index;
+        }
+
+        return decorators_count;
+    }
+
+    /// @brief Диспетчеризует вызов по сохраненному индексу декоратора.
+    ///
+    /// @details
+    /// Вызывает переданный функциональный объект ровно один раз, передавая
+    /// ему @c std::integral_constant<std::size_t, I>, где @c I совпадает с
+    /// @c idx. Если @c idx вне диапазона, функциональный объект не
+    /// вызывается.
+    ///
+    /// @tparam Func Тип функционального объекта.
+    /// @param[in] idx Индекс декоратора.
+    /// @param[in] func Функциональный объект, принимающий
+    ///     @c std::integral_constant<std::size_t, I>.
+    template<typename Func>
+    static void dispatch_by_index(
+        std::size_t idx, Func &&func)
+    {
+        dispatch_by_index(idx, std::forward<Func>(func),
+                          std::make_index_sequence<decorators_count>{});
+    }
+
+    /// @brief Реализация dispatch_by_index с раскрытием индексов.
+    ///
+    /// @tparam Func Тип функционального объекта.
+    /// @tparam Is Последовательность индексов декораторов.
+    /// @param[in] idx Индекс декоратора.
+    /// @param[in] func Функциональный объект.
+    template<typename Func, std::size_t... Is>
+    static void dispatch_by_index(
+        std::size_t idx, Func &&func, std::index_sequence<Is...> /*indexes*/)
+    {
+        bool       invoked{false};
+        const auto invoke_once = [&](auto index_constant) {
+            if(!invoked)
+            {
+                std::invoke(std::forward<Func>(func), index_constant);
+                invoked = true;
+            }
+        };
+
+        (void)(((idx == Is)
+                && (invoke_once(std::integral_constant<std::size_t, Is>{}),
+                    true))
+               || ...);
+    }
+
+  private:
+    /// @brief Формирует массив указателей на очереди из кортежа
+    ///     типизированных связок @ref parsed_queue.
+    ///
+    /// @tparam Is Последовательность индексов декораторов.
+    /// @param[in] queues Кортеж связок очередей с декораторами.
+    /// @return Массив указателей на очереди в том же порядке, что и
+    ///     декораторы в пакете.
+    template<typename TQueueTuple, std::size_t... Is>
+    static auto make_queues_pointers(
+        const TQueueTuple &queues, std::index_sequence<Is...> /*indexes*/)
+        -> std::array<queue_type *, decorators_count>
+    {
+        return std::array<queue_type *,
+                          decorators_count>{static_cast<queue_type *>(
+            std::get<parsed_queue<Decorators, queue_type>>(queues).queue())...};
+    }
+
   public:
+    /// @brief Максимальное число подряд идущих опросов неполного кадра,
+    /// после которого стартовый кадр отбрасывается.
+    ///
+    /// @details
+    /// Счетчик опросов ведется только пока в буфере не появляются новые
+    /// байты: приход даже одного байта сбрасывает отсчет, поэтому таймаут
+    /// означает именно обрыв передачи, а не медленного, но живого
+    /// отправителя. Значение 64 выбрано как запас к типичному периоду
+    /// опроса парсера из задачи приема: при опросе каждую 1 мс таймаут
+    /// соответствует ~64 мс тишины в линии, что заведомо больше
+    /// межбайтового интервала на поддерживаемых скоростях UART
+    /// (на 9600 бод байт приходит каждые ~1 мс).
+    static constexpr std::size_t max_wait_message_ready_polls{64U};
+
     /// @brief Конструирует парсер на основе параметров инициализации.
     ///
     /// @details
     /// Если @c setup.max_one_message_size равен 0, используется емкость
     /// кольцевого буфера. При использовании внешнего мьютекса сохраняется
-    /// указатель на него из @c setup.mutex.
+    /// указатель на него из @c setup.mutex. Указатели на очереди
+    /// извлекаются из типизированных обёрток @ref parsed_queue.
     ///
-    /// @param[in] setup Структура с указателями на буфер, очередь,
+    /// @param[in] setup Структура с указателями на буфер, очередями,
     ///     максимальным размером сообщения и мьютексом.
     explicit serial_parser(
         const setup_type &setup):
         lwrb_{setup.lwrb},
-        queue_{setup.queue},
+        queues_{
+            make_queues_pointers(setup.queues(),
+                                 std::make_index_sequence<decorators_count>{}),
+        },
         max_one_message_size_{calculate_max_one_message_size(setup)}
     {
         if constexpr(std::is_pointer_v<decltype(mutex_)>)
@@ -425,7 +679,7 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     ///
     /// @details
     /// Возвращает @c true, если установлены корректные указатели на
-    /// кольцевой буфер и очередь, максимальный размер сообщения больше 0,
+    /// кольцевой буфер и все очереди, максимальный размер сообщения больше 0,
     /// а при использовании внешнего мьютекса указатель на него не равен
     /// @c nullptr.
     ///
@@ -444,8 +698,13 @@ class serial_parser: virtual private stv::non_movable_non_copyable
             }
         }();
 
-        return stv::all_true(lwrb_, queue_, is_mutex_valid,
-                             max_one_message_size_ > 0);
+        const auto are_queues_valid =
+            [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+                return ((queues_[Is] != nullptr) && ...);
+            }(std::make_index_sequence<decorators_count>{});
+
+        return stv::all_true(lwrb_, max_one_message_size_ > 0, is_mutex_valid,
+                             are_queues_valid);
     }
 
     /// @brief Выполняет один цикл парсинга потока байт.
@@ -468,12 +727,20 @@ class serial_parser: virtual private stv::non_movable_non_copyable
         return parsed_cnt != parsed_cnt_;
     }
 
-    /// @brief Возвращает ссылку на очередь готовых сообщений.
+    /// @brief Возвращает ссылку на очередь готовых сообщений декоратора.
     ///
+    /// @tparam Decorator Декоратор кадра, очередь которого запрашивается.
     /// @return Ссылка на очередь, в которую помещаются распарсенные
-    ///     сообщения.
-    auto queue_instance() -> std::remove_pointer_t<decltype(queue_)> &
-    { return *queue_; }
+    ///     сообщения, соответствующие декоратору.
+    template<typename Decorator>
+    auto queue_instance() -> queue_type &
+    {
+        constexpr auto idx{index_of_decorator<Decorator>()};
+        static_assert(idx < decorators_count,
+                      "Decorator is not registered in this parser");
+        assert(queues_[idx] != nullptr);
+        return *queues_[idx];
+    }
 
   private:
     /// @brief Переключает парсер в новое состояние.
@@ -508,10 +775,11 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     ///
     /// @details
     /// Просматривает буфер байт за байтом, пока не найдет стартовую
-    /// последовательность 0xAA 0xAA и следующее за ней 16-битное поле
-    /// размера. При нахождении переключается в состояние
-    /// @c wait_message_ready и сохраняет размер оставшейся части кадра.
-    /// Если заголовок не найден, пропускает один байт и продолжает поиск.
+    /// последовательность, совпадающую с одним из декораторов. При
+    /// совпадении переключается в состояние @c wait_message_ready,
+    /// запоминает индекс выбранного декоратора и сохраняет размер
+    /// оставшейся части кадра. Если заголовок не найден, пропускает один
+    /// байт и продолжает поиск.
     ///
     /// @return @c true, если нужно продолжить обработку в текущем цикле;
     ///     @c false в противном случае.
@@ -520,29 +788,62 @@ class serial_parser: virtual private stv::non_movable_non_copyable
         bool                  is_need_continue{false};
 
         constexpr std::size_t need_bytes_available_befor_start{
-            stv::start_frame_and_crc_16::header_size(),
+            max_header_size(),
         };
+
+        // matches() вызывается с двумя первыми байтами заголовка: буфер
+        // заголовка обязан вмещать минимум 2 байта.
+        static_assert(max_header_size() >= 2U,
+                      "max_header_size() must be at least 2: matches() reads"
+                      " two header bytes");
 
         auto how_many_bytes_can_read_in_one_iteration{max_one_message_size_};
 
         while(lwrb_->get_full() >= need_bytes_available_befor_start)
         {
-            stv::start_frame_and_crc_16::start_frame_t storage{};
+            std::array<std::byte, max_header_size()> header_storage{};
 
             {
                 lwrb_->peek(typename lwrb_base_type::container_type{
-                    reinterpret_cast<std::byte *>(&storage),
-                    sizeof(storage),
+                    header_storage.data(),
+                    header_storage.size(),
                 });
             }
 
-            if((storage.start_frame_first
-                == stv::start_frame_and_crc_16::first_byte)
-               && (storage.start_frame_second
-                   == stv::start_frame_and_crc_16::second_byte))
+            auto        is_matched{false};
+            std::size_t matched_idx{decorators_count};
+            std::size_t remaining_size{0};
+
+            auto try_match = [&]<std::size_t Idx>(
+                                 std::integral_constant<std::size_t, Idx>) {
+                using decorator_type = std::tuple_element_t<Idx, decorators_t>;
+
+                // NOLINTBEGIN(cppcoreguidelines-pro-bounds-*)
+                if(!is_matched
+                   && decorator_type::matches(header_storage[0],
+                                              header_storage[1]))
+                // NOLINTEND(cppcoreguidelines-pro-bounds-*)
+                {
+                    is_matched  = true;
+                    matched_idx = Idx;
+                    remaining_size =
+                        decorator_type::total_frame_size(total_message_span{
+                            header_storage.data(),
+                            decorator_type::header_size(),
+                        })
+                        - decorator_type::header_size();
+                }
+            };
+
+            [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+                (try_match(std::integral_constant<std::size_t, Is>{}), ...);
+            }(std::make_index_sequence<decorators_count>{});
+
+            if(is_matched)
             {
                 set_state(states::wait_message_ready);
-                set_next_message_size(storage.frame_size);
+                set_frame_selection(
+                    frame_selection{matched_idx, remaining_size});
                 is_need_continue = true;
             }
             else
@@ -573,32 +874,82 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     /// @brief Состояние ожидания и обработки полного кадра.
     ///
     /// @details
-    /// Ожидает, пока в буфере накопится полный кадр (заголовок + поле
-    /// размера + полезная нагрузка + CRC). Проверяет CRC-16; при успехе
+    /// Если кадр (заголовок + поле размера + полезная нагрузка + CRC) еще
+    /// не принят целиком, состояние завершает текущий цикл run() без
+    /// выделения памяти и без блокировки вызывающего потока; разбор
+    /// продолжится на следующем вызове run(). Если отправитель оборвал
+    /// передачу посреди кадра, после @c max_wait_message_ready_polls
+    /// подряд идущих вызовов без новых байт стартовый кадр отбрасывается
+    /// и парсер возвращается к поиску заголовка; приход новых байт
+    /// сбрасывает отсчет, поэтому медленный, но живой отправитель
+    /// таймаут не вызывает. Проверяет CRC-32; при успехе
     /// удаляет кадр из буфера, отрезает служебные поля и помещает
-    /// полезную нагрузку в выходную очередь. При ошибке CRC пропускает
-    /// только стартовый кадр, чтобы продолжить поиск со следующего байта.
-    /// Если заявленный размер кадра превышает @c max_one_message_size_,
-    /// стартовый кадр отбрасывается и парсер возвращается к поиску.
+    /// сообщение в очередь выбранного декоратора. Если выходная очередь
+    /// переполнена, сообщение отбрасывается: push в полную очередь ETL
+    /// перезаписывает живой элемент без вызова деструктора, что приводит
+    /// к утечке памяти и порче счетчиков очереди. При ошибке CRC
+    /// пропускает только заголовок, чтобы продолжить поиск со
+    /// следующего байта. Если заявленный размер кадра превышает
+    /// @c max_one_message_size_, заголовок отбрасывается и парсер
+    /// возвращается к поиску.
     ///
     /// @return @c true, если в буфере осталось достаточно байт для поиска
     ///     следующего заголовка; @c false в противном случае.
     auto wait_message_ready_state()
     {
-        bool       is_need_continue{false};
-        const auto expect_total_message_size{
-            stv::start_frame_and_crc_16::header_size() + next_message_size_,
-        };
+        bool        is_need_continue{false};
+        std::size_t header_size{0};
+        std::size_t trailer_size{0};
+        std::size_t expect_total_message_size{0};
 
-        if(expect_total_message_size > max_one_message_size_)
+        if(selected_decorator_idx_ >= decorators_count)
         {
-            // Размер кадра превышает допустимый: отбрасываем стартовый
-            // кадр, чтобы не зациклиться на одном и том же месте.
-            lwrb_->skip(sizeof(stv::start_frame_and_crc_16::start_frame_t));
             set_state(states::start_frame_and_size);
             return false;
         }
 
+        dispatch_by_index(selected_decorator_idx_, [&](auto index_constant) {
+            constexpr auto idx   = decltype(index_constant)::value;
+            using decorator_type = std::tuple_element_t<idx, decorators_t>;
+
+            header_size               = decorator_type::header_size();
+            trailer_size              = decorator_type::trailer_size();
+            expect_total_message_size = header_size + next_message_size_;
+        });
+
+        if(expect_total_message_size > max_one_message_size_)
+        {
+            // Размер кадра превышает допустимый: отбрасываем один байт,
+            // чтобы продолжить побайтный поиск и не зациклиться на одном
+            // и том же месте.
+            lwrb_->skip(1U);
+            set_state(states::start_frame_and_size);
+            set_frame_selection(frame_selection{decorators_count, 0});
+            reset_wait_message_ready_timeout();
+            return false;
+        }
+
+        // Означает, что буфер был сброшен за пределами парсера, значит нужно
+        // перейти в режим поиска начала кадра.
+        if(lwrb_->get_full() == 0)
+        {
+            set_state(states::start_frame_and_size);
+            set_frame_selection(frame_selection{decorators_count, 0});
+            reset_wait_message_ready_timeout();
+            return false;
+        }
+
+        // В буфер еще не записано сообщение целиком.
+        if(lwrb_->get_full() < expect_total_message_size)
+        {
+            track_incomplete_frame_timeout();
+            return false;
+        }
+
+        // Кадр собран целиком: таймаут ожидания более неактуален.
+        reset_wait_message_ready_timeout();
+
+        // Динамическое выделение памяти с идиомой RAII.
         container_type msg{expect_total_message_size};
 
         constexpr auto is_isr{false};
@@ -611,32 +962,49 @@ class serial_parser: virtual private stv::non_movable_non_copyable
 
         if(peek_bytes == expect_total_message_size)
         {
-            if(stv::start_frame_and_crc_16::is_crc_valid(
-                   stv::total_message_span{msg.begin(), msg.size()}))
+            // Присваивание происходит внутри лямбды dispatch_by_index.
+            // NOLINTNEXTLINE(misc-const-correctness)
+            auto is_crc_valid{false};
+
+            dispatch_by_index(
+                selected_decorator_idx_, [&](auto index_constant) {
+                    constexpr auto idx = decltype(index_constant)::value;
+                    using decorator_type =
+                        std::tuple_element_t<idx, decorators_t>;
+
+                    is_crc_valid = decorator_type::is_crc_valid(
+                        total_message_span{msg.begin(), msg.size()});
+                });
+
+            if(is_crc_valid)
             {
                 lwrb_->skip(expect_total_message_size, is_isr);
 
-                msg.trim_head(stv::start_frame_and_crc_16::header_size());
-                msg.trim_tail(stv::start_frame_and_crc_16::trailer_size());
+                msg.trim_head(header_size);
+                msg.trim_tail(trailer_size);
 
-                queue_->push(std::move(msg));
-                ++parsed_cnt_;
+                auto *const target_queue = queues_.at(selected_decorator_idx_);
+                if((target_queue != nullptr) && !target_queue->full())
+                {
+                    target_queue->push(std::move(msg));
+                    ++parsed_cnt_;
+                }
+                // Переполненная очередь: сообщение отброшено, его буфер
+                // освобождается деструктором msg.
             }
             else
             {
-                // CRC не сошлось: ложный заголовок. Пропускаем только
-                // стартовый кадр, чтобы поиск продолжился со следующего
+                // CRC не сошлось: ложный заголовок. Пропускаем один
+                // байт, чтобы поиск продолжился побайтно со следующего
                 // байта после ложного начала кадра.
-                lwrb_->skip(sizeof(stv::start_frame_and_crc_16::start_frame_t),
-                            is_isr);
+                lwrb_->skip(1U, is_isr);
             }
 
             set_state(states::start_frame_and_size);
-            set_next_message_size(next_message_size_);
+            set_frame_selection(frame_selection{decorators_count, 0});
         }
 
-        if(lwrb_->get_full()
-           >= sizeof(stv::start_frame_and_crc_16::start_frame_t))
+        if(lwrb_->get_full() >= header_size)
         {
             is_need_continue = true;
         }
@@ -649,168 +1017,17 @@ class serial_parser: virtual private stv::non_movable_non_copyable
 ///
 /// @details
 /// Фабричная функция, упрощающая создание парсера. Тип параметров
-/// инициализации задается явно, остальные аргументы передаются
-/// конструктору.
+/// инициализации задается явно, декораторы кадра передаются пакетом
+/// шаблонных параметров.
 ///
 /// @tparam TSetup Тип параметров инициализации.
-/// @tparam Decorators Типы аргументов конструктора (обычно один объект
-///     @c TSetup).
-/// @param[in] decorators Аргументы, передаваемые конструктору парсера.
-/// @return Объект @ref serial_parser<TSetup, Decorators...>.
-template<typename TSetup, typename... Decorators>
+/// @tparam DecoratorTypes Декораторы кадра, которые будет разбирать парсер.
+/// @param[in] setup Параметры инициализации парсера.
+/// @return Объект @ref serial_parser<TSetup, DecoratorTypes...>.
+template<typename TSetup, typename... DecoratorTypes>
 auto make_serial_parser(
-    Decorators &&...decorators)
-{
-    return serial_parser<TSetup, Decorators...>(
-        std::forward<Decorators>(decorators)...);
-}
-
-// -----------------------------------------------------------------------------
-
-/// @brief Параметры инициализации маршрутизатора сообщений.
-///
-/// @details
-/// Структура связывает очередь с уже распарсенными сообщениями и
-/// хэш-таблицу, в которой каждому идентификатору получателя
-/// соответствует указатель на целевую очередь. Идентификатор
-/// получателя извлекается из заголовка @ref stv::head_route.
-///
-/// @tparam TQueue Тип очереди для чтения сообщений.
-/// @tparam THash Тип хэш-таблицы: ключ — идентификатор получателя,
-///     значение — указатель на очередь типа @c TQueue.
-/// @tparam TMutexOrPtr Тип мьютекса или указатель на него.
-///     По умолчанию используется @ref stv::empty_mutex.
-template<typename TQueue, typename THash,
-         typename TMutexOrPtr = stv::empty_mutex>
-class serial_route_setup
-{
-    /// @brief Базовый тип мьютекса (без указателя).
-    using mutex_base_type = std::remove_pointer_t<TMutexOrPtr>;
-
-    /// @brief true, если пользователь передал указатель на внешний мьютекс.
-    static constexpr bool is_external_mutex = std::is_pointer_v<TMutexOrPtr>;
-
-    /// @brief Тип хранения мьютекса в поле @c mutex.
-    using mutex_condition_type =
-        std::conditional_t<is_external_mutex, mutex_base_type *,
-                           std::monostate>;
-
-  public:
-    /// @brief Тип очереди для чтения сообщений.
-    using queue_type = TQueue;
-
-    /// @brief Тип хэш-таблицы маршрутов.
-    using hash_type = THash;
-
-    /// @brief Тип мьютекса или указателя на него.
-    using mutex_type = TMutexOrPtr;
-
-    /// @brief Указатель на очередь, из которой читаются сообщения.
-    queue_type *queue_to_read{nullptr};
-
-    /// @brief Указатель на хэш-таблицу очередей получателей.
-    ///
-    /// @details
-    /// Ключом служит идентификатор получателя @c dst_id, значением —
-    /// указатель на очередь, в которую нужно направить сообщение.
-    hash_type *hash_to_write{nullptr};
-
-    /// @brief Внешний мьютекс либо пустой объект.
-    ///
-    /// @details
-    /// В текущей реализации маршрутизатор не использует мьютекс;
-    /// поле сохранено для единообразия с @ref serial_parser_setup.
-    mutex_type mutex{};
-};
-
-/// @brief Маршрутизатор распарсенных сообщений по очередям получателей.
-///
-/// @details
-/// Класс читает сообщения из входной очереди, извлекает из заголовка
-/// @ref stv::head_route идентификатор получателя @c dst_id и перемещает
-/// сообщение в соответствующую очередь из хэш-таблицы. Если сообщение
-/// не содержит корректного адреса или ключ отсутствует в таблице,
-/// оно удаляется из входной очереди без передачи получателю, что
-/// предотвращает её переполнение.
-///
-/// @tparam TSetup Тип параметров инициализации, например
-///     @ref serial_route_setup.
-template<typename TSetup>
-class serial_parser_route: virtual public stv::non_movable_non_copyable
-{
-    using setup_type = TSetup;
-    using queue_type = typename setup_type::queue_type;
-    using hash_type  = typename setup_type::hash_type;
-
-    /// @brief Очередь, из которой считываются входящие сообщения.
-    queue_type *const queue_to_read_{nullptr};
-
-    /// @brief Хэш-таблица очередей получателей.
-    hash_type *const hash_to_write_{nullptr};
-
-  public:
-    /// @brief Конструирует маршрутизатор на основе параметров.
-    ///
-    /// @param[in] setup Структура с указателями на входную очередь и
-    ///     таблицу маршрутов.
-    explicit serial_parser_route(
-        const setup_type &setup):
-        queue_to_read_{setup.queue_to_read},
-        hash_to_write_{setup.hash_to_write}
-    { (void)setup; }
-
-    /// @brief Деструктор по умолчанию.
-    virtual ~serial_parser_route() = default;
-
-    /// @brief Проверяет корректность инициализации маршрутизатора.
-    ///
-    /// @return @c true, если оба указателя (очередь и хэш-таблица)
-    ///     установлены; иначе @c false.
-    explicit operator bool() const
-    { return stv::all_true(queue_to_read_, hash_to_write_); }
-
-    /// @brief Выполняет маршрутизацию сообщений из входной очереди.
-    ///
-    /// @details
-    /// Метод обрабатывает все сообщения, находящиеся во входной очереди
-    /// на момент вызова. Для каждого сообщения извлекается @c dst_id
-    /// из заголовка @ref stv::head_route::head_route_setup_with_pload_t.
-    /// Если соответствующий ключ найден в хэш-таблице, сообщение
-    /// перемещается в целевую очередь. В любом случае сообщение
-    /// удаляется из входной очереди.
-    ///
-    /// @return Количество сообщений, успешно направленных получателям.
-    auto run()
-    {
-        auto message_routed_cnt{0U};
-        while(!queue_to_read_->empty())
-        {
-            decltype(auto) msg = queue_to_read_->front();
-
-            const auto    *router_ptr = reinterpret_cast<
-                const stv::head_route::head_route_setup_with_pload_t *>(
-                msg.data());
-
-            if(router_ptr)
-            {
-                // Используем итератор, чтобы избежать исключений.
-                const auto dst_buff_key_val_it = hash_to_write_->find(
-                    static_cast<hash_type::key_type>(router_ptr->dst_id));
-                if(dst_buff_key_val_it != hash_to_write_->end())
-                {
-                    dst_buff_key_val_it->second->push(std::move(msg));
-                    ++message_routed_cnt;
-                }
-            }
-
-            // Независимо от результата маршрутизации удаляем сообщение
-            // из входной очереди, чтобы избежать её переполнения.
-            queue_to_read_->pop();
-        }
-
-        return message_routed_cnt;
-    }
-};
+    const TSetup &setup)
+{ return serial_parser<TSetup, DecoratorTypes...>{setup}; }
 
 } // namespace stv
 

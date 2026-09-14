@@ -90,7 +90,7 @@ class lwrb_base:
     };
 
     container_type storage_;
-    lwrb_t         lwrb_;
+    lwrb_t         lwrb_{};
 
     /// @brief Используется для обеспечения атомарности обновления данных в
     /// многопоточном приложении.
@@ -143,6 +143,24 @@ class lwrb_base:
         return read_bytes;
     }
 
+    /// @brief Возвращает std::span, который указывает на линейный участок
+    /// памяти, доступный для записи.
+    ///
+    /// @param[in] is_isr True если вызов выполнен из контекста прерывания,
+    /// false - в противном случае.
+    ///
+    /// @return std::span, указывающий на линейный участок памяти для записи.
+    auto get_write_linear_block(
+        bool is_isr)
+    {
+        const stv::lock_guard critical{get_mutex_ref(), is_isr};
+        return container_type{
+            static_cast<value_type *>(
+                lwrb_get_linear_block_write_address(&lwrb_)),
+            lwrb_get_linear_block_write_length(&lwrb_),
+        };
+    }
+
   public:
     virtual ~lwrb_base() = default;
 
@@ -186,6 +204,8 @@ class lwrb_base:
     auto write(
         const std::ranges::contiguous_range auto &src,
         bool write_all_or_nothing = true, bool is_isr = false)
+        requires(
+            !std::derived_from<std::remove_cvref_t<decltype(src)>, lwrb_base>)
     {
         constexpr auto item_size =
             sizeof(typename std::remove_cvref_t<decltype(src)>::value_type);
@@ -211,6 +231,99 @@ class lwrb_base:
     {
         return write_helper(str, std::strlen(str), write_all_or_nothing,
                             is_isr);
+    }
+
+    /// @brief Перенос данных из другого кольцевого буфера.
+    ///
+    /// @note Перенесенные данные удаляются из буфера src.
+    ///
+    /// @param[in] src Буфер, из которого будут перенесены данные.
+    /// @param[in] move_all_or_nothing Если равен true, то данные будут
+    /// перенесены только в том случае, если все содержимое буфера src
+    /// помещается в буфер.
+    /// @param[in] is_isr True если вызов выполнен из контекста прерывания,
+    /// false - в противном случае.
+    ///
+    /// @return Возвращает количество перенесенных в буфер байт.
+    auto move_from(
+        lwrb_base &src, bool move_all_or_nothing = true, bool is_isr = false)
+    {
+        assert(&src != this);
+
+        const auto src_full{src.get_full(is_isr)};
+        if(move_all_or_nothing && src_full > get_free(is_isr))
+        {
+            return static_cast<lwrb_sz_t>(0);
+        }
+
+        lwrb_sz_t total_written{0};
+        while(total_written < src_full)
+        {
+            const auto block{src.get_linear_addr(is_isr)};
+            if(block.empty())
+            {
+                break;
+            }
+
+            const auto written{
+                write_helper(block.data(), block.size_bytes(),
+                             /*write_all_or_nothing=*/false, is_isr),
+            };
+            total_written += written;
+            std::ignore    = src.skip(written, is_isr);
+
+            if(written < block.size_bytes())
+            {
+                break;
+            }
+        }
+
+        return total_written;
+    }
+
+    /// @brief Копирование данных из другого кольцевого буфера.
+    ///
+    /// @note Данные в буфере src сохраняются, буфер src не изменяется.
+    ///
+    /// @param[in] src Буфер, из которого будут скопированы данные.
+    /// @param[in] copy_all_or_nothing Если равен true, то данные будут
+    /// скопированы только в том случае, если все содержимое буфера src
+    /// помещается в буфер.
+    /// @param[in] is_isr True если вызов выполнен из контекста прерывания,
+    /// false - в противном случае.
+    ///
+    /// @return Возвращает количество скопированных в буфер байт.
+    auto copy_from(
+        lwrb_base &src, bool copy_all_or_nothing = true, bool is_isr = false)
+    {
+        assert(&src != this);
+
+        const auto src_full{src.get_full(is_isr)};
+        if(copy_all_or_nothing && src_full > get_free(is_isr))
+        {
+            return static_cast<lwrb_sz_t>(0);
+        }
+
+        lwrb_sz_t total_written{0};
+        while(total_written < src_full)
+        {
+            const auto block{get_write_linear_block(is_isr)};
+            if(block.empty())
+            {
+                break;
+            }
+
+            const auto peeked{src.peek(block, total_written, is_isr)};
+            if(peeked == 0)
+            {
+                break;
+            }
+
+            std::ignore    = advance(peeked, is_isr);
+            total_written += peeked;
+        }
+
+        return total_written;
     }
 
     /// @brief Чтение данных из буфера и запись в dst.
@@ -435,7 +548,7 @@ class lwrb_base:
 };
 
 template<typename TBase, std::size_t SIZE_IN_BYTES>
-using lwrb = stv::container_size_wrapper<TBase, SIZE_IN_BYTES + 1>;
+using lwrb = stv::container_size_wrapper<TBase, SIZE_IN_BYTES>;
 
 } // namespace stv
 
