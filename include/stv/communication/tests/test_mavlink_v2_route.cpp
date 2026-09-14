@@ -63,11 +63,13 @@ TEST_CASE(
     constexpr std::size_t              routing_header_size{7U};
     constexpr std::size_t              compid_offset{3U};
 
-    constexpr std::array<std::byte, 2> payload{std::byte{0x48},
-                                               std::byte{0x69}}; // "Hi"
+    constexpr std::array<std::byte, 2> payload{
+        std::byte{0x48},
+        std::byte{0x69},
+    }; // "Hi"
 
-    auto make_message = [](std::uint8_t               compid,
-                           std::span<const std::byte> pload) {
+    const auto make_message = [](std::uint8_t               compid,
+                                 std::span<const std::byte> pload) {
         sim_buffer_type msg{routing_header_size + pload.size()};
 
         std::byte      *dst = msg.data<std::byte>();
@@ -84,8 +86,9 @@ TEST_CASE(
         return msg;
     };
 
-    auto message_equals = [](const sim_buffer_type &msg, std::uint8_t compid,
-                             std::span<const std::byte> pload) {
+    const auto message_equals = [](const sim_buffer_type     &msg,
+                                   std::uint8_t               compid,
+                                   std::span<const std::byte> pload) {
         if(msg.size_bytes() != routing_header_size + pload.size())
         {
             return false;
@@ -207,7 +210,10 @@ TEST_CASE(
         // Второе сообщение для compid 1 имеет другую нагрузку, чтобы
         // проверка содержимого ловила перестановку и порчу сообщений.
         constexpr std::array<std::byte, 3> payload_two{
-            std::byte{0x42}, std::byte{0x79}, std::byte{0x65}}; // "Bye"
+            std::byte{0x42},
+            std::byte{0x79},
+            std::byte{0x65},
+        }; // "Bye"
 
         input_queue.push(make_message(1, payload));
         input_queue.push(make_message(2, payload));

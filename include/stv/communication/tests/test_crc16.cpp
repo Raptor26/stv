@@ -23,7 +23,8 @@ TEST_CASE(
         const std::array<std::byte, 9> data{
             std::byte{'1'}, std::byte{'2'}, std::byte{'3'},
             std::byte{'4'}, std::byte{'5'}, std::byte{'6'},
-            std::byte{'7'}, std::byte{'8'}, std::byte{'9'}};
+            std::byte{'7'}, std::byte{'8'}, std::byte{'9'},
+        };
 
         REQUIRE(stv::crc16_x25(data.data(), data.size()) == 0x6F91U);
     }
@@ -50,7 +51,8 @@ TEST_CASE(
         const std::array<std::byte, 9> data{
             std::byte{'1'}, std::byte{'2'}, std::byte{'3'},
             std::byte{'4'}, std::byte{'5'}, std::byte{'6'},
-            std::byte{'7'}, std::byte{'8'}, std::byte{'9'}};
+            std::byte{'7'}, std::byte{'8'}, std::byte{'9'},
+        };
 
         std::uint16_t crc = 0xFFFFU;
         for(const std::byte value: data)
@@ -69,13 +71,15 @@ TEST_CASE(
         const std::array<std::byte, 9> data{
             std::byte{'1'}, std::byte{'2'}, std::byte{'3'},
             std::byte{'4'}, std::byte{'5'}, std::byte{'6'},
-            std::byte{'7'}, std::byte{'8'}, std::byte{'9'}};
+            std::byte{'7'}, std::byte{'8'}, std::byte{'9'},
+        };
         const std::byte                 extra{0x42};
 
         const std::array<std::byte, 10> extended{
             std::byte{'1'}, std::byte{'2'}, std::byte{'3'}, std::byte{'4'},
             std::byte{'5'}, std::byte{'6'}, std::byte{'7'}, std::byte{'8'},
-            std::byte{'9'}, extra};
+            std::byte{'9'}, extra,
+        };
 
         const std::uint16_t accumulated = stv::crc16_x25_accumulate(
             stv::crc16_x25(data.data(), data.size()), extra);

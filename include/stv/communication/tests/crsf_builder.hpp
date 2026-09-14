@@ -107,7 +107,8 @@ inline void pack_rc_channels(
 {
     const std::span<std::byte> payload{
         crsf_builder_detail::begin_frame(dst, stv::crsf_type_rc_channels_packed,
-                                         stv::crsf_rc_channels_payload_size)};
+                                         stv::crsf_rc_channels_payload_size),
+    };
     if(payload.empty())
     {
         return 0U;
@@ -128,9 +129,11 @@ inline void pack_rc_channels(
     std::span<std::byte> dst, const stv::crsf_link_statistics &link_statistics)
     -> std::size_t
 {
-    const std::span<std::byte> payload{crsf_builder_detail::begin_frame(
-        dst, stv::crsf_type_link_statistics,
-        stv::crsf_link_statistics_payload_size)};
+    const std::span<std::byte> payload{
+        crsf_builder_detail::begin_frame(
+            dst, stv::crsf_type_link_statistics,
+            stv::crsf_link_statistics_payload_size),
+    };
     if(payload.empty())
     {
         return 0U;

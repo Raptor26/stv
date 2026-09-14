@@ -49,7 +49,7 @@ TEST_CASE(
             stv::make_serial_message_buffer(tx_queue, stv::stvlink_frame_tx{});
 
         {
-            auto msg = serial_message_buffer.request(payload);
+            const auto msg = serial_message_buffer.request(payload);
             (void)msg;
         }
 
@@ -71,7 +71,7 @@ TEST_CASE(
             stv::make_serial_message_buffer(tx_queue, stv::stvlink_frame_tx{});
 
         {
-            auto msg = serial_message_buffer.request(payload);
+            const auto msg = serial_message_buffer.request(payload);
             (void)msg;
         }
 

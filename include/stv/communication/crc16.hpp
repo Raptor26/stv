@@ -40,7 +40,7 @@ namespace stv {
 [[nodiscard]] inline std::uint16_t crc16_modbus(
     const std::byte *data, std::size_t length)
 {
-    // NOLINTBEGIN(hicpp-signed-bitwise)
+    // NOLINTBEGIN(hicpp-signed-bitwise, bugprone-signed-bitwise)
     std::uint16_t crc = 0xFFFFU;
 
     for(std::size_t i = 0; i < length; ++i)
@@ -60,7 +60,7 @@ namespace stv {
         }
     }
 
-    // NOLINTEND(hicpp-signed-bitwise)
+    // NOLINTEND(hicpp-signed-bitwise, bugprone-signed-bitwise)
     return crc;
 }
 
@@ -78,7 +78,7 @@ namespace stv {
 [[nodiscard]] inline std::uint16_t crc16_x25_accumulate(std::uint16_t crc,
                                                         std::byte value)
 {
-    // NOLINTBEGIN(hicpp-signed-bitwise)
+    // NOLINTBEGIN(hicpp-signed-bitwise, bugprone-signed-bitwise)
     crc ^= static_cast<std::uint8_t>(value);
 
     for(int i = 0; i < 8; ++i)
@@ -93,7 +93,7 @@ namespace stv {
         }
     }
 
-    // NOLINTEND(hicpp-signed-bitwise)
+    // NOLINTEND(hicpp-signed-bitwise, bugprone-signed-bitwise)
     return crc;
 }
 

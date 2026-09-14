@@ -102,8 +102,10 @@ auto make_stv_frame(
         tx_queue, stv::stvlink_frame_tx{}, stv::stvlink_route_tx{});
 
     {
-        auto msg = buffer.request(payload, stv::stvlink_route_tx::setup_t{
-                                               .dst_id = dst_id, .pack_id = 0});
+        const auto msg = buffer.request(payload, stv::stvlink_route_tx::setup_t{
+                                                     .dst_id  = dst_id,
+                                                     .pack_id = 0,
+                                                 });
         (void)msg;
     }
 
@@ -119,9 +121,9 @@ auto make_stv_frame(
 /// @brief Собирает кадр MAVLink v2 с заданной полезной нагрузкой через
 ///     передающий декоратор mavlink_v2_frame_tx.
 auto make_mavlink_frame(
-    std::string_view payload, std::uint8_t compid,
+    std::string_view payload, std::uint8_t compid, // NOLINT(bugprone-easily-swappable-parameters)
     const mavlink_frame_tx_type::route_t &route)
-    -> std::vector<std::byte> // NOLINT(bugprone-easily-swappable-parameters)
+    -> std::vector<std::byte>
 {
     queue_type                  tx_queue;
     stv::mavlink_v2_seq_counter counter;
@@ -132,7 +134,7 @@ auto make_mavlink_frame(
             {.sysid = mavlink_sysid, .compid = compid, .counter = &counter}});
 
     {
-        auto msg = buffer.request(payload, route);
+        const auto msg = buffer.request(payload, route);
         (void)msg;
     }
 
@@ -148,16 +150,18 @@ auto make_mavlink_frame(
 
 /// @brief Собирает кадр stv_rx_v2 с байтовой полезной нагрузкой.
 auto make_stv_frame_bytes(
-    std::span<const std::byte> payload, std::uint8_t dst_id)
-    -> std::vector<std::byte> // NOLINT(bugprone-easily-swappable-parameters)
+    std::span<const std::byte> payload, std::uint8_t dst_id) // NOLINT(bugprone-easily-swappable-parameters)
+    -> std::vector<std::byte>
 {
     queue_type tx_queue;
     auto       buffer = stv::make_serial_message_buffer(
         tx_queue, stv::stvlink_frame_tx{}, stv::stvlink_route_tx{});
 
     {
-        auto msg = buffer.request(payload, stv::stvlink_route_tx::setup_t{
-                                               .dst_id = dst_id, .pack_id = 0});
+        const auto msg = buffer.request(payload, stv::stvlink_route_tx::setup_t{
+                                                     .dst_id  = dst_id,
+                                                     .pack_id = 0,
+                                                 });
         (void)msg;
     }
 
@@ -194,9 +198,9 @@ auto make_expected_stv_payload(
 /// @brief Возвращает ожидаемое содержимое распарсенного кадра MAVLink v2:
 ///     [compat_flags, seq, sysid, compid, msgid (3 байта, LE), payload].
 auto make_expected_mavlink_payload(
-    std::string_view payload, std::uint8_t compid,
+    std::string_view payload, std::uint8_t compid, // NOLINT(bugprone-easily-swappable-parameters)
     const mavlink_frame_tx_type::route_t &route)
-    -> std::vector<std::byte> // NOLINT(bugprone-easily-swappable-parameters)
+    -> std::vector<std::byte>
 {
     const auto             msgid = route.msgid;
     std::vector<std::byte> result;
@@ -361,7 +365,8 @@ TEST_CASE(
         // или 0xFD, в том числе на границе со следующим кадром.
         constexpr std::array<std::byte, 6> garbage{
             std::byte{0x00}, std::byte{0x11}, std::byte{0x22},
-            std::byte{0x33}, std::byte{0x44}, std::byte{0x66}};
+            std::byte{0x33}, std::byte{0x44}, std::byte{0x66},
+        };
 
         lwrb.write(garbage);
         lwrb.write(stv_frame);
@@ -501,7 +506,10 @@ TEST_CASE(
         // кадра целиком, поэтому путь восстановления через ошибку CRC не
         // срабатывает - выход из ожидания возможен только по таймауту.
         constexpr std::array<std::byte, 3> false_header{
-            std::byte{0xFD}, std::byte{200U}, std::byte{0x00}};
+            std::byte{0xFD},
+            std::byte{200U},
+            std::byte{0x00},
+        };
 
         constexpr std::string_view payload{"Hi"};
         const auto                 frame = make_mavlink_frame(
@@ -549,12 +557,13 @@ TEST_CASE(
         // и НЕ покрывает подпись.
         std::vector<std::byte> signed_frame{
             std::byte{0xFD},          static_cast<std::byte>(payload.size()),
-            std::byte{0x01},  // incompat_flags: кадр подписан
-            std::byte{0x00},  // compat_flags
-            std::byte{0x00},  // seq
+            std::byte{0x01}, // incompat_flags: кадр подписан
+            std::byte{0x00}, // compat_flags
+            std::byte{0x00}, // seq
             std::byte{mavlink_sysid}, std::byte{mavlink_compid},
             std::byte{0x00},          std::byte{0x00},
-            std::byte{0x00}}; // msgid = 0
+            std::byte{0x00},
+        }; // msgid = 0
 
         const auto pload_bytes =
             std::as_bytes(std::span(payload.data(), payload.size()));
@@ -595,12 +604,13 @@ TEST_CASE(
 
         std::vector<std::byte>     unknown_flags_frame{
             std::byte{0xFD},          static_cast<std::byte>(payload.size()),
-            std::byte{0x02},  // incompat_flags: неизвестный бит
-            std::byte{0x00},  // compat_flags
-            std::byte{0x00},  // seq
+            std::byte{0x02}, // incompat_flags: неизвестный бит
+            std::byte{0x00}, // compat_flags
+            std::byte{0x00}, // seq
             std::byte{mavlink_sysid}, std::byte{mavlink_compid},
             std::byte{0x00},          std::byte{0x00},
-            std::byte{0x00}}; // msgid = 0
+            std::byte{0x00},
+        }; // msgid = 0
 
         const auto pload_bytes =
             std::as_bytes(std::span(payload.data(), payload.size()));
@@ -640,7 +650,8 @@ TEST_CASE(
         // валидные кадры обоих протоколов доставлены.
         constexpr std::array<std::byte, 8> garbage{
             std::byte{0xAA}, std::byte{0xAA}, std::byte{0x55}, std::byte{0x55},
-            std::byte{0x00}, std::byte{0x55}, std::byte{0x55}, std::byte{0x11}};
+            std::byte{0x00}, std::byte{0x55}, std::byte{0x55}, std::byte{0x11},
+        };
 
         constexpr std::string_view stv_payload{"stv"};
         constexpr std::string_view mav_payload{"mav"};
@@ -684,15 +695,15 @@ TEST_CASE(
         // msgid = 42 неизвестен провайдеру CRC_EXTRA. Следующие валидные
         // кадры обоих протоколов доставлены.
         constexpr std::array<std::byte, 10> tricky_payload{
-            std::byte{0xFD},  // ложный стартовый байт MAVLink
-            std::byte{0x00},  // len
-            std::byte{0x00},  // incompat_flags
-            std::byte{0x00},  // compat_flags
-            std::byte{0x00},  // seq
-            std::byte{0x01},  // sysid
-            std::byte{0x01},  // compid
-            std::byte{0x2A}, std::byte{0x00},
-            std::byte{0x00}}; // msgid = 42 (неизвестен провайдеру)
+            std::byte{0xFD}, // ложный стартовый байт MAVLink
+            std::byte{0x00}, // len
+            std::byte{0x00}, // incompat_flags
+            std::byte{0x00}, // compat_flags
+            std::byte{0x00}, // seq
+            std::byte{0x01}, // sysid
+            std::byte{0x01}, // compid
+            std::byte{0x2A}, std::byte{0x00}, std::byte{0x00},
+        };                   // msgid = 42 (неизвестен провайдеру)
 
         auto stv_frame_bad = make_stv_frame_bytes(tricky_payload, stv_dst_id);
         // Портим последний байт CRC кадра, не трогая его размер.

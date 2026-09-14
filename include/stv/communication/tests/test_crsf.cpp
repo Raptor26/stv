@@ -62,9 +62,11 @@ struct crsf_parser_fixture: crsf_runtime_mock_base {
     crsf_parser_type           parser;
 
     crsf_parser_fixture():
-        setup{.lwrb     = &ringbuff,
-              .runtime  = &runtime_mock.get(),
-              .handlers = &handler_map},
+        setup{
+            .lwrb     = &ringbuff,
+            .runtime  = &runtime_mock.get(),
+            .handlers = &handler_map,
+        },
         parser{setup}
     {
     }
@@ -84,9 +86,11 @@ struct crsf_setup_fixture: crsf_runtime_mock_base {
     crsf_parser_setup_type     setup;
 
     crsf_setup_fixture():
-        setup{.lwrb     = &ringbuff,
-              .runtime  = &runtime_mock.get(),
-              .handlers = &handler_map}
+        setup{
+            .lwrb     = &ringbuff,
+            .runtime  = &runtime_mock.get(),
+            .handlers = &handler_map,
+        }
     {
     }
 
@@ -109,15 +113,17 @@ struct crsf_failsafe_fixture: crsf_runtime_mock_base {
     crsf_parser_type           parser;
 
     crsf_failsafe_fixture():
-        setup{.lwrb     = &ringbuff,
-              .runtime  = &runtime_mock.get(),
-              .handlers = &handler_map},
+        setup{
+            .lwrb     = &ringbuff,
+            .runtime  = &runtime_mock.get(),
+            .handlers = &handler_map,
+        },
         parser{setup}
     {
         using namespace fakeit;
         // Парсер создан при current_time == 0: failsafe deadline стартовал
         // с нулевой отметки, далее время сдвигается тестом.
-        When(Method(runtime_mock, get)).AlwaysDo([this]() {
+        When(Method(runtime_mock, get)).AlwaysDo([this] {
             return current_time;
         });
     }
@@ -179,9 +185,11 @@ SCENARIO(
 
     REQUIRE_FALSE(crsf_parser{crsf_parser_setup{}});
 
-    crsf_parser_setup setup{.lwrb     = &ringbuff,
-                            .runtime  = &runtime_mock.get(),
-                            .handlers = &handler_map};
+    crsf_parser_setup setup{
+        .lwrb     = &ringbuff,
+        .runtime  = &runtime_mock.get(),
+        .handlers = &handler_map,
+    };
 
     GIVEN("Invalid setup")
     {
@@ -235,7 +243,7 @@ SCENARIO(
     GIVEN("Строка \"123456789\"")
     {
         static constexpr std::array<char, 9> chars{'1', '2', '3', '4', '5',
-                                                   '6', '7', '8', '9'};
+                                                   '6', '7', '8', '9',};
         const auto data = std::as_bytes(std::span{chars});
 
         THEN("crc равен контрольному значению crc-8/dvb-s2")
@@ -253,7 +261,8 @@ SCENARIO(
     {
         static constexpr std::array data{
             std::byte{0x16}, std::byte{0xC8}, std::byte{0x03}, std::byte{0xE0},
-            std::byte{0xFF}, std::byte{0x00}, std::byte{0x7F}};
+            std::byte{0xFF}, std::byte{0x00}, std::byte{0x7F},
+        };
         const auto                              crc = stv::crsf_crc8(data);
 
         std::array<std::byte, data.size() + 1U> data_with_crc{};
@@ -335,16 +344,18 @@ SCENARIO(
 
     GIVEN("Поля link statistics")
     {
-        const stv::crsf_link_statistics link_statistics{.up_rssi_ant1    = 100,
-                                                        .up_rssi_ant2    = 95,
-                                                        .up_link_quality = 90,
-                                                        .up_snr          = 1,
-                                                        .active_antenna  = 0,
-                                                        .rf_profile      = 1,
-                                                        .up_rf_power     = 2,
-                                                        .down_rssi       = 85,
-                                                        .down_link_quality = 80,
-                                                        .down_snr = -3};
+        const stv::crsf_link_statistics link_statistics{
+            .up_rssi_ant1      = 100,
+            .up_rssi_ant2      = 95,
+            .up_link_quality   = 90,
+            .up_snr            = 1,
+            .active_antenna    = 0,
+            .rf_profile        = 1,
+            .up_rf_power       = 2,
+            .down_rssi         = 85,
+            .down_link_quality = 80,
+            .down_snr          = -3,
+        };
 
         std::array<std::byte, stv::crsf_frame_size_max> buffer{};
 
@@ -562,8 +573,12 @@ SCENARIO(
 
     // Каждый из байтов в позиции frame length невалиден (0x01 < 2, 0x3F и
     // 0xFF > 62), парсер должен выполнить посимвольный resync.
-    static constexpr std::array garbage{std::byte{0x00}, std::byte{0x01},
-                                        std::byte{0x3F}, std::byte{0xFF}};
+    static constexpr std::array garbage{
+        std::byte{0x00},
+        std::byte{0x01},
+        std::byte{0x3F},
+        std::byte{0xFF},
+    };
     fixture.write(garbage);
 
     std::array<std::byte, stv::crsf_frame_size_max> frame_buffer{};
@@ -685,7 +700,8 @@ SCENARIO(
         frame_buffer.at(index) = static_cast<std::byte>(index);
     }
     frame_buffer[frame_size - 1U] = std::byte{
-        stv::crsf_crc8(std::span{frame_buffer}.subspan(2U, payload_size + 1U))};
+        stv::crsf_crc8(std::span{frame_buffer}.subspan(2U, payload_size + 1U)),
+    };
 
     fixture.write(frame_buffer);
 
@@ -920,8 +936,12 @@ SCENARIO(
 
     // Мусор ровно на лимит (4 байта с невалидной длиной) и три валидных
     // кадра в хвосте.
-    static constexpr std::array garbage{std::byte{0xFF}, std::byte{0xFF},
-                                        std::byte{0xFF}, std::byte{0xFF}};
+    static constexpr std::array garbage{
+        std::byte{0xFF},
+        std::byte{0xFF},
+        std::byte{0xFF},
+        std::byte{0xFF},
+    };
     fixture.write(garbage);
 
     std::array<std::byte, stv::crsf_frame_size_max> frame_buffer{};
@@ -954,16 +974,20 @@ SCENARIO(
     // sync). Байты type/payload 0x42 и байт crc вне диапазона 2..62, поэтому
     // resync со сдвигом внутри мусора идёт по ветке невалидной длины: за
     // один run() бюджет расходуют обе ветки.
-    constexpr std::array junk_body{std::byte{0x42}, std::byte{0x42},
-                                   std::byte{0x42}};
+    constexpr std::array junk_body{
+        std::byte{0x42},
+        std::byte{0x42},
+        std::byte{0x42},
+    };
     const auto           junk_crc_actual = std::byte{stv::crsf_crc8(junk_body)};
     const auto           junk_crc =
         junk_crc_actual != std::byte{0x00} ? std::byte{0x00} : std::byte{0xFF};
     REQUIRE(junk_crc != junk_crc_actual);
 
-    const std::array junk_frame{std::byte{0xC8}, std::byte{0x04},
-                                std::byte{0x42}, std::byte{0x42},
-                                std::byte{0x42}, junk_crc};
+    const std::array junk_frame{
+        std::byte{0xC8}, std::byte{0x04}, std::byte{0x42},
+        std::byte{0x42}, std::byte{0x42}, junk_crc,
+    };
 
     // 12 байт мусора (два повтора «кадра» с ошибкой crc) и валидный кадр в
     // хвосте.
@@ -1054,9 +1078,10 @@ SCENARIO(
     crsf_parser_fixture fixture{};
 
     // min, mid, max и промежуточные значения, включая границы 11 бит.
-    const crsf_test_channels channels{172,  992,  1811, 500,  700, 1000,
-                                      1200, 1500, 250,  1750, 300, 0,
-                                      2047, 888,  111,  1911};
+    const crsf_test_channels channels{
+        172, 992,  1811, 500, 700,  1000, 1200, 1500,
+        250, 1750, 300,  0,   2047, 888,  111,  1911,
+    };
 
     std::array<std::byte, stv::crsf_frame_size_max> frame_buffer{};
     const auto frame_size = build_rc_channels_frame(frame_buffer, channels);
@@ -1121,8 +1146,9 @@ SCENARIO(
     REQUIRE(base_frame_size == 26);
 
     constexpr std::size_t extra_size{3U};
-    constexpr std::size_t payload_size{stv::crsf_rc_channels_payload_size
-                                       + extra_size};
+    constexpr std::size_t payload_size{
+        stv::crsf_rc_channels_payload_size + extra_size,
+    };
     constexpr std::size_t payload_index{3U};
 
     std::array<std::byte, stv::crsf_frame_size_max> frame_buffer{};
@@ -1140,7 +1166,8 @@ SCENARIO(
     frame_buffer[payload_index + stv::crsf_rc_channels_payload_size + 2U] =
         std::byte{0xBE};
     frame_buffer[payload_index + payload_size] = std::byte{
-        stv::crsf_crc8(std::span{frame_buffer}.subspan(2U, payload_size + 1U))};
+        stv::crsf_crc8(std::span{frame_buffer}.subspan(2U, payload_size + 1U)),
+    };
 
     constexpr std::size_t frame_size{payload_size + 4U};
     fixture.write(std::span{frame_buffer}.subspan(0U, frame_size));
@@ -1178,8 +1205,10 @@ SCENARIO(
         {
             frame_buffer.at(index) = std::byte{0x5A};
         }
-        frame_buffer[payload_size + 3U] = std::byte{stv::crsf_crc8(
-            std::span{frame_buffer}.subspan(2U, payload_size + 1U))};
+        frame_buffer[payload_size + 3U] = std::byte{
+            stv::crsf_crc8(
+                std::span{frame_buffer}.subspan(2U, payload_size + 1U)),
+        };
 
         constexpr std::size_t frame_size{payload_size + 4U};
         fixture.write(std::span{frame_buffer}.subspan(0U, frame_size));
@@ -1199,16 +1228,18 @@ SCENARIO(
         crsf_parser_fixture fixture{};
 
         // Предзаполняем статистику валидным кадром.
-        const stv::crsf_link_statistics expected{.up_rssi_ant1      = 85,
-                                                 .up_rssi_ant2      = 80,
-                                                 .up_link_quality   = 75,
-                                                 .up_snr            = -12,
-                                                 .active_antenna    = 0,
-                                                 .rf_profile        = 1,
-                                                 .up_rf_power       = 25,
-                                                 .down_rssi         = 70,
-                                                 .down_link_quality = 65,
-                                                 .down_snr          = -8};
+        const stv::crsf_link_statistics expected{
+            .up_rssi_ant1      = 85,
+            .up_rssi_ant2      = 80,
+            .up_link_quality   = 75,
+            .up_snr            = -12,
+            .active_antenna    = 0,
+            .rf_profile        = 1,
+            .up_rf_power       = 25,
+            .down_rssi         = 70,
+            .down_link_quality = 65,
+            .down_snr          = -8,
+        };
 
         std::array<std::byte, stv::crsf_frame_size_max> frame_buffer{};
         const auto                                      valid_frame_size =
@@ -1226,8 +1257,10 @@ SCENARIO(
         {
             frame_buffer.at(index) = std::byte{0xA5};
         }
-        frame_buffer[payload_size + 3U] = std::byte{stv::crsf_crc8(
-            std::span{frame_buffer}.subspan(2U, payload_size + 1U))};
+        frame_buffer[payload_size + 3U] = std::byte{
+            stv::crsf_crc8(
+                std::span{frame_buffer}.subspan(2U, payload_size + 1U)),
+        };
 
         constexpr std::size_t frame_size{payload_size + 4U};
         fixture.write(std::span{frame_buffer}.subspan(0U, frame_size));
@@ -1307,16 +1340,18 @@ SCENARIO(
 {
     crsf_parser_fixture             fixture{};
 
-    const stv::crsf_link_statistics expected{.up_rssi_ant1      = 85,
-                                             .up_rssi_ant2      = 80,
-                                             .up_link_quality   = 99,
-                                             .up_snr            = -12,
-                                             .active_antenna    = 1,
-                                             .rf_profile        = 2,
-                                             .up_rf_power       = 25,
-                                             .down_rssi         = 70,
-                                             .down_link_quality = 65,
-                                             .down_snr          = -8};
+    const stv::crsf_link_statistics expected{
+        .up_rssi_ant1      = 85,
+        .up_rssi_ant2      = 80,
+        .up_link_quality   = 99,
+        .up_snr            = -12,
+        .active_antenna    = 1,
+        .rf_profile        = 2,
+        .up_rf_power       = 25,
+        .down_rssi         = 70,
+        .down_link_quality = 65,
+        .down_snr          = -8,
+    };
 
     std::array<std::byte, stv::crsf_frame_size_max> frame_buffer{};
     const auto frame_size = build_link_statistics_frame(frame_buffer, expected);
@@ -1344,27 +1379,31 @@ SCENARIO(
 {
     crsf_parser_fixture             fixture{};
 
-    const stv::crsf_link_statistics first{.up_rssi_ant1      = 85,
-                                          .up_rssi_ant2      = 80,
-                                          .up_link_quality   = 99,
-                                          .up_snr            = -12,
-                                          .active_antenna    = 0,
-                                          .rf_profile        = 1,
-                                          .up_rf_power       = 25,
-                                          .down_rssi         = 70,
-                                          .down_link_quality = 65,
-                                          .down_snr          = -8};
+    const stv::crsf_link_statistics first{
+        .up_rssi_ant1      = 85,
+        .up_rssi_ant2      = 80,
+        .up_link_quality   = 99,
+        .up_snr            = -12,
+        .active_antenna    = 0,
+        .rf_profile        = 1,
+        .up_rf_power       = 25,
+        .down_rssi         = 70,
+        .down_link_quality = 65,
+        .down_snr          = -8,
+    };
 
-    const stv::crsf_link_statistics second{.up_rssi_ant1      = 40,
-                                           .up_rssi_ant2      = 35,
-                                           .up_link_quality   = 55,
-                                           .up_snr            = 7,
-                                           .active_antenna    = 1,
-                                           .rf_profile        = 2,
-                                           .up_rf_power       = 10,
-                                           .down_rssi         = 30,
-                                           .down_link_quality = 25,
-                                           .down_snr          = 3};
+    const stv::crsf_link_statistics second{
+        .up_rssi_ant1      = 40,
+        .up_rssi_ant2      = 35,
+        .up_link_quality   = 55,
+        .up_snr            = 7,
+        .active_antenna    = 1,
+        .rf_profile        = 2,
+        .up_rf_power       = 10,
+        .down_rssi         = 30,
+        .down_link_quality = 25,
+        .down_snr          = 3,
+    };
 
     std::array<std::byte, stv::crsf_frame_size_max> frame_buffer{};
 

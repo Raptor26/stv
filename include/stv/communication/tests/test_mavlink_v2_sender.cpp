@@ -67,6 +67,7 @@ TEST_CASE(
         queue_type                  queue;
         stv::mavlink_v2_seq_counter counter;
 
+        // NOLINTNEXTLINE(misc-const-correctness) request() — не const
         auto serial_message_buffer = stv::make_serial_message_buffer(
             queue,
             frame_tx_type{{.sysid = 5, .compid = 3, .counter = &counter}});
@@ -76,7 +77,7 @@ TEST_CASE(
 
         {
             auto msg = serial_message_buffer.request(
-                user_data_t{}, frame_tx_type::route_t{.msgid = 0});
+                user_data_t(), frame_tx_type::route_t{.msgid = 0});
             REQUIRE(msg);
         }
 
@@ -122,12 +123,12 @@ TEST_CASE(
 
         {
             auto msg = serial_message_buffer.request(
-                user_data_t{}, frame_tx_type::route_t{.msgid = 0});
+                user_data_t(), frame_tx_type::route_t{.msgid = 0});
             REQUIRE(msg);
         }
         {
             auto msg = serial_message_buffer.request(
-                user_data_t{}, frame_tx_type::route_t{.msgid = 0});
+                user_data_t(), frame_tx_type::route_t{.msgid = 0});
             REQUIRE(msg);
         }
 
@@ -157,12 +158,12 @@ TEST_CASE(
 
         {
             auto msg = serial_message_buffer.request(
-                user_data_t{}, frame_tx_type::route_t{.msgid = 0});
+                user_data_t(), frame_tx_type::route_t{.msgid = 0});
             REQUIRE(msg);
         }
         {
             auto msg = serial_message_buffer.request(
-                user_data_t{}, frame_tx_type::route_t{.msgid = 0});
+                user_data_t(), frame_tx_type::route_t{.msgid = 0});
             REQUIRE(msg);
         }
 
@@ -185,12 +186,12 @@ TEST_CASE(
 
         {
             auto msg = serial_message_buffer.request(
-                user_data_t{}, frame_tx_type::route_t{.msgid = 0});
+                user_data_t(), frame_tx_type::route_t{.msgid = 0});
             REQUIRE(msg);
         }
         {
             auto msg = serial_message_buffer.request(
-                user_data_t{}, frame_tx_type::route_t{.msgid = 1});
+                user_data_t(), frame_tx_type::route_t{.msgid = 1});
             REQUIRE(msg);
         }
 
@@ -227,15 +228,17 @@ TEST_CASE(
 
         {
             auto msg = serial_message_buffer.request(
-                user_data_t{}, frame_tx_type::route_t{.msgid = 0});
+                user_data_t(), frame_tx_type::route_t{.msgid = 0});
             REQUIRE(msg);
         }
 
         REQUIRE(queue.size() == 1U);
 
         const auto                   &frame = queue.front();
-        const stv::total_message_span total{frame.data<std::byte>(),
-                                            frame.size_bytes()};
+        const stv::total_message_span total{
+            frame.data<std::byte>(),
+            frame.size_bytes(),
+        };
 
         // Сквозной тест TX→parser: кадр, собранный mavlink_v2_frame_tx,
         // проходит проверку CRC парсерным декоратором mavlink_v2_frame.
@@ -289,8 +292,10 @@ TEST_CASE(
         REQUIRE(bytes[10U] == std::byte{0x5D});
         REQUIRE(bytes[11U] == std::byte{0x87});
 
-        const stv::total_message_span total{frame.data<std::byte>(),
-                                            frame.size_bytes()};
+        const stv::total_message_span total{
+            frame.data<std::byte>(),
+            frame.size_bytes(),
+        };
         REQUIRE(frame_type::is_crc_valid(total));
     }
 
@@ -326,8 +331,10 @@ TEST_CASE(
         REQUIRE(bytes[265U] == std::byte{0x81});
         REQUIRE(bytes[266U] == std::byte{0x80});
 
-        const stv::total_message_span total{frame.data<std::byte>(),
-                                            frame.size_bytes()};
+        const stv::total_message_span total{
+            frame.data<std::byte>(),
+            frame.size_bytes(),
+        };
         REQUIRE(frame_type::is_crc_valid(total));
 
         // Полный размер кадра по peek-нутому заголовку совпадает с
@@ -350,8 +357,8 @@ TEST_CASE(
         // Поле msgid занимает 3 байта: значение 0x1000000 непредставимо,
         // request() возвращает невалидное сообщение вместо усечения msgid.
         {
-            auto msg = serial_message_buffer.request(
-                user_data_t{}, frame_tx_type::route_t{.msgid = 0x1000000});
+            const auto msg = serial_message_buffer.request(
+                user_data_t(), frame_tx_type::route_t{.msgid = 0x1000000});
             REQUIRE(!msg);
         }
 
@@ -360,7 +367,7 @@ TEST_CASE(
 
         {
             auto msg = serial_message_buffer.request(
-                user_data_t{}, frame_tx_type::route_t{.msgid = 0});
+                user_data_t(), frame_tx_type::route_t{.msgid = 0});
             REQUIRE(msg);
         }
 
@@ -382,8 +389,8 @@ TEST_CASE(
         // сформировать корректный CRC невозможно, поэтому request()
         // возвращает невалидное сообщение вместо кадра с битым CRC.
         {
-            auto msg = serial_message_buffer.request(
-                user_data_t{}, frame_tx_type::route_t{.msgid = 42});
+            const auto msg = serial_message_buffer.request(
+                user_data_t(), frame_tx_type::route_t{.msgid = 42});
             REQUIRE(!msg);
         }
 
@@ -392,7 +399,7 @@ TEST_CASE(
 
         {
             auto msg = serial_message_buffer.request(
-                user_data_t{}, frame_tx_type::route_t{.msgid = 1});
+                user_data_t(), frame_tx_type::route_t{.msgid = 1});
             REQUIRE(msg);
         }
 
@@ -419,7 +426,7 @@ TEST_CASE(
         const std::string payload(256U, 'A');
 
         {
-            auto msg = serial_message_buffer.request(
+            const auto msg = serial_message_buffer.request(
                 payload, frame_tx_type::route_t{.msgid = 0});
             REQUIRE(!msg);
         }
@@ -457,8 +464,8 @@ TEST_CASE(
         const auto worker = [&serial_message_buffer, &failed_requests] {
             for(std::size_t i{0}; i < requests_per_thread; ++i)
             {
-                auto msg = serial_message_buffer.request(
-                    user_data_t{}, frame_tx_type::route_t{.msgid = 0});
+                const auto msg = serial_message_buffer.request(
+                    user_data_t(), frame_tx_type::route_t{.msgid = 0});
                 if(!msg)
                 {
                     ++failed_requests;

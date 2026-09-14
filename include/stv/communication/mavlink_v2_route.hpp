@@ -186,7 +186,8 @@ class mavlink_v2_route: virtual public stv::non_movable_non_copyable
         queue_to_read_{
             (setup.queue_to_read.queue() != nullptr)
                 ? static_cast<queue_type *>(setup.queue_to_read.queue())
-                : nullptr},
+                : nullptr,
+        },
         hash_to_write_{setup.hash_to_write}
     {
         static_assert(std::is_same_v<typename setup_type::queue_to_read_type,
@@ -207,17 +208,15 @@ class mavlink_v2_route: virtual public stv::non_movable_non_copyable
     ///     установлены; иначе @c false.
     explicit operator bool() const
     {
-        auto is_mutex_valid{true};
-
         if constexpr(std::is_pointer_v<mutex_type>)
         {
-            if(!mutex_)
-            {
-                is_mutex_valid = false;
-            }
+            return stv::all_true(queue_to_read_, hash_to_write_,
+                                 mutex_ != nullptr);
         }
-
-        return stv::all_true(queue_to_read_, hash_to_write_, is_mutex_valid);
+        else
+        {
+            return stv::all_true(queue_to_read_, hash_to_write_);
+        }
     }
 
     /// @brief Выполняет маршрутизацию сообщений из входной очереди.

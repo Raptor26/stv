@@ -298,7 +298,8 @@ namespace detail {
         0x09, 0xDC, 0x76, 0xA3, 0xF7, 0x22, 0x88, 0x5D, 0xD6, 0x03, 0xA9, 0x7C,
         0x28, 0xFD, 0x57, 0x82, 0xFF, 0x2A, 0x80, 0x55, 0x01, 0xD4, 0x7E, 0xAB,
         0x84, 0x51, 0xFB, 0x2E, 0x7A, 0xAF, 0x05, 0xD0, 0xAD, 0x78, 0xD2, 0x07,
-        0x53, 0x86, 0x2C, 0xF9};
+        0x53, 0x86, 0x2C, 0xF9,
+    };
 }
 
 } // namespace detail
@@ -673,8 +674,10 @@ class crsf_parser
             }
 
             if(context.lwrb->peek(
-                   typename lwrb_type::container_type{context.frame.data(),
-                                                      context.frame_size},
+                   typename lwrb_type::container_type{
+                       context.frame.data(),
+                       context.frame_size,
+                   },
                    0U, is_isr)
                != context.frame_size)
             {
@@ -701,10 +704,11 @@ class crsf_parser
 
             // crc вычисляется по байтам type и payload (без sync, frame
             // length и crc).
-            const auto crc_actual =
-                std::byte{crsf_crc8(std::span{context.frame}.subspan(
+            const auto crc_actual = std::byte{
+                crsf_crc8(std::span{context.frame}.subspan(
                     frame_type_index,
-                    context.frame_size - head_size - crc_size))};
+                    context.frame_size - head_size - crc_size)),
+            };
 
             // frame_size проверен выше: crc всегда в пределах кадра.
             // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
@@ -762,7 +766,8 @@ class crsf_parser
                     std::span{context.frame}.subspan(
                         head_size + frame_type_size,
                         context.frame_size - head_size - frame_type_size
-                            - crc_size)};
+                            - crc_size),
+                };
                 std::ignore = handler(payload);
             }
 
@@ -821,17 +826,26 @@ class crsf_parser
         failsafe_deadline_{setup.failsafe_deadline},
         // При невалидном setup таймер не запускается (delay == 0), чтобы не
         // разыменовывать нулевой указатель на runtime.
-        deadline_{deadline_setup_type{
-            .runtime = setup.runtime,
-            .delay   = stv::all_true(setup.runtime, setup.lwrb, setup.handlers)
-                           ? setup.failsafe_deadline
-                           : deadline_counter_type{0}}},
+        deadline_{
+            deadline_setup_type{
+                .runtime = setup.runtime,
+                .delay =
+                    stv::all_true(setup.runtime, setup.lwrb, setup.handlers)
+                        ? setup.failsafe_deadline
+                        : deadline_counter_type{0},
+            },
+        },
         handlers_{setup.handlers},
-        machine_{parser_context{.lwrb              = lwrb_,
-                                .handlers          = handlers_,
-                                .max_bytes_per_run = setup.max_bytes_per_run}},
+        machine_{
+            parser_context{
+                .lwrb              = lwrb_,
+                .handlers          = handlers_,
+                .max_bytes_per_run = setup.max_bytes_per_run,
+            },
+        },
         is_object_valid_{
-            stv::all_true(setup.runtime, setup.lwrb, setup.handlers)}
+            stv::all_true(setup.runtime, setup.lwrb, setup.handlers),
+        }
     {
         // Встроенные обработчики кадров rc channels packed (0x16) и link
         // statistics (0x14).

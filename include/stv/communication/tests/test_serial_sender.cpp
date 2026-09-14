@@ -24,9 +24,6 @@
 #include <vector>
 
 #include "stv/communication/serial_decorators.hpp"
-#include "stv/communication/serial_sender.hpp"
-#include "stv/containers/simbuff.hpp"
-#include "stv/mutex_guard.hpp"
 #include "stv/utils.hpp"
 
 // NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,

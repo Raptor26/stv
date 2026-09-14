@@ -174,7 +174,7 @@ class stvlink_route: virtual public stv::non_movable_non_copyable
             if(router_ptr)
             {
                 // Используем итератор, чтобы избежать исключений.
-                auto dst_buff_key_val_it = hash_to_write_->find(
+                const auto dst_buff_key_val_it = hash_to_write_->find(
                     static_cast<hash_type::key_type>(router_ptr->dst_id));
                 if(dst_buff_key_val_it != hash_to_write_->end())
                 {

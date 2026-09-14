@@ -237,7 +237,8 @@ class stvlink_route_tx
 
         /// @brief Размер полезной нагрузки в байтах.
         std::uint16_t pload_size{
-            std::numeric_limits<decltype(pload_size)>::min()};
+            std::numeric_limits<decltype(pload_size)>::min(),
+        };
     };
 
     STV_NO_PADDING_NO_OPTIMIZE_END

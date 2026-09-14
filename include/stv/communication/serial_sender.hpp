@@ -788,8 +788,8 @@ class serial_message_buffer_base:
     /// соответствующим декораторам.
     /// @return Объект @ref serial_message<std::remove_const_t<T>>.
     template<typename T, typename... SetupParams>
-    // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
     auto request(
+        // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
         std::span<const T> span, SetupParams &&...setup_params)
     {
         return request_impl<std::remove_const_t<T>>(

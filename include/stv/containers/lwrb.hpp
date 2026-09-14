@@ -154,9 +154,11 @@ class lwrb_base:
         bool is_isr)
     {
         const stv::lock_guard critical{get_mutex_ref(), is_isr};
-        return container_type{static_cast<value_type *>(
-                                  lwrb_get_linear_block_write_address(&lwrb_)),
-                              lwrb_get_linear_block_write_length(&lwrb_)};
+        return container_type{
+            static_cast<value_type *>(
+                lwrb_get_linear_block_write_address(&lwrb_)),
+            lwrb_get_linear_block_write_length(&lwrb_),
+        };
     }
 
   public:
@@ -263,9 +265,10 @@ class lwrb_base:
                 break;
             }
 
-            const auto written{write_helper(block.data(), block.size_bytes(),
-                                            /*write_all_or_nothing=*/false,
-                                            is_isr)};
+            const auto written{
+                write_helper(block.data(), block.size_bytes(),
+                             /*write_all_or_nothing=*/false, is_isr),
+            };
             total_written += written;
             std::ignore    = src.skip(written, is_isr);
 

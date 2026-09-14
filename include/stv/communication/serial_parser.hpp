@@ -600,7 +600,7 @@ class serial_parser: virtual private stv::non_movable_non_copyable
         std::size_t idx, Func &&func, std::index_sequence<Is...> /*indexes*/)
     {
         bool invoked{false};
-        auto invoke_once = [&](auto index_constant) {
+        const auto invoke_once = [&](auto index_constant) {
             if(!invoked)
             {
                 std::invoke(std::forward<Func>(func), index_constant);
@@ -660,8 +660,10 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     explicit serial_parser(
         const setup_type &setup):
         lwrb_{setup.lwrb},
-        queues_{make_queues_pointers(
-            setup.queues(), std::make_index_sequence<decorators_count>{})},
+        queues_{
+            make_queues_pointers(setup.queues(),
+                                 std::make_index_sequence<decorators_count>{}),
+        },
         max_one_message_size_{calculate_max_one_message_size(setup)}
     {
         if constexpr(std::is_pointer_v<decltype(mutex_)>)
@@ -786,7 +788,8 @@ class serial_parser: virtual private stv::non_movable_non_copyable
         bool                  is_need_continue{false};
 
         constexpr std::size_t need_bytes_available_befor_start{
-            max_header_size()};
+            max_header_size(),
+        };
 
         // matches() вызывается с двумя первыми байтами заголовка: буфер
         // заголовка обязан вмещать минимум 2 байта.
@@ -802,7 +805,9 @@ class serial_parser: virtual private stv::non_movable_non_copyable
 
             {
                 lwrb_->peek(typename lwrb_base_type::container_type{
-                    header_storage.data(), header_storage.size()});
+                    header_storage.data(),
+                    header_storage.size(),
+                });
             }
 
             auto        is_matched{false};
@@ -822,9 +827,10 @@ class serial_parser: virtual private stv::non_movable_non_copyable
                     is_matched  = true;
                     matched_idx = Idx;
                     remaining_size =
-                        decorator_type::total_frame_size(
-                            total_message_span{header_storage.data(),
-                                               decorator_type::header_size()})
+                        decorator_type::total_frame_size(total_message_span{
+                            header_storage.data(),
+                            decorator_type::header_size(),
+                        })
                         - decorator_type::header_size();
                 }
             };
@@ -956,6 +962,8 @@ class serial_parser: virtual private stv::non_movable_non_copyable
 
         if(peek_bytes == expect_total_message_size)
         {
+            // Присваивание происходит внутри лямбды dispatch_by_index.
+            // NOLINTNEXTLINE(misc-const-correctness)
             auto is_crc_valid{false};
 
             dispatch_by_index(

@@ -66,7 +66,8 @@ auto make_frame(
         std::byte{compid},
         static_cast<std::byte>(msgid & 0xFFU),
         static_cast<std::byte>((msgid >> 8U) & 0xFFU),
-        static_cast<std::byte>((msgid >> 16U) & 0xFFU)};
+        static_cast<std::byte>((msgid >> 16U) & 0xFFU),
+    };
     frame.insert(frame.end(), payload.begin(), payload.end());
 
     auto crc = stv::crc16_x25(frame.data() + 1U, frame.size() - 1U);
@@ -110,8 +111,11 @@ TEST_CASE(
     SECTION("total frame size")
     {
         // len = 9: 10 (заголовок) + 9 (payload) + 2 (CRC) = 21.
-        const std::array<std::byte, 3> header{std::byte{0xFD}, std::byte{0x09},
-                                              std::byte{0x00}};
+        const std::array<std::byte, 3> header{
+            std::byte{0xFD},
+            std::byte{0x09},
+            std::byte{0x00},
+        };
         const stv::total_message_span header_span{header.data(), header.size()};
         REQUIRE(frame_type::total_frame_size(header_span) == 21U);
     }
@@ -119,8 +123,11 @@ TEST_CASE(
     SECTION("total frame size with signature flag")
     {
         // Установлен бит подписи (incompat_flags & 0x01): +13 байт.
-        const std::array<std::byte, 3> header{std::byte{0xFD}, std::byte{0x09},
-                                              std::byte{0x01}};
+        const std::array<std::byte, 3> header{
+            std::byte{0xFD},
+            std::byte{0x09},
+            std::byte{0x01},
+        };
         const stv::total_message_span header_span{header.data(), header.size()};
         REQUIRE(frame_type::total_frame_size(header_span) == 34U);
     }
@@ -138,7 +145,7 @@ TEST_CASE(
             std::byte{0x01},                                   // sysid
             std::byte{0x01},                                   // compid
             std::byte{0x00}, std::byte{0x00}, std::byte{0x00}, // msgid = 0 (LE)
-            std::byte{0x79}, std::byte{0x81}                   // CRC
+            std::byte{0x79}, std::byte{0x81},                  // CRC
         };
 
         const stv::total_message_span total{frame.data(), frame.size()};
@@ -194,7 +201,10 @@ TEST_CASE(
     {
         // Кадр короче header + trailer не должен приводить к underflow.
         const std::array<std::byte, 3> short_frame{
-            std::byte{0xFD}, std::byte{0x00}, std::byte{0x00}};
+            std::byte{0xFD},
+            std::byte{0x00},
+            std::byte{0x00},
+        };
         const stv::total_message_span total{short_frame.data(),
                                             short_frame.size()};
         REQUIRE_FALSE(frame_type::is_crc_valid(total));
@@ -250,19 +260,28 @@ TEST_CASE(
         // len = 0: 10 + 0 + 2 = 12; len = 255: 10 + 255 + 2 = 267;
         // подписанный максимум: 267 + 13 = 280.
         const std::array<std::byte, 3> header_empty{
-            std::byte{0xFD}, std::byte{0x00}, std::byte{0x00}};
+            std::byte{0xFD},
+            std::byte{0x00},
+            std::byte{0x00},
+        };
         const stv::total_message_span empty_span{header_empty.data(),
                                                  header_empty.size()};
         REQUIRE(frame_type::total_frame_size(empty_span) == 12U);
 
         const std::array<std::byte, 3> header_max{
-            std::byte{0xFD}, std::byte{0xFF}, std::byte{0x00}};
+            std::byte{0xFD},
+            std::byte{0xFF},
+            std::byte{0x00},
+        };
         const stv::total_message_span max_span{header_max.data(),
                                                header_max.size()};
         REQUIRE(frame_type::total_frame_size(max_span) == 267U);
 
         const std::array<std::byte, 3> header_max_signed{
-            std::byte{0xFD}, std::byte{0xFF}, std::byte{0x01}};
+            std::byte{0xFD},
+            std::byte{0xFF},
+            std::byte{0x01},
+        };
         const stv::total_message_span max_signed_span{header_max_signed.data(),
                                                       header_max_signed.size()};
         REQUIRE(frame_type::total_frame_size(max_signed_span) == 280U);

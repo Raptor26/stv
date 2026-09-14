@@ -921,9 +921,12 @@ class rm3100:
     {
         const auto scale =
             static_cast<value_type>(1.0F) / (lsb_per_ut_ * 100.0F);
-        return mag_type{static_cast<value_type>(raw.x) * scale,
-                        static_cast<value_type>(raw.y) * scale,
-                        static_cast<value_type>(raw.z) * scale, timestamp_};
+        return mag_type{
+            static_cast<value_type>(raw.x) * scale,
+            static_cast<value_type>(raw.y) * scale,
+            static_cast<value_type>(raw.z) * scale,
+            timestamp_,
+        };
     }
 
     /// @brief Считывает и нормализует текущее измерение магнитного поля.
