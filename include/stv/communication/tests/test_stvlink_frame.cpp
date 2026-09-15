@@ -110,4 +110,145 @@ TEST_CASE(
     }
 }
 
+/// Сторож обратной совместимости бинарного протокола stvlink.
+///
+/// Эталонные последовательности байт (golden vectors) зафиксированы по
+/// формату кадра, действовавшему до рефакторинга декораторов
+/// (start_frame_and_crc_16 -> stvlink_frame_tx/stvlink_frame,
+/// head_route -> stvlink_route_tx), и независимо проверены эталонной
+/// реализацией CRC-16/MODBUS (init 0xFFFF, полином 0xA001, контрольное
+/// значение для "123456789" == 0x4B37).
+///
+/// Падение этого теста означает, что изменился БИНАРНЫЙ формат кадра
+/// stvlink: устройства со старой прошивкой и обновлённый конфигуратор
+/// (и наоборот) перестанут понимать друг друга. Тест не чинить
+/// «под новый формат» — сначала убедиться, что изменение протокола
+/// осознанно и согласовано со всеми сторонами обмена.
+TEST_CASE(
+    "stvlink_frame golden vectors",
+    "[stv][communication][golden][backward-compatibility]")
+{
+    using sim_buffer_type = stv::sim_buff<stv::empty_mutex>;
+    using queue_type      = etl::queue<sim_buffer_type, 10>;
+    queue_type tx_queue;
+
+    SECTION("payload only: 0x01..0x05")
+    {
+        // 0xAA 0xAA | frame_size=7 (payload + CRC) | payload | CRC-16
+        constexpr std::array golden{
+            std::byte{0xAA}, std::byte{0xAA}, std::byte{0x07}, std::byte{0x00},
+            std::byte{0x01}, std::byte{0x02}, std::byte{0x03}, std::byte{0x04},
+            std::byte{0x05}, std::byte{0x7E}, std::byte{0x2B},
+        };
+
+        auto serial_message_buffer =
+            stv::make_serial_message_buffer(tx_queue, stv::stvlink_frame_tx{});
+
+        {
+            constexpr std::array payload{
+                std::byte{0x01}, std::byte{0x02}, std::byte{0x03},
+                std::byte{0x04}, std::byte{0x05},
+            };
+            const auto msg = serial_message_buffer.request(payload);
+            (void)msg;
+        }
+
+        REQUIRE(!tx_queue.empty());
+        const auto &frame = tx_queue.front();
+
+        REQUIRE(frame.size_bytes() == golden.size());
+        REQUIRE(
+            std::memcmp(frame.data<std::byte>(), golden.data(), golden.size())
+            == 0);
+    }
+
+    SECTION("empty payload")
+    {
+        // 0xAA 0xAA | frame_size=2 (только CRC) | CRC-16
+        constexpr std::array golden{
+            std::byte{0xAA}, std::byte{0xAA}, std::byte{0x02},
+            std::byte{0x00}, std::byte{0x00}, std::byte{0xBC},
+        };
+
+        auto serial_message_buffer =
+            stv::make_serial_message_buffer(tx_queue, stv::stvlink_frame_tx{});
+
+        {
+            constexpr std::array<std::byte, 0> payload{};
+            const auto msg = serial_message_buffer.request(payload);
+            (void)msg;
+        }
+
+        REQUIRE(!tx_queue.empty());
+        const auto &frame = tx_queue.front();
+
+        REQUIRE(frame.size_bytes() == golden.size());
+        REQUIRE(
+            std::memcmp(frame.data<std::byte>(), golden.data(), golden.size())
+            == 0);
+    }
+
+    SECTION("routing header: dst_id=1, pack_id=7, payload 5 bytes")
+    {
+        // 0xAA 0xAA | frame_size=11 (routing header + payload + CRC) |
+        // dst=1 | pack=7 | pload_size=5 | payload | CRC-16
+        constexpr std::array golden{
+            std::byte{0xAA}, std::byte{0xAA}, std::byte{0x0B}, std::byte{0x00},
+            std::byte{0x01}, std::byte{0x07}, std::byte{0x05}, std::byte{0x00},
+            std::byte{0xDE}, std::byte{0xAD}, std::byte{0xBE}, std::byte{0xEF},
+            std::byte{0x42}, std::byte{0x18}, std::byte{0x51},
+        };
+
+        auto serial_message_buffer = stv::make_serial_message_buffer(
+            tx_queue, stv::stvlink_frame_tx{}, stv::stvlink_route_tx{});
+
+        {
+            constexpr std::array payload{
+                std::byte{0xDE}, std::byte{0xAD}, std::byte{0xBE},
+                std::byte{0xEF}, std::byte{0x42},
+            };
+            const auto msg = serial_message_buffer.request(
+                payload,
+                stv::stvlink_route_tx::setup_t{.dst_id = 1, .pack_id = 7});
+            (void)msg;
+        }
+
+        REQUIRE(!tx_queue.empty());
+        const auto &frame = tx_queue.front();
+
+        REQUIRE(frame.size_bytes() == golden.size());
+        REQUIRE(
+            std::memcmp(frame.data<std::byte>(), golden.data(), golden.size())
+            == 0);
+    }
+
+    SECTION("parse side accepts golden bytes")
+    {
+        // Кадр, сформированный старой прошивкой/конфигуратором, обязан
+        // распознаваться и проходить проверку CRC.
+        constexpr std::array golden{
+            std::byte{0xAA}, std::byte{0xAA}, std::byte{0x0B}, std::byte{0x00},
+            std::byte{0x01}, std::byte{0x07}, std::byte{0x05}, std::byte{0x00},
+            std::byte{0xDE}, std::byte{0xAD}, std::byte{0xBE}, std::byte{0xEF},
+            std::byte{0x42}, std::byte{0x18}, std::byte{0x51},
+        };
+
+        REQUIRE(stv::stvlink_frame::matches(golden[0], golden[1]));
+
+        const stv::total_message_span header_span{
+            golden.data(), stv::stvlink_frame::header_size()};
+        REQUIRE(stv::stvlink_frame::total_frame_size(header_span)
+                == golden.size());
+
+        const stv::total_message_span total{golden.data(), golden.size()};
+        REQUIRE(stv::stvlink_frame::is_crc_valid(total));
+
+        std::array corrupted{golden};
+        corrupted[8] = ~corrupted[8];
+        const stv::total_message_span corrupted_total{corrupted.data(),
+                                                      corrupted.size()};
+        REQUIRE_FALSE(stv::stvlink_frame::is_crc_valid(corrupted_total));
+    }
+}
+
 // NOLINTEND(*-magic-numbers)
