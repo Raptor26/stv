@@ -9,8 +9,10 @@ add_executable(
   ${PROJECT_NAME}
   test_deadline_timer.cpp
   test_latch.cpp
+  test_math.cpp
   test_mutex.cpp
   test_runtime.cpp
+  test_quaternion.cpp
   test_utils.cpp
   test_critical.cpp
   test_while_timeout.cpp)

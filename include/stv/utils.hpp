@@ -411,6 +411,18 @@ template<typename T>
     }
 }
 
+[[nodiscard]] constexpr auto in_range(
+    const auto &val, const auto &min, const auto &max)
+{
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(val)>,
+                                 std::remove_cvref_t<decltype(min)>>
+                      && std::is_same_v<std::remove_cvref_t<decltype(val)>,
+                                        std::remove_cvref_t<decltype(max)>>,
+
+                  "all input params must be some type");
+    return (val >= min) && (val <= max);
+}
+
 } // namespace stv
 
 #endif /* UTILS_HPP */
