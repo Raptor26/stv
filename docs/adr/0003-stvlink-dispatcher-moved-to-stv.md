@@ -27,8 +27,6 @@ karavan в stv:
 - `karavan::cambridge_setup` → `stv::stvlink_setup`;
 - `karavan::cambridge` (модуль) → `stv::stvlink_module`;
 - `karavan::cambridge_message_span` → `stv::stvlink_message_span`;
-- `karavan::cambridge_message_handler_fnc_type` →
-  `stv::stvlink_message_handler_fnc_type`;
 - тест диспетчера перенесён из karavan в stv
   (`stv/include/stv/communication/tests/test_stvlink_dispatcher.cpp`),
   полезная нагрузка в нём заменена структурой-заглушкой — тесты stv
@@ -69,11 +67,15 @@ karavan в stv:
   проекты, использующие stvlink, больше не обязаны зависеть от karavan.
 - **Устаревание API karavan:** имена `karavan::cambridge_dispatcher`,
   `karavan::cambridge_base`, `karavan::cambridge_setup`,
-  `karavan::cambridge`, `karavan::cambridge_message_span`,
-  `karavan::cambridge_message_handler_fnc_type` помечены
+  `karavan::cambridge`, `karavan::cambridge_message_span` помечены
   `[[deprecated]]` и будут удалены в будущем релизе; внутренние call sites
   (board, gui, karavan-тесты) переведены на stv-имена, предупреждений
-  deprecated в сборке не возникает.
+  deprecated в сборке не возникает. Алиас для типа обработчика не создан:
+  на develop он назывался `cambridge_message_processor_fnc_type`, а имя
+  `cambridge_message_handler_fnc_type`, фигурировавшее в этой ветке,
+  никогда не публиковалось — внешним потребителям достаточно заменить
+  `cambridge_message_processor_fnc_type` на
+  `stv::stvlink_message_handler_fnc_type`.
 - Поведение и формат кадра stvlink на проводе не изменились.
 - Терминология и схема `stvlink.plantuml` приведены к размещению кода:
   диспетчер и модуль относятся к stv.

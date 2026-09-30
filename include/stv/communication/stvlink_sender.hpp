@@ -127,13 +127,13 @@ class stvlink_sender
         /// Заполняется отправителем; приёмная сторона его не фильтрует.
         /// Поле сохранено в формате кадра для бинарной совместимости
         /// протокола.
-        std::uint8_t dst_id{0};
+        std::uint8_t dst_id{std::numeric_limits<decltype(dst_id)>::min()};
 
         /// @brief Идентификатор сообщения.
         ///
         /// @details
         /// Получатель выбирает обработчик сообщения по этому идентификатору.
-        std::uint8_t msg_id{0};
+        std::uint8_t msg_id{std::numeric_limits<decltype(msg_id)>::min()};
     };
 
     /// @brief Заголовок сообщения с полем размера полезной нагрузки.
@@ -179,7 +179,7 @@ class stvlink_sender
 
     /// @brief Возвращает размер заголовка.
     ///
-    /// @return Размер заголовка в байтах (старотовый кадр + заголовок
+    /// @return Размер заголовка в байтах (стартовый кадр + заголовок
     ///     сообщения = 8).
     static constexpr size_t header_size()
     { return stvlink_parser::header_size() + sizeof(message_header_t); }
