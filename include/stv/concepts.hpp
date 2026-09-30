@@ -59,6 +59,17 @@ concept is_mutex_concept = requires(TMutex &mutex) {
     mutex.unlock();
 } && !is_mutex_with_isr_concept<TMutex>;
 
+/// @brief Проверяет, что тип TQueue может использоваться в
+/// serial_message_buffer для отправки готовых сообщений.
+template<typename TQueue>
+concept serial_queue_concept =
+    requires(TQueue queue, typename TQueue::value_type value) {
+        typename TQueue::value_type;
+
+        { queue.full() } -> std::convertible_to<bool>;
+        { queue.push(std::move(value)) };
+    };
+
 /// @brief Концепт проверяет, что тип Т является контейнером, который хранит
 /// тривиальные объекты в непрерывном фрагменте памяти.
 template<typename T>

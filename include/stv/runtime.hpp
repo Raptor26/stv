@@ -114,7 +114,8 @@ template<typename TValueType>
 class runtime_interface
 {
   public:
-    using value_type = TValueType;
+    using value_type   = TValueType;
+    using counter_type = value_type;
 
     virtual ~runtime_interface() = default;
 
@@ -143,8 +144,9 @@ class runtime_setup
                            std::monostate>;
 
   public:
-    using value_type = TCounter;
-    using mutex_type = TMutexOrPtr;
+    using value_type   = TCounter;
+    using counter_type = value_type;
+    using mutex_type   = TMutexOrPtr;
 
     static_assert(std::unsigned_integral<typename value_type::rep>,
                   "TCounter must be std::chrono::duration with unsigned type");

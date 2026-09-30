@@ -10,16 +10,16 @@
 #include <cstddef>
 #include <cstring>
 #include <mutex>
-#include <span>
+#include <string>
 #include <string_view>
 #include <type_traits>
 
 #include "stv/containers/lwrb.hpp"
 #include "stv/mutex_guard.hpp"
 
-// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace)
+// NOLINTBEGIN(readability-function-cognitive-complexity)
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 
 TEMPLATE_PRODUCT_TEST_CASE(
     "lwrb", "[stv][containers]", (stv::lwrb_setup),
@@ -30,9 +30,12 @@ TEMPLATE_PRODUCT_TEST_CASE(
     using lwrb_base_type = stv::lwrb_base<setup_type>;
     constexpr std::size_t buffer_size{20};
 
-    std::recursive_mutex  std_mutex{};
+    // адрес берётся как T* в if constexpr
+    // NOLINTNEXTLINE(misc-const-correctness)
+    std::recursive_mutex std_mutex{};
     (void)std_mutex;
-
+    // адрес берётся как T* в if constexpr
+    // NOLINTNEXTLINE(misc-const-correctness)
     stv::empty_mutex empty_mutex;
     (void)empty_mutex;
 
@@ -52,7 +55,7 @@ TEMPLATE_PRODUCT_TEST_CASE(
     }
 
     stv::lwrb<lwrb_base_type, buffer_size> buff{attr};
-    REQUIRE(buff.get_free() == buffer_size);
+    REQUIRE(buff.get_free() == buffer_size - 1);
 
     SECTION("Check write with overflow")
     {
@@ -72,6 +75,8 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
         SECTION("Write as_ c-style string")
         {
+            // str — строковый литерал
+            // NOLINTNEXTLINE(bugprone-suspicious-stringview-data-usage)
             REQUIRE(buff.write(str.data()) == str.size());
             REQUIRE(buff.get_full() == str.size());
             buff.reset();
@@ -85,10 +90,10 @@ TEMPLATE_PRODUCT_TEST_CASE(
         {
             {
                 const auto linear_addr_in_buff = buff.read_linear_addr();
-                REQUIRE(std::strcmp(reinterpret_cast<const char *>(
-                                        linear_addr_in_buff.data()),
-                                    str.data())
-                        == 0);
+                REQUIRE(std::string_view{reinterpret_cast<const char *>(
+                                             linear_addr_in_buff.data()),
+                                         str.size()}
+                        == str);
             }
             REQUIRE(buff.is_empty());
         }
@@ -96,10 +101,10 @@ TEMPLATE_PRODUCT_TEST_CASE(
         SECTION("Skip")
         {
             const auto linear_addr_in_buff = buff.get_linear_addr();
-            REQUIRE(std::strcmp(reinterpret_cast<const char *>(
-                                    linear_addr_in_buff.data()),
-                                str.data())
-                    == 0);
+            REQUIRE(std::string_view{reinterpret_cast<const char *>(
+                                         linear_addr_in_buff.data()),
+                                     str.size()}
+                    == str);
 
             REQUIRE_FALSE(buff.is_empty());
 
@@ -112,9 +117,9 @@ TEMPLATE_PRODUCT_TEST_CASE(
         {
             std::array<std::byte, buffer_size> dst{};
             REQUIRE(buff.read(dst) == str.size());
-            REQUIRE(std::strcmp(reinterpret_cast<const char *>(dst.data()),
-                                str.data())
-                    == 0);
+            REQUIRE(std::string_view{reinterpret_cast<const char *>(dst.data()),
+                                     str.size()}
+                    == str);
         }
 
         SECTION("Read like std::span")
@@ -123,9 +128,9 @@ TEMPLATE_PRODUCT_TEST_CASE(
             REQUIRE(buff.read(std::span<typename lwrb_base_type::value_type>{
                         dst.data(), dst.size()})
                     == str.size());
-            REQUIRE(std::strcmp(reinterpret_cast<const char *>(dst.data()),
-                                str.data())
-                    == 0);
+            REQUIRE(std::string_view{reinterpret_cast<const char *>(dst.data()),
+                                     str.size()}
+                    == str);
         }
 
         SECTION("Read like span in zero buffer")
@@ -136,8 +141,118 @@ TEMPLATE_PRODUCT_TEST_CASE(
                     == 0);
         }
     }
+
+    SECTION("Move buffers")
+    {
+        stv::lwrb<lwrb_base_type, buffer_size> buff_first{attr};
+        stv::lwrb<lwrb_base_type, buffer_size> buff_second{attr};
+        constexpr std::string_view             str_first{"Hello"};
+        constexpr std::string_view             str_second{" World"};
+        REQUIRE(buff_first.write(str_first) == str_first.size());
+        REQUIRE(buff_second.write(str_second) == str_second.size());
+
+        SECTION("All data fits")
+        {
+            constexpr auto move_all_or_nothing{true};
+            REQUIRE(buff_first.move_from(buff_second, move_all_or_nothing)
+                    == str_second.size());
+            REQUIRE(buff_second.is_empty());
+
+            const std::string expected{
+                std::string{str_first} + std::string{str_second},
+            };
+            std::array<char, 128> tmp{};
+            REQUIRE(buff_first.read(tmp) == expected.size());
+            REQUIRE(std::strcmp(tmp.data(), expected.c_str()) == 0);
+        }
+
+        SECTION("Not enough free space")
+        {
+            constexpr std::string_view str_fill{"0123456789"};
+            REQUIRE(buff_first.write(str_fill) == str_fill.size());
+            REQUIRE(buff_first.get_free() < str_second.size());
+
+            constexpr auto move_all_or_nothing{true};
+            REQUIRE(buff_first.move_from(buff_second, move_all_or_nothing)
+                    == 0);
+            REQUIRE(buff_first.get_full()
+                    == str_first.size() + str_fill.size());
+            REQUIRE(buff_second.get_full() == str_second.size());
+        }
+
+        SECTION("Partial move")
+        {
+            constexpr std::string_view str_fill{"0123456789"};
+            REQUIRE(buff_first.write(str_fill) == str_fill.size());
+
+            const auto     free_before{buff_first.get_free()};
+            constexpr auto move_part{false};
+            REQUIRE(buff_first.move_from(buff_second, move_part)
+                    == free_before);
+            REQUIRE(buff_first.get_free() == 0);
+            REQUIRE(buff_second.get_full() == str_second.size() - free_before);
+        }
+    }
+
+    SECTION("Copy buffers")
+    {
+        stv::lwrb<lwrb_base_type, buffer_size> buff_first{attr};
+        stv::lwrb<lwrb_base_type, buffer_size> buff_second{attr};
+        constexpr std::string_view             str_first{"Hello"};
+        constexpr std::string_view             str_second{" World"};
+        REQUIRE(buff_first.write(str_first) == str_first.size());
+        REQUIRE(buff_second.write(str_second) == str_second.size());
+
+        SECTION("All data fits")
+        {
+            constexpr auto copy_all_or_nothing{true};
+            REQUIRE(buff_first.copy_from(buff_second, copy_all_or_nothing)
+                    == str_second.size());
+            REQUIRE(buff_second.get_full() == str_second.size());
+
+            const std::string expected{
+                std::string{str_first} + std::string{str_second},
+            };
+            std::array<char, 128> tmp{};
+            REQUIRE(buff_first.read(tmp) == expected.size());
+            REQUIRE(std::strcmp(tmp.data(), expected.c_str()) == 0);
+
+            // Данные в буфере-источнике сохранились.
+            std::array<char, 128> tmp_src{};
+            REQUIRE(buff_second.read(tmp_src) == str_second.size());
+            REQUIRE(std::string_view{tmp_src.data(), str_second.size()}
+                    == str_second);
+        }
+
+        SECTION("Not enough free space")
+        {
+            constexpr std::string_view str_fill{"0123456789"};
+            REQUIRE(buff_first.write(str_fill) == str_fill.size());
+            REQUIRE(buff_first.get_free() < str_second.size());
+
+            constexpr auto copy_all_or_nothing{true};
+            REQUIRE(buff_first.copy_from(buff_second, copy_all_or_nothing)
+                    == 0);
+            REQUIRE(buff_first.get_full()
+                    == str_first.size() + str_fill.size());
+            REQUIRE(buff_second.get_full() == str_second.size());
+        }
+
+        SECTION("Partial copy")
+        {
+            constexpr std::string_view str_fill{"0123456789"};
+            REQUIRE(buff_first.write(str_fill) == str_fill.size());
+
+            const auto     free_before{buff_first.get_free()};
+            constexpr auto copy_part{false};
+            REQUIRE(buff_first.copy_from(buff_second, copy_part)
+                    == free_before);
+            REQUIRE(buff_first.get_free() == 0);
+            REQUIRE(buff_second.get_full() == str_second.size());
+        }
+    }
 }
 
-// NOLINTEND(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-complexity,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(readability-function-cognitive-complexity)
+// NOLINTEND(*-magic-numbers, google-build-using-namespace)

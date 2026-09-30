@@ -100,7 +100,6 @@
 #define MUTEX_HPP
 
 #include "stv/concepts.hpp"
-#include "stv/type_traits.hpp"
 #include "stv/utils.hpp"
 #include <mutex>
 

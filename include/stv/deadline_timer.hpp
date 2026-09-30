@@ -216,9 +216,10 @@ class deadline_timer: public stv::non_movable_non_copyable
     /// @note Если set_delay() не был указан, то метод всегда вернет true.
     ///
     /// @return true если истек указанный при вызове set_delay() период времени.
-    [[nodiscard]] auto is_elapsed() const
+    [[nodiscard]] auto is_elapsed(
+        bool is_isr = false) const
     {
-        const auto lock = stv::lock_guard{get_mutex_ref()};
+        const auto lock = stv::lock_guard{get_mutex_ref(), is_isr};
 
         // Если уже истек указанный период времени, то повторно проверка не
         // выполняется. Это позволяет всегда возвращать корректный статус
@@ -275,7 +276,7 @@ class deadline_timer: public stv::non_movable_non_copyable
     /// @param[in] delay Задержка относительно момента вызова по
     /// истечении которой метод is_elapsed() вернет true.
     auto set_delay(
-        const auto &delay)
+        const auto &delay, bool is_isr = false)
     {
         auto is_set_delay{false};
 
@@ -284,7 +285,7 @@ class deadline_timer: public stv::non_movable_non_copyable
             if(delay.count()
                != static_cast<std::remove_cvref_t<decltype(delay)>::rep>(0))
             {
-                const auto lock = stv::lock_guard{get_mutex_ref()};
+                const auto lock = stv::lock_guard{get_mutex_ref(), is_isr};
                 start_time_     = runtime_->get();
                 delay_          = delay;
                 this->start();
@@ -299,9 +300,10 @@ class deadline_timer: public stv::non_movable_non_copyable
     /// @brief Принудительно останавливает deadline таймер.
     ///
     /// @note После остановки таймера метод is_elapsed() вернет true.
-    auto stop() -> void
+    auto stop(
+        bool is_isr = false) -> void
     {
-        const auto lock      = stv::lock_guard{get_mutex_ref()};
+        const auto lock      = stv::lock_guard{get_mutex_ref(), is_isr};
         is_started_          = false;
         start_time_          = counter_type{0};
         is_deadline_elapsed_ = is_elapsed_if_not_started_;
@@ -311,9 +313,10 @@ class deadline_timer: public stv::non_movable_non_copyable
     ///
     /// @return Время с момента вызова set_delay(). Если таймер не запущен,
     /// вернет 0.
-    [[nodiscard]] auto get_time_after_start() const -> counter_type
+    [[nodiscard]] auto get_time_after_start(
+        bool is_isr = false) const -> counter_type
     {
-        const auto lock = stv::lock_guard{get_mutex_ref()};
+        const auto lock = stv::lock_guard{get_mutex_ref(), is_isr};
         if(!is_started_)
         {
             return counter_type{0};
@@ -325,9 +328,10 @@ class deadline_timer: public stv::non_movable_non_copyable
     ///
     /// @return Количество времени перед наступлением deadline. Если таймер не
     /// запущен или deadline уже истек, вернет 0.
-    [[nodiscard]] auto get_time_before_deadline() const -> counter_type
+    [[nodiscard]] auto get_time_before_deadline(
+        bool is_isr = false) const -> counter_type
     {
-        const auto lock = stv::lock_guard{get_mutex_ref()};
+        const auto lock = stv::lock_guard{get_mutex_ref(), is_isr};
         if(!is_started_ || is_deadline_elapsed_)
         {
             return counter_type{0};
@@ -345,9 +349,10 @@ class deadline_timer: public stv::non_movable_non_copyable
     ///
     /// @return true - если таймер активен и deadline еще не истек, false в
     /// противном случае.
-    [[nodiscard]] auto is_started() const
+    [[nodiscard]] auto is_started(
+        bool is_isr = false) const
     {
-        const auto lock = stv::lock_guard{get_mutex_ref()};
+        const auto lock = stv::lock_guard{get_mutex_ref(), is_isr};
         return is_started_;
     }
 
@@ -355,9 +360,10 @@ class deadline_timer: public stv::non_movable_non_copyable
     /// отсчета.
     ///
     /// @return Количество времени до завершения обратного отсчета.
-    [[nodiscard]] auto get_remaining_time() const
+    [[nodiscard]] auto get_remaining_time(
+        bool is_isr = false) const
     {
-        const auto lock = stv::lock_guard{get_mutex_ref()};
+        const auto lock = stv::lock_guard{get_mutex_ref(), is_isr};
 
         const auto elapsed_time = (runtime_->get() - start_time_);
 

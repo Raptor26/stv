@@ -4,29 +4,35 @@
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
-#include <array>
+#include "stv/communication/serial_sender.hpp"
+#include "stv/communication/stvlink_sender.hpp"
+#include "stv/containers/simbuff.hpp"
+#include "stv/mutex_guard.hpp"
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <etl/queue.h>
+#include <etl/queue_spsc_atomic.h>
+#include <iostream>
+#include <memory>
+#include <queue>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include "stv/communication/serial_decorators.hpp"
-#include "stv/communication/serial_sender.hpp"
-#include "stv/containers/simbuff.hpp"
-#include "stv/mutex_guard.hpp"
 #include "stv/utils.hpp"
 
-// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace)
+// NOLINTBEGIN(readability-function-cognitive-complexity)
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 
-static int alloc_cnt;
+namespace {
+
+int alloc_cnt;
 
 template<typename T>
 class custom_allocator
@@ -37,8 +43,8 @@ class custom_allocator
     custom_allocator() = default;
 
     template<typename U>
-    custom_allocator(
-        const custom_allocator<U> &)
+    explicit custom_allocator(
+        const custom_allocator<U> & /*unused*/)
     {
     }
 
@@ -46,27 +52,29 @@ class custom_allocator
         std::size_t n)
     {
         ++alloc_cnt;
-        T *p = std::allocator<T>{}.allocate(n);
-        std::memset(p, 0, n * sizeof(T));
-        last_ptr_ = reinterpret_cast<std::byte *>(p);
-        return p;
+        T *ptr = std::allocator<T>{}.allocate(n);
+        std::memset(ptr, 0, n * sizeof(T));
+        last_ptr = reinterpret_cast<std::byte *>(ptr);
+        return ptr;
     }
 
     void deallocate(
-        T *p, std::size_t n)
+        T *ptr, std::size_t n)
     {
-        std::allocator<T>{}.deallocate(p, n);
+        std::allocator<T>{}.deallocate(ptr, n);
         --alloc_cnt;
-        last_ptr_ = nullptr;
+        last_ptr = nullptr;
     }
 
     static auto get_allocator_cnt() { return alloc_cnt; }
 
-    static auto get_mem_ptr() { return last_ptr_; }
+    static auto get_mem_ptr() { return last_ptr; }
 
   private:
-    inline static std::byte *last_ptr_{nullptr};
+    inline static std::byte *last_ptr{nullptr};
 };
+
+} // namespace
 
 SCENARIO(
     "Serial", "[stv][serial]")
@@ -103,9 +111,9 @@ SCENARIO(
 
             THEN("Nothing placed to queue")
             {
-                decltype(auto) queue_instance =
+                const auto &queue_instance =
                     serial_message_buffer.queue_instance();
-                REQUIRE(queue_instance.size() == 0);
+                REQUIRE(queue_instance.empty());
             }
         }
         WHEN("Check containers")
@@ -115,11 +123,13 @@ SCENARIO(
                 {
                     const std::array<std::uint16_t, 3> pload{11, 22, 33};
                     {
-                        auto msg = serial_message_buffer.request(pload);
+                        const auto msg = serial_message_buffer.request(pload);
                     }
 
-                    std::memcmp(pload.data(), custom_allocator::get_mem_ptr(),
-                                pload.size());
+                    REQUIRE(std::memcmp(pload.data(),
+                                        custom_allocator::get_mem_ptr(),
+                                        pload.size())
+                            == 0);
                 }
             }
 
@@ -128,11 +138,13 @@ SCENARIO(
                 {
                     const std::vector<std::uint16_t> pload{22, 33, 44};
                     {
-                        auto msg = serial_message_buffer.request(pload);
+                        const auto msg = serial_message_buffer.request(pload);
                     }
 
-                    std::memcmp(pload.data(), custom_allocator::get_mem_ptr(),
-                                pload.size());
+                    REQUIRE(std::memcmp(pload.data(),
+                                        custom_allocator::get_mem_ptr(),
+                                        pload.size())
+                            == 0);
                 }
             }
         }
@@ -143,7 +155,7 @@ SCENARIO(
             {
                 const char *pload{"char string"};
                 {
-                    auto msg = serial_message_buffer.request(pload);
+                    const auto msg = serial_message_buffer.request(pload);
                 }
 
                 REQUIRE(std::memcmp(reinterpret_cast<char *>(
@@ -156,7 +168,7 @@ SCENARIO(
             {
                 const std::string pload{"Hello World!"};
                 {
-                    auto msg = serial_message_buffer.request(pload);
+                    const auto msg = serial_message_buffer.request(pload);
                 }
                 REQUIRE(std::memcmp(reinterpret_cast<char *>(
                                         custom_allocator::get_mem_ptr()),
@@ -167,7 +179,8 @@ SCENARIO(
             THEN("char * in place")
             {
                 {
-                    auto msg = serial_message_buffer.request("raw string");
+                    const auto msg =
+                        serial_message_buffer.request("raw string");
                 }
 
                 REQUIRE(std::memcmp(reinterpret_cast<char *>(
@@ -179,8 +192,12 @@ SCENARIO(
 
         WHEN("Check span and iterator overloads")
         {
-            std::array<std::byte, 4> source{std::byte{0x01}, std::byte{0x02},
-                                            std::byte{0x03}, std::byte{0x04}};
+            std::array<std::byte, 4> source{
+                std::byte{0x01},
+                std::byte{0x02},
+                std::byte{0x03},
+                std::byte{0x04},
+            };
 
             THEN("request from iterators allows mutation")
             {
@@ -206,28 +223,35 @@ SCENARIO(
         }
     }
 
-    GIVEN("Serial message buffer with route only")
+    GIVEN("Serial message buffer with frame only")
     {
+        // NOLINTNEXTLINE(misc-const-correctness) передаётся как T& в фабрику
         queue_type queue{};
         auto       serial_message_buffer =
-            make_serial_message_buffer(queue, stv::head_route{});
+            make_serial_message_buffer(queue, stv::stvlink_sender{});
 
-        const stv::head_route::head_route_setup_t route_setup{.dst_id  = 111,
-                                                              .pack_id = 222};
+        const stv::stvlink_sender::setup_t msg_setup{
+            .dst_id = 111,
+            .msg_id = 222,
+        };
 
-        const char                               *pload{"char string"};
-        const std::string_view                    pload_view{"char string"};
+        const char            *pload{"char string"};
+        const std::string_view pload_view{"char string"};
 
-        constexpr std::size_t pload_offset{stv::head_route::header_size()};
-        constexpr std::size_t route_offset{0};
+        constexpr std::size_t  pload_offset{
+            stv::stvlink_sender::header_size(),
+        };
+        constexpr std::size_t msg_header_offset{
+            stv::stvlink_parser::header_size(),
+        };
 
         WHEN("Check strings")
         {
             THEN("string view")
             {
                 {
-                    auto msg =
-                        serial_message_buffer.request(pload_view, route_setup);
+                    const auto msg =
+                        serial_message_buffer.request(pload_view, msg_setup);
                 }
 
                 REQUIRE(std::memcmp(
@@ -240,8 +264,8 @@ SCENARIO(
             THEN("char *")
             {
                 {
-                    auto msg =
-                        serial_message_buffer.request(pload, route_setup);
+                    const auto msg =
+                        serial_message_buffer.request(pload, msg_setup);
                 }
 
                 REQUIRE(std::memcmp(
@@ -251,13 +275,13 @@ SCENARIO(
                         == 0);
             }
 
-            const auto *route = reinterpret_cast<
-                const stv::head_route::head_route_setup_with_pload_t *>(
-                custom_allocator::get_mem_ptr() + route_offset);
-            REQUIRE(route->dst_id == 111);
-            REQUIRE(route->pack_id == 222);
+            const auto *msg_header =
+                reinterpret_cast<const stv::stvlink_sender::message_header_t *>(
+                    custom_allocator::get_mem_ptr() + msg_header_offset);
+            REQUIRE(msg_header->dst_id == 111);
+            REQUIRE(msg_header->msg_id == 222);
 
-            REQUIRE(route->pload_size == std::strlen(pload));
+            REQUIRE(msg_header->pload_size == std::strlen(pload));
         }
 
         WHEN("Check containers")
@@ -266,8 +290,8 @@ SCENARIO(
             {
                 const std::array<std::uint16_t, 3> container_pload{11, 22, 33};
                 {
-                    auto msg = serial_message_buffer.request(container_pload,
-                                                             route_setup);
+                    const auto msg = serial_message_buffer.request(
+                        container_pload, msg_setup);
                 }
 
                 REQUIRE(std::memcmp(
@@ -277,59 +301,59 @@ SCENARIO(
                                 * sizeof(decltype(container_pload)::value_type))
                         == 0);
 
-                const auto *route = reinterpret_cast<
-                    const stv::head_route::head_route_setup_with_pload_t *>(
-                    custom_allocator::get_mem_ptr() + route_offset);
-                REQUIRE(route->pload_size
+                const auto *msg_header = reinterpret_cast<
+                    const stv::stvlink_sender::message_header_t *>(
+                    custom_allocator::get_mem_ptr() + msg_header_offset);
+                REQUIRE(msg_header->pload_size
                         == container_pload.size()
                                * sizeof(decltype(container_pload)::value_type));
             }
 
-            const auto *route = reinterpret_cast<
-                const stv::head_route::head_route_setup_with_pload_t *>(
-                custom_allocator::get_mem_ptr() + route_offset);
-            REQUIRE(route->dst_id == 111);
-            REQUIRE(route->pack_id == 222);
+            const auto *msg_header =
+                reinterpret_cast<const stv::stvlink_sender::message_header_t *>(
+                    custom_allocator::get_mem_ptr() + msg_header_offset);
+            REQUIRE(msg_header->dst_id == 111);
+            REQUIRE(msg_header->msg_id == 222);
         }
     }
-    GIVEN("Serial message buffer with route")
+    GIVEN("Serial message buffer with frame")
     {
+        // NOLINTNEXTLINE(misc-const-correctness) передаётся как T& в фабрику
         queue_type queue{};
-        auto       serial_message_buffer = make_serial_message_buffer(
-            queue, start_frame_and_crc_16{}, stv::head_route{});
+        auto       serial_message_buffer =
+            make_serial_message_buffer(queue, stvlink_sender{});
 
         THEN("Send message without pload")
         {
             auto msg = serial_message_buffer.request(
                 static_cast<std::size_t>(0),
-                stv::head_route::head_route_setup_t{.dst_id  = 111,
-                                                    .pack_id = 222});
+                stv::stvlink_sender::setup_t{.dst_id = 111, .msg_id = 222});
             REQUIRE(msg);
         }
 
-        // Проверка маршрутизации. ---------------------------------------------
-        const auto *route =
+        // Проверка заголовка сообщения. --------------------------------------
+        const auto *msg_header =
             // NOLINTNEXTLINE(*-reinterpret-cast)
-            reinterpret_cast<stv::head_route::head_route_setup_with_pload_t *>(
+            reinterpret_cast<stv::stvlink_sender::message_header_t *>(
                 custom_allocator::get_mem_ptr()
-                + start_frame_and_crc_16::header_size());
+                + stv::stvlink_parser::header_size());
 
-        REQUIRE(route->dst_id == 111);
-        REQUIRE(route->pack_id == 222);
-        REQUIRE(route->pload_size == 0);
+        REQUIRE(msg_header->dst_id == 111);
+        REQUIRE(msg_header->msg_id == 222);
+        REQUIRE(msg_header->pload_size == 0);
     }
 
-    GIVEN("Serial message buffer with route")
+    GIVEN("Serial message buffer with frame and payload")
     {
+        // NOLINTNEXTLINE(misc-const-correctness) передаётся как T& в фабрику
         queue_type queue{};
-        auto       serial_message_buffer = make_serial_message_buffer(
-            queue, start_frame_and_crc_16{}, stv::head_route{});
+        auto       serial_message_buffer =
+            make_serial_message_buffer(queue, stvlink_sender{});
 
-        THEN("Create custom message with route")
+        THEN("Create custom message with frame setup")
         {
             auto msg = serial_message_buffer.request<user_data_t>(
-                stv::head_route::head_route_setup_t{.dst_id  = 111,
-                                                    .pack_id = 222});
+                stv::stvlink_sender::setup_t{.dst_id = 111, .msg_id = 222});
             REQUIRE(msg);
 
             msg->i = 11;
@@ -340,27 +364,33 @@ SCENARIO(
             // Заголовок и конец сообщения будут заполнены в деструкторе msg.
         }
 
-        THEN("Create custom message with route and copy")
+        THEN("Create custom message with frame setup and copy")
         {
-            stv::head_route::head_route_setup_t route_setup{.dst_id  = 111,
-                                                            .pack_id = 222};
+            const stv::stvlink_sender::setup_t msg_setup{
+                .dst_id = 111,
+                .msg_id = 222,
+            };
 
             //
-            auto user_data = user_data_t{};
-            auto msg = serial_message_buffer.request(user_data, route_setup);
+            const auto user_data = user_data_t{};
+            auto msg = serial_message_buffer.request(user_data, msg_setup);
             REQUIRE(msg);
 
             // Заголовок и конец сообщения будут заполнены в деструкторе msg.
         }
 
-        THEN("Create custom message with route and copy with rvalue")
+        THEN("Create custom message with frame setup and copy with rvalue")
         {
-            stv::head_route::head_route_setup_t route_setup{.dst_id  = 111,
-                                                            .pack_id = 222};
+            const stv::stvlink_sender::setup_t msg_setup{
+                .dst_id = 111,
+                .msg_id = 222,
+            };
 
-            //
-            auto msg =
-                serial_message_buffer.request(user_data_t{}, route_setup);
+            // Запятую между аргументами проверка ошибочно считает висячей
+            // запятой пустого списка инициализации user_data_t{}.
+            // NOLINTBEGIN(readability-trailing-comma)
+            auto msg = serial_message_buffer.request(user_data_t{}, msg_setup);
+            // NOLINTEND(readability-trailing-comma)
             REQUIRE(msg);
 
             // Заголовок и конец сообщения будут заполнены в деструкторе msg.
@@ -368,23 +398,21 @@ SCENARIO(
 
         REQUIRE(custom_allocator::get_allocator_cnt() > 0);
 
-        // Проверка маршрутизации. ---------------------------------------------
-        const auto *route =
+        // Проверка заголовка сообщения. --------------------------------------
+        const auto *msg_header =
             // NOLINTNEXTLINE(*-reinterpret-cast)
-            reinterpret_cast<stv::head_route::head_route_setup_with_pload_t *>(
+            reinterpret_cast<stv::stvlink_sender::message_header_t *>(
                 custom_allocator::get_mem_ptr()
-                + start_frame_and_crc_16::header_size());
+                + stv::stvlink_parser::header_size());
 
-        REQUIRE(route->dst_id == 111);
-        REQUIRE(route->pack_id == 222);
-        REQUIRE(route->pload_size == sizeof(user_data_t));
+        REQUIRE(msg_header->dst_id == 111);
+        REQUIRE(msg_header->msg_id == 222);
+        REQUIRE(msg_header->pload_size == sizeof(user_data_t));
 
         // Проверка полезной нагрузки.
         // -----------------------------------------
-        auto *pload = reinterpret_cast<user_data_t *>(
-            custom_allocator::get_mem_ptr()
-            + start_frame_and_crc_16::header_size()
-            + stv::head_route::header_size());
+        const auto *pload = reinterpret_cast<user_data_t *>(
+            custom_allocator::get_mem_ptr() + stvlink_sender::header_size());
 
         REQUIRE(pload->i == 11);
         REQUIRE(pload->j == 22);
@@ -392,20 +420,17 @@ SCENARIO(
         REQUIRE(pload->z == 44);
 
         // Проверка заголовка. -------------------------------------------------
-        auto *head =
-            reinterpret_cast<stv::start_frame_and_crc_16::start_frame_t *>(
+        const auto *head =
+            reinterpret_cast<stv::stvlink_parser::start_frame_t *>(
                 custom_allocator::get_mem_ptr());
 
-        REQUIRE(head->start_frame_first
-                == stv::start_frame_and_crc_16::first_byte);
+        REQUIRE(head->start_frame_first == stv::stvlink_parser::first_byte);
 
-        REQUIRE(head->start_frame_second
-                == stv::start_frame_and_crc_16::second_byte);
+        REQUIRE(head->start_frame_second == stv::stvlink_parser::second_byte);
 
         REQUIRE(head->frame_size
-                == sizeof(user_data_t) + start_frame_and_crc_16::trailer_size()
-                       + stv::head_route::trailer_size()
-                       + stv::head_route::header_size());
+                == sizeof(user_data_t) + stvlink_sender::trailer_size()
+                       + stvlink_sender::message_header_size());
     }
 
     REQUIRE(custom_allocator::get_allocator_cnt() == 0);
@@ -426,12 +451,18 @@ TEMPLATE_TEST_CASE(
         make_serial_message_buffer(queue, stv::empty_serial_decorator{});
 
     std::array<TestType, 4> source{
-        static_cast<TestType>(1), static_cast<TestType>(2),
-        static_cast<TestType>(3), static_cast<TestType>(4)};
+        static_cast<TestType>(1),
+        static_cast<TestType>(2),
+        static_cast<TestType>(3),
+        static_cast<TestType>(4),
+    };
 
     std::array<TestType, 4> expected{
-        static_cast<TestType>(0xAB), static_cast<TestType>(0xCD),
-        static_cast<TestType>(0xEF), static_cast<TestType>(0)};
+        static_cast<TestType>(0xAB),
+        static_cast<TestType>(0xCD),
+        static_cast<TestType>(0xEF),
+        static_cast<TestType>(0),
+    };
 
     SECTION("from container")
     {
@@ -460,6 +491,8 @@ TEMPLATE_TEST_CASE(
         msg.operator->()[3] = expected.at(3);
     }
 
+    // Побайтовое сравнение сериализованного представления — намеренно.
+    // NOLINTNEXTLINE(bugprone-suspicious-memory-comparison, cert-*)
     REQUIRE(std::memcmp(expected.data(),
                         queue.front().data()
                             + stv::empty_serial_decorator::header_size(),
@@ -478,6 +511,8 @@ TEST_CASE(
     using sim_buffer_type =
         stv::sim_buff<stv::empty_mutex, custom_allocator<std::byte>>;
     using queue_type = etl::queue<sim_buffer_type, 10>;
+
+    queue_type queue{};
 
     struct user_data_t {
         std::uint8_t i{11};
@@ -546,12 +581,12 @@ TEST_CASE(
     SECTION("Ctor")
     {
         auto serial_message_buffer = make_serial_message_buffer(
-            start_frame_and_crc_16{}, stv::head_route{});
+            queue, stvlink_sender{});
 
         {
-            stv::head_route::head_route_setup_t route_setup{.dst_id  = 111,
-                                                            .pack_id = 222};
-            auto msg = serial_message_buffer.request<user_data_t>(route_setup);
+            stv::stvlink_sender::setup_t msg_setup{.dst_id = 111,
+                                                       .msg_id = 222};
+            auto msg = serial_message_buffer.request<user_data_t>(msg_setup);
             REQUIRE(msg);
 
             msg->i = 11;
@@ -636,6 +671,38 @@ TEST_CASE(
 }
 #endif
 
-// NOLINTEND(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-complexity,
-// cppcoreguidelines-avoid-non-const-global-variables)
+TEMPLATE_TEST_CASE(
+    "Serial message buffer supports ETL queue types", "[stv][serial]",
+    (etl::queue<stv::sim_buff<stv::empty_mutex>, 10>),
+    (etl::queue_spsc_atomic<stv::sim_buff<stv::empty_mutex>, 10>))
+{
+    using namespace stv;
+
+    TestType queue{};
+
+    auto     serial_message_buffer =
+        make_serial_message_buffer(queue, stv::empty_serial_decorator{});
+
+    std::array<std::uint8_t, 4> payload{
+        std::uint8_t{0x01},
+        std::uint8_t{0x02},
+        std::uint8_t{0x03},
+        std::uint8_t{0x04},
+    };
+
+    REQUIRE(queue.size() == 0);
+
+    {
+        auto msg = serial_message_buffer.request(payload);
+        REQUIRE(msg);
+    }
+
+    REQUIRE(queue.size() == 1);
+    REQUIRE(queue.front().size_bytes() == payload.size());
+    REQUIRE(std::memcmp(queue.front().data(), payload.data(), payload.size())
+            == 0);
+}
+
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(readability-function-cognitive-complexity)
+// NOLINTEND(*-magic-numbers, google-build-using-namespace)
