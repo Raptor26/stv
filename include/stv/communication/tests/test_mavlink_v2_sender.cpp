@@ -4,7 +4,7 @@
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
-#include "stv/communication/mavlink_v2_frame.hpp"
+#include "stv/communication/mavlink_v2_parser.hpp"
 #include "stv/communication/mavlink_v2_sender.hpp"
 #include "stv/communication/serial_decorators.hpp"
 #include "stv/communication/serial_sender.hpp"
@@ -41,8 +41,8 @@ struct test_crc_extra_provider {
     }
 };
 
-using frame_type    = stv::mavlink_v2_frame<test_crc_extra_provider>;
-using frame_tx_type = stv::mavlink_v2_frame_tx<test_crc_extra_provider>;
+using frame_type    = stv::mavlink_v2_parser<test_crc_extra_provider>;
+using frame_tx_type = stv::mavlink_v2_sender<test_crc_extra_provider>;
 
 } // namespace
 
@@ -50,7 +50,7 @@ using frame_tx_type = stv::mavlink_v2_frame_tx<test_crc_extra_provider>;
 // разбивать единый тестовый сценарий ради метрики нецелесообразно.
 // NOLINTBEGIN(readability-function-cognitive-complexity)
 TEST_CASE(
-    "mavlink_v2_frame_tx", "[stv][communication]")
+    "mavlink_v2_sender", "[stv][communication]")
 {
     using sim_buffer_type = stv::sim_buff<stv::empty_mutex>;
     using queue_type      = etl::queue<sim_buffer_type, 10>;
@@ -217,7 +217,7 @@ TEST_CASE(
         REQUIRE(second_frame[6U] == std::byte{0x03});
     }
 
-    SECTION("tx frame passes mavlink_v2_frame::is_crc_valid")
+    SECTION("tx frame passes mavlink_v2_parser::is_crc_valid")
     {
         queue_type                  queue;
         stv::mavlink_v2_seq_counter counter;
@@ -240,8 +240,8 @@ TEST_CASE(
             frame.size_bytes(),
         };
 
-        // Сквозной тест TX→parser: кадр, собранный mavlink_v2_frame_tx,
-        // проходит проверку CRC парсерным декоратором mavlink_v2_frame.
+        // Сквозной тест TX→parser: кадр, собранный mavlink_v2_sender,
+        // проходит проверку CRC парсерным декоратором mavlink_v2_parser.
         REQUIRE(frame_type::is_crc_valid(total));
 
         // Полный размер кадра, вычисленный по peek-нутому заголовку,

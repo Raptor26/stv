@@ -4,17 +4,13 @@
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
-#include "etl/unordered_map.h"
 #include "stv/communication/crc16.hpp"
-#include "stv/communication/mavlink_v2_frame.hpp"
-#include "stv/communication/mavlink_v2_route.hpp"
+#include "stv/communication/mavlink_v2_parser.hpp"
 #include "stv/communication/mavlink_v2_sender.hpp"
-#include "stv/communication/parsed_queue.hpp"
 #include "stv/communication/serial_decorators.hpp"
 #include "stv/communication/serial_parser.hpp"
 #include "stv/communication/serial_sender.hpp"
-#include "stv/communication/stvlink_frame.hpp"
-#include "stv/communication/stvlink_route.hpp"
+#include "stv/communication/stvlink_parser.hpp"
 #include "stv/communication/stvlink_sender.hpp"
 #include "stv/containers/lwrb.hpp"
 #include "stv/containers/simbuff.hpp"
@@ -42,7 +38,6 @@ using sim_buffer_type = stv::sim_buff<stv::empty_mutex>;
 using queue_type      = etl::queue<sim_buffer_type, 10>;
 using lwrb_setup_type = stv::lwrb_setup<stv::empty_mutex>;
 using lwrb_base_type  = stv::lwrb_base<lwrb_setup_type>;
-using hash_type       = etl::iunordered_map<int, queue_type *>;
 
 /// @brief Тестовый провайдер CRC_EXTRA с маленькой таблицей на 2 msgid.
 struct test_crc_extra_provider {
@@ -61,17 +56,14 @@ struct test_crc_extra_provider {
     }
 };
 
-using mavlink_frame_type    = stv::mavlink_v2_frame<test_crc_extra_provider>;
-using mavlink_frame_tx_type = stv::mavlink_v2_frame_tx<test_crc_extra_provider>;
+using mavlink_frame_type    = stv::mavlink_v2_parser<test_crc_extra_provider>;
+using mavlink_frame_tx_type = stv::mavlink_v2_sender<test_crc_extra_provider>;
 
-using stv_route_setup_type = stv::stvlink_route_setup<queue_type, hash_type>;
-using stv_router_type      = stv::stvlink_route<stv_route_setup_type>;
-
-using mavlink_route_setup_type =
-    stv::mavlink_v2_route_setup<mavlink_frame_type, queue_type, hash_type>;
-using mavlink_router_type = stv::mavlink_v2_route<mavlink_route_setup_type>;
-
-/// @brief Идентификатор получателя stv_rx_v2 (dst_id в stvlink_route_tx).
+/// @brief Значение dst_id, которое отправитель записывает в кадр.
+///
+/// @details Приёмная сторона по dst_id не фильтрует: поле сохранено в
+///     формате кадра для бинарной совместимости протокола, парсер
+///     пропускает его в очередь как есть.
 constexpr std::uint8_t stv_dst_id{7U};
 
 /// @brief Идентификатор системы-отправителя MAVLink v2 (sysid).
@@ -93,18 +85,18 @@ constexpr std::size_t mavlink_msgid_offset{7U};
 ///     (compat_flags, seq, sysid, compid, msgid).
 constexpr std::size_t mavlink_routing_header_size{7U};
 
-/// @brief Собирает кадр stv_rx_v2 с заданной полезной нагрузкой.
+/// @brief Собирает кадр stvlink с заданной полезной нагрузкой.
 auto make_stv_frame(
     std::string_view payload, std::uint8_t dst_id) -> std::vector<std::byte>
 {
     queue_type tx_queue;
-    auto       buffer = stv::make_serial_message_buffer(
-        tx_queue, stv::stvlink_frame_tx{}, stv::stvlink_route_tx{});
+    auto       buffer =
+        stv::make_serial_message_buffer(tx_queue, stv::stvlink_sender{});
 
     {
-        const auto msg = buffer.request(payload, stv::stvlink_route_tx::setup_t{
-                                                     .dst_id  = dst_id,
-                                                     .pack_id = 0,
+        const auto msg = buffer.request(payload, stv::stvlink_sender::setup_t{
+                                                     .dst_id = dst_id,
+                                                     .msg_id = 0,
                                                  });
         (void)msg;
     }
@@ -119,7 +111,7 @@ auto make_stv_frame(
 }
 
 /// @brief Собирает кадр MAVLink v2 с заданной полезной нагрузкой через
-///     передающий декоратор mavlink_v2_frame_tx.
+///     передающий декоратор mavlink_v2_sender.
 auto make_mavlink_frame(
     std::string_view payload,
     std::uint8_t     compid, // NOLINT(bugprone-easily-swappable-parameters)
@@ -148,20 +140,20 @@ auto make_mavlink_frame(
     return result;
 }
 
-/// @brief Собирает кадр stv_rx_v2 с байтовой полезной нагрузкой.
+/// @brief Собирает кадр stvlink с байтовой полезной нагрузкой.
 auto make_stv_frame_bytes(
     std::span<const std::byte> payload,
     std::uint8_t dst_id) // NOLINT(bugprone-easily-swappable-parameters)
     -> std::vector<std::byte>
 {
     queue_type tx_queue;
-    auto       buffer = stv::make_serial_message_buffer(
-        tx_queue, stv::stvlink_frame_tx{}, stv::stvlink_route_tx{});
+    auto       buffer =
+        stv::make_serial_message_buffer(tx_queue, stv::stvlink_sender{});
 
     {
-        const auto msg = buffer.request(payload, stv::stvlink_route_tx::setup_t{
-                                                     .dst_id  = dst_id,
-                                                     .pack_id = 0,
+        const auto msg = buffer.request(payload, stv::stvlink_sender::setup_t{
+                                                     .dst_id = dst_id,
+                                                     .msg_id = 0,
                                                  });
         (void)msg;
     }
@@ -175,17 +167,18 @@ auto make_stv_frame_bytes(
     return result;
 }
 
-/// @brief Возвращает ожидаемое содержимое распарсенного кадра stv_rx_v2
-///     (заголовок stvlink_route_tx: dst_id, pack_id, pload_size + нагрузка).
+/// @brief Возвращает ожидаемое содержимое распарсенного кадра stvlink
+///     (заголовок сообщения stvlink_sender: dst_id, msg_id, pload_size +
+///     нагрузка).
 auto make_expected_stv_payload(
     std::string_view payload, std::uint8_t dst_id) -> std::vector<std::byte>
 {
     const auto pload_size = static_cast<std::uint32_t>(payload.size());
 
     std::vector<std::byte> result;
-    result.reserve(stv::stvlink_route_tx::header_size() + payload.size());
+    result.reserve(stv::stvlink_sender::message_header_size() + payload.size());
     result.push_back(std::byte{dst_id});
-    result.push_back(std::byte{0x00}); // pack_id
+    result.push_back(std::byte{0x00}); // msg_id
     // pload_size записывается little-endian (хостовая платформа — LE).
     result.push_back(static_cast<std::byte>(pload_size & 0xFFU));
     result.push_back(static_cast<std::byte>((pload_size >> 8U) & 0xFFU));
@@ -222,8 +215,8 @@ auto make_expected_mavlink_payload(
     return result;
 }
 
-/// @brief Проверяет, что сообщение в голове очереди совпадает с ожидаемым,
-///     и удаляет его из очереди.
+/// @brief Проверяет, что сообщение в голове типизированной очереди парсера
+///     совпадает с ожидаемым, и удаляет его из очереди.
 void require_front_equals(
     queue_type &queue, const std::vector<std::byte> &expected)
 {
@@ -239,7 +232,7 @@ void require_front_equals(
 } // namespace
 
 TEST_CASE(
-    "serial_parser demultiplexes stv_rx_v2 and mavlink_v2 frames",
+    "serial_parser demultiplexes stvlink and mavlink_v2 frames",
     "[stv][communication]")
 {
     constexpr std::size_t                       lwrb_buffer_size{256};
@@ -249,41 +242,17 @@ TEST_CASE(
 
     using parser_setup_type =
         stv::serial_parser_setup<lwrb_base_type, queue_type, stv::empty_mutex,
-                                 stv::stvlink_frame, mavlink_frame_type>;
+                                 stv::stvlink_parser, mavlink_frame_type>;
 
     parser_setup_type setup;
     setup.lwrb = &lwrb;
-    setup.set_queue<stv::stvlink_frame>(stv_parsed_queue);
+    setup.set_queue<stv::stvlink_parser>(stv_parsed_queue);
     setup.set_queue<mavlink_frame_type>(mavlink_parsed_queue);
 
-    auto parser = stv::make_serial_parser<parser_setup_type, stv::stvlink_frame,
-                                          mavlink_frame_type>(setup);
+    auto parser =
+        stv::make_serial_parser<parser_setup_type, stv::stvlink_parser,
+                                mavlink_frame_type>(setup);
     REQUIRE(parser);
-
-    // Маршрутизатор stv_rx_v2 по dst_id из заголовка stvlink_route_tx.
-    queue_type                                stv_routed_queue;
-    etl::unordered_map<int, queue_type *, 10> stv_hash;
-    stv_hash.insert({stv_dst_id, &stv_routed_queue});
-
-    stv_route_setup_type stv_route_setup;
-    stv_route_setup.queue_to_read = &stv_parsed_queue;
-    stv_route_setup.hash_to_write = &stv_hash;
-
-    stv_router_type stv_router{stv_route_setup};
-    REQUIRE(stv_router);
-
-    // Маршрутизатор MAVLink v2 по compid источника.
-    queue_type                                mavlink_routed_queue;
-    etl::unordered_map<int, queue_type *, 10> mavlink_hash;
-    mavlink_hash.insert({mavlink_compid, &mavlink_routed_queue});
-
-    mavlink_route_setup_type mavlink_route_setup;
-    mavlink_route_setup.queue_to_read =
-        stv::parsed_queue<mavlink_frame_type, queue_type>{mavlink_parsed_queue};
-    mavlink_route_setup.hash_to_write = &mavlink_hash;
-
-    mavlink_router_type mavlink_router{mavlink_route_setup};
-    REQUIRE(mavlink_router);
 
     SECTION("mavlink frame is selected by single 0xFD byte")
     {
@@ -296,9 +265,9 @@ TEST_CASE(
         STATIC_REQUIRE_FALSE(
             mavlink_frame_type::matches(std::byte{0xAA}, std::byte{0xAA}));
         STATIC_REQUIRE(
-            stv::stvlink_frame::matches(std::byte{0xAA}, std::byte{0xAA}));
+            stv::stvlink_parser::matches(std::byte{0xAA}, std::byte{0xAA}));
         STATIC_REQUIRE_FALSE(
-            stv::stvlink_frame::matches(std::byte{0xFD}, std::byte{0xFD}));
+            stv::stvlink_parser::matches(std::byte{0xFD}, std::byte{0xFD}));
 
         constexpr std::string_view payload{"Hi"};
         const auto                 frame = make_mavlink_frame(
@@ -309,10 +278,8 @@ TEST_CASE(
         REQUIRE(stv_parsed_queue.empty());
         REQUIRE(mavlink_parsed_queue.size() == 1U);
 
-        REQUIRE(mavlink_router.run() == 1U);
-        REQUIRE(mavlink_parsed_queue.empty());
         require_front_equals(
-            mavlink_routed_queue,
+            mavlink_parsed_queue,
             make_expected_mavlink_payload(payload, mavlink_compid,
                                           {.msgid = mavlink_msgid_heartbeat}));
     }
@@ -335,21 +302,18 @@ TEST_CASE(
         REQUIRE(stv_parsed_queue.size() == 2U);
         REQUIRE(mavlink_parsed_queue.size() == 2U);
 
-        REQUIRE(stv_router.run() == 2U);
-        REQUIRE(mavlink_router.run() == 2U);
-
         require_front_equals(
-            stv_routed_queue,
+            stv_parsed_queue,
             make_expected_stv_payload(stv_payload_one, stv_dst_id));
         require_front_equals(
-            stv_routed_queue,
+            stv_parsed_queue,
             make_expected_stv_payload(stv_payload_two, stv_dst_id));
         require_front_equals(
-            mavlink_routed_queue,
+            mavlink_parsed_queue,
             make_expected_mavlink_payload(mav_payload_one, mavlink_compid,
                                           {.msgid = mavlink_msgid_heartbeat}));
         require_front_equals(
-            mavlink_routed_queue,
+            mavlink_parsed_queue,
             make_expected_mavlink_payload(mav_payload_two, mavlink_compid,
                                           {.msgid = mavlink_msgid_sys_status}));
     }
@@ -379,13 +343,10 @@ TEST_CASE(
         REQUIRE(stv_parsed_queue.size() == 1U);
         REQUIRE(mavlink_parsed_queue.size() == 1U);
 
-        REQUIRE(stv_router.run() == 1U);
-        REQUIRE(mavlink_router.run() == 1U);
-
-        require_front_equals(stv_routed_queue, make_expected_stv_payload(
+        require_front_equals(stv_parsed_queue, make_expected_stv_payload(
                                                    stv_payload, stv_dst_id));
         require_front_equals(
-            mavlink_routed_queue,
+            mavlink_parsed_queue,
             make_expected_mavlink_payload(mav_payload, mavlink_compid,
                                           {.msgid = mavlink_msgid_heartbeat}));
     }
@@ -422,21 +383,18 @@ TEST_CASE(
         REQUIRE(stv_parsed_queue.size() == 2U);
         REQUIRE(mavlink_parsed_queue.size() == 2U);
 
-        REQUIRE(stv_router.run() == 2U);
-        REQUIRE(mavlink_router.run() == 2U);
-
         require_front_equals(
-            stv_routed_queue,
+            stv_parsed_queue,
             make_expected_stv_payload(stv_payload_one, stv_dst_id));
         require_front_equals(
-            stv_routed_queue,
+            stv_parsed_queue,
             make_expected_stv_payload(stv_payload_two, stv_dst_id));
         require_front_equals(
-            mavlink_routed_queue,
+            mavlink_parsed_queue,
             make_expected_mavlink_payload(mav_payload_one, mavlink_compid,
                                           {.msgid = mavlink_msgid_heartbeat}));
         require_front_equals(
-            mavlink_routed_queue,
+            mavlink_parsed_queue,
             make_expected_mavlink_payload(mav_payload_two, mavlink_compid,
                                           {.msgid = mavlink_msgid_sys_status}));
     }
@@ -444,7 +402,7 @@ TEST_CASE(
     SECTION("unknown msgid frame dropped without losing stream sync")
     {
         // Кадр с неизвестным провайдеру msgid нельзя собрать через
-        // mavlink_v2_frame_tx (отправитель обязан знать CRC_EXTRA), поэтому
+        // mavlink_v2_sender (отправитель обязан знать CRC_EXTRA), поэтому
         // берём валидный кадр и подменяем в нём msgid на неизвестный.
         auto unknown_frame = make_mavlink_frame(
             "ok", mavlink_compid, {.msgid = mavlink_msgid_heartbeat});
@@ -463,13 +421,10 @@ TEST_CASE(
         REQUIRE(stv_parsed_queue.size() == 1U);
         REQUIRE(mavlink_parsed_queue.size() == 1U);
 
-        REQUIRE(stv_router.run() == 1U);
-        REQUIRE(mavlink_router.run() == 1U);
-
-        require_front_equals(stv_routed_queue, make_expected_stv_payload(
+        require_front_equals(stv_parsed_queue, make_expected_stv_payload(
                                                    stv_payload, stv_dst_id));
         require_front_equals(
-            mavlink_routed_queue,
+            mavlink_parsed_queue,
             make_expected_mavlink_payload(mav_payload, mavlink_compid,
                                           {.msgid = mavlink_msgid_heartbeat}));
     }
@@ -493,9 +448,8 @@ TEST_CASE(
         REQUIRE(mavlink_parsed_queue.size() == 1U);
         REQUIRE(stv_parsed_queue.empty());
 
-        REQUIRE(mavlink_router.run() == 1U);
         require_front_equals(
-            mavlink_routed_queue,
+            mavlink_parsed_queue,
             make_expected_mavlink_payload(payload, mavlink_compid,
                                           {.msgid = mavlink_msgid_heartbeat}));
     }
@@ -538,9 +492,8 @@ TEST_CASE(
         REQUIRE(stv_parsed_queue.empty());
         REQUIRE(mavlink_parsed_queue.size() == 1U);
 
-        REQUIRE(mavlink_router.run() == 1U);
         require_front_equals(
-            mavlink_routed_queue,
+            mavlink_parsed_queue,
             make_expected_mavlink_payload(payload, mavlink_compid,
                                           {.msgid = mavlink_msgid_heartbeat}));
     }
@@ -588,10 +541,8 @@ TEST_CASE(
         REQUIRE(stv_parsed_queue.empty());
         REQUIRE(mavlink_parsed_queue.size() == 1U);
 
-        REQUIRE(mavlink_router.run() == 1U);
-
         require_front_equals(
-            mavlink_routed_queue,
+            mavlink_parsed_queue,
             make_expected_mavlink_payload("ok", mavlink_compid,
                                           {.msgid = mavlink_msgid_heartbeat}));
     }
@@ -633,10 +584,8 @@ TEST_CASE(
         REQUIRE(stv_parsed_queue.empty());
         REQUIRE(mavlink_parsed_queue.size() == 1U);
 
-        REQUIRE(mavlink_router.run() == 1U);
-
         require_front_equals(
-            mavlink_routed_queue,
+            mavlink_parsed_queue,
             make_expected_mavlink_payload("ok", mavlink_compid,
                                           {.msgid = mavlink_msgid_heartbeat}));
     }
@@ -644,7 +593,7 @@ TEST_CASE(
     SECTION("garbage containing sync sequences")
     {
         // Мусор содержит стартовые последовательности протоколов потока:
-        // 0xAA 0xAA образует ложный кадр stv_rx_v2 с frame_size = 0x5555,
+        // 0xAA 0xAA образует ложный кадр stvlink с frame_size = 0x5555,
         // превышающий лимит размера сообщения (ложный заголовок
         // отбрасывается), а вторая пара 0x55 0x55 не совпадает ни с одним
         // декоратором и пропускается побайтно. После ресинхронизации
@@ -663,11 +612,11 @@ TEST_CASE(
         lwrb.write(make_mavlink_frame(mav_payload, mavlink_compid,
                                       {.msgid = mavlink_msgid_heartbeat}));
 
-        // Первый вызов отбрасывает ложный заголовок stv_rx_v2 из первого
+        // Первый вызов отбрасывает ложный заголовок stvlink из первого
         // блока мусора (frame_size = 0x5555 превышает лимит размера
         // сообщения) и завершается без разбора кадров.
         REQUIRE_FALSE(parser.run());
-        // Второй вызов разбирает кадр stv_rx_v2 и отбрасывает ложный
+        // Второй вызов разбирает кадр stvlink и отбрасывает ложный
         // заголовок из второго блока мусора.
         REQUIRE(parser.run());
         // Третий вызов разбирает кадр MAVLink.
@@ -675,13 +624,10 @@ TEST_CASE(
         REQUIRE(stv_parsed_queue.size() == 1U);
         REQUIRE(mavlink_parsed_queue.size() == 1U);
 
-        REQUIRE(stv_router.run() == 1U);
-        REQUIRE(mavlink_router.run() == 1U);
-
-        require_front_equals(stv_routed_queue, make_expected_stv_payload(
+        require_front_equals(stv_parsed_queue, make_expected_stv_payload(
                                                    stv_payload, stv_dst_id));
         require_front_equals(
-            mavlink_routed_queue,
+            mavlink_parsed_queue,
             make_expected_mavlink_payload(mav_payload, mavlink_compid,
                                           {.msgid = mavlink_msgid_heartbeat}));
     }
@@ -689,7 +635,7 @@ TEST_CASE(
     SECTION("corrupted stvlink frame with 0xFD in payload is not claimed as "
             "mavlink")
     {
-        // Битый кадр stv_rx_v2, чья полезная нагрузка содержит стартовый
+        // Битый кадр stvlink, чья полезная нагрузка содержит стартовый
         // байт MAVLink 0xFD. После отбрасывания битого кадра по ошибке CRC
         // парсер просматривает его байты по одному, и 0xFD образует ложный
         // заголовок MAVLink. Ложный кадр детерминированно отклонён: его
@@ -722,13 +668,10 @@ TEST_CASE(
         REQUIRE(stv_parsed_queue.size() == 1U);
         REQUIRE(mavlink_parsed_queue.size() == 1U);
 
-        REQUIRE(stv_router.run() == 1U);
-        REQUIRE(mavlink_router.run() == 1U);
-
-        require_front_equals(stv_routed_queue, make_expected_stv_payload(
+        require_front_equals(stv_parsed_queue, make_expected_stv_payload(
                                                    stv_payload, stv_dst_id));
         require_front_equals(
-            mavlink_routed_queue,
+            mavlink_parsed_queue,
             make_expected_mavlink_payload(mav_payload, mavlink_compid,
                                           {.msgid = mavlink_msgid_heartbeat}));
     }
@@ -739,7 +682,7 @@ TEST_CASE(
         // что больше установленного ограничения.
         setup.max_one_message_size = 12U;
         auto oversized_parser =
-            stv::make_serial_parser<parser_setup_type, stv::stvlink_frame,
+            stv::make_serial_parser<parser_setup_type, stv::stvlink_parser,
                                     mavlink_frame_type>(setup);
         REQUIRE(oversized_parser);
 
@@ -754,13 +697,12 @@ TEST_CASE(
 
         // Первый вызов отбрасывает слишком большой кадр MAVLink.
         REQUIRE_FALSE(oversized_parser.run());
-        // Следующий вызов продолжает поиск и находит кадр stv_rx_v2.
+        // Следующий вызов продолжает поиск и находит кадр stvlink.
         REQUIRE(oversized_parser.run());
         REQUIRE(mavlink_parsed_queue.empty());
         REQUIRE(stv_parsed_queue.size() == 1U);
 
-        REQUIRE(stv_router.run() == 1U);
-        require_front_equals(stv_routed_queue, make_expected_stv_payload(
+        require_front_equals(stv_parsed_queue, make_expected_stv_payload(
                                                    stv_payload, stv_dst_id));
     }
 
@@ -786,9 +728,8 @@ TEST_CASE(
         REQUIRE(mavlink_parsed_queue.size() == 1U);
         REQUIRE(stv_parsed_queue.empty());
 
-        REQUIRE(mavlink_router.run() == 1U);
         require_front_equals(
-            mavlink_routed_queue,
+            mavlink_parsed_queue,
             make_expected_mavlink_payload(payload, mavlink_compid,
                                           {.msgid = mavlink_msgid_heartbeat}));
     }
@@ -805,15 +746,15 @@ TEST_CASE(
 
     using parser_setup_type =
         stv::serial_parser_setup<lwrb_base_type, queue_type, std::mutex *,
-                                 stv::stvlink_frame>;
+                                 stv::stvlink_parser>;
 
     parser_setup_type setup;
     setup.lwrb  = &lwrb;
     setup.mutex = &parser_mutex;
-    setup.set_queue<stv::stvlink_frame>(stv_queue);
+    setup.set_queue<stv::stvlink_parser>(stv_queue);
 
     auto parser =
-        stv::make_serial_parser<parser_setup_type, stv::stvlink_frame>(setup);
+        stv::make_serial_parser<parser_setup_type, stv::stvlink_parser>(setup);
     REQUIRE(parser);
 
     constexpr std::string_view payload{"external mutex"};
@@ -838,15 +779,15 @@ TEST_CASE(
     // Setup задаёт декораторов в одном порядке, парсер — в другом.
     using parser_setup_type =
         stv::serial_parser_setup<lwrb_base_type, queue_type, stv::empty_mutex,
-                                 stv::stvlink_frame, mavlink_frame_type>;
+                                 stv::stvlink_parser, mavlink_frame_type>;
 
     parser_setup_type setup;
     setup.lwrb = &lwrb;
-    setup.set_queue<stv::stvlink_frame>(stv_queue);
+    setup.set_queue<stv::stvlink_parser>(stv_queue);
     setup.set_queue<mavlink_frame_type>(mavlink_queue);
 
     auto parser = stv::make_serial_parser<parser_setup_type, mavlink_frame_type,
-                                          stv::stvlink_frame>(setup);
+                                          stv::stvlink_parser>(setup);
     REQUIRE(parser);
 
     constexpr std::string_view stv_payload{"order test"};

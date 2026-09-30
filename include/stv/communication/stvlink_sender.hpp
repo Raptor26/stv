@@ -5,95 +5,78 @@
 /// See LICENSE file in the project root for full license information.
 ///
 /// NAME
-///     stv::stvlink_sender -- передающие декораторы протокола stvlink.
+///     stv::stvlink_sender -- передающий декоратор протокола stvlink.
 ///
 /// DESCRIPTION
 ///     stvlink_sender предоставляет передающую сторону протокола
-///     stvlink: декоратор stvlink_frame_tx формирует канальный уровень
-///     кадра (стартовая последовательность 0xAA 0xAA, поле frame_size,
-///     CRC-16/MODBUS в хвосте), а stvlink_route_tx добавляет заголовок
-///     маршрутизации (идентификатор получателя dst_id, порядковый номер
-///     пакета pack_id и размер полезной нагрузки pload_size). Формат
-///     кадра переиспользуется из stvlink_frame.hpp.
+///     stvlink: единый декоратор stvlink_sender формирует кадр
+///     целиком -- канальный уровень (стартовая последовательность
+///     0xAA 0xAA, поле frame_size), заголовок сообщения
+///     (идентификатор получателя dst_id, идентификатор сообщения
+///     msg_id и размер полезной нагрузки pload_size) и CRC-16/MODBUS
+///     в хвосте. Формат кадра переиспользуется из stvlink_parser.hpp.
 ///
-///     stvlink_frame_tx
-///         Добавляет в начало сообщения стартовый кадр
-///         0xAA 0xAA и 16-битное поле frame_size, равное
-///         размеру оставшейся части кадра. В конец
-///         записывается CRC-16 (начальное значение 0xFFFF,
-///         полином 0xA001), вычисленный по всем байтам
-///         сообщения, кроме самого CRC. Метод
-///         is_crc_valid() проверяет целостность принятого
-///         кадра.
+///     Байтовый формат кадра на проводе не меняется: поле dst_id
+///     отправитель заполняет сам, приёмная сторона его не
+///     фильтрует -- поле сохранено в формате кадра для бинарной
+///     совместимости протокола.
 ///
-///     stvlink_route_tx
-///         Добавляет маршрутизацию: идентификатор
-///         получателя dst_id, порядковый номер пакета
-///         pack_id и 16-битный размер полезной нагрузки
-///         pload_size. Параметры задаются через структуру
-///         setup_t. При превышении размера
-///         полезной нагрузки максимального значения
-///         uint16_t срабатывает assert.
+///     stvlink_sender
+///         Единый декоратор кадра. В начало сообщения записывает
+///         стартовый кадр 0xAA 0xAA, 16-битное поле frame_size,
+///         равное размеру оставшейся части кадра, и заголовок
+///         сообщения message_header_t (dst_id, msg_id, pload_size).
+///         Параметры dst_id и msg_id задаются через структуру
+///         setup_t при создании декоратора или при вызове
+///         request() буфера серийных сообщений. В конец сообщения
+///         записывается CRC-16 (начальное значение 0xFFFF, полином
+///         0xA001), вычисленный по всем байтам сообщения, кроме
+///         самого CRC. Метод is_crc_valid() проверяет целостность
+///         принятого кадра. При превышении размера полезной
+///         нагрузки максимального значения uint16_t срабатывает
+///         assert.
 ///
 /// EXAMPLE
-///     Пример формирования кадра со стартовой
-///     последовательностью и CRC:
+///     Пример отправки сообщения со стартовым кадром, заголовком
+///     сообщения и CRC:
 ///     ```cpp
+///     #include <stv/communication/serial_sender.hpp>
 ///     #include <stv/communication/stvlink_sender.hpp>
-///     #include <array>
-///     #include <span>
+///     #include <stv/containers/simbuff.hpp>
+///     #include <etl/queue.h>
 ///
 ///     int main() {
 ///         using namespace stv;
 ///
-///         std::array<std::byte, 11> buffer{};
-///         std::array<std::byte, 5> pload{
-///             std::byte{0x01}, std::byte{0x02},
-///             std::byte{0x03}, std::byte{0x04},
-///             std::byte{0x05}
-///         };
+///         using sim_buff_type = stv::sim_buff<stv::empty_mutex>;
+///         using queue_type    = etl::queue<sim_buff_type, 10>;
+///         queue_type queue{};
 ///
-///         stvlink_frame_tx decorator;
-///         decorator.setup_header(
-///             buffer.data(),
-///             total_message_span(buffer.data(), buffer.size()),
-///             pload_span(pload.data(), pload.size()));
+///         auto serial_message_buffer =
+///             make_serial_message_buffer(queue, stvlink_sender{});
 ///
-///         std::memcpy(
-///             buffer.data()
-///                 + stvlink_frame_tx::header_size(),
-///             pload.data(), pload.size());
+///         {
+///             auto msg = serial_message_buffer.request(
+///                 "Hello world",
+///                 stvlink_sender::setup_t{.dst_id = 1, .msg_id = 7});
+///         }
 ///
-///         decorator.setup_trailer(
-///             buffer.data()
-///                 + stvlink_frame_tx::header_size()
-///                 + pload.size(),
-///             total_message_span(buffer.data(), buffer.size()));
+///         // Заголовок и CRC заполняются в деструкторе msg,
+///         // после чего готовый буфер помещается в queue.
 ///
-///         bool ok = stvlink_frame_tx::is_crc_valid(
-///             total_message_span(buffer.data(), buffer.size()));
-///
-///         return ok ? 0 : 1;
+///         return 0;
 ///     }
 ///     ```
 ///
-///     Пример маршрутизации:
-///     ```cpp
-///     stv::stvlink_route_tx::setup_t route{
-///         .dst_id = 1, .pack_id = 7};
-///     stv::stvlink_route_tx route_decorator(route);
-///     route_decorator.setup_header(dst, total, pload);
-///     ```
-///
 /// SEE ALSO
-///     stvlink_frame.hpp, serial_decorators.hpp, serial_sender.hpp.
+///     stvlink_parser.hpp, serial_decorators.hpp, serial_sender.hpp.
 
 #ifndef STVLINK_SENDER_HPP
 #define STVLINK_SENDER_HPP
 
 #include "stv/communication/crc16.hpp"
 #include "stv/communication/serial_decorators.hpp"
-#include "stv/communication/stvlink_frame.hpp"
+#include "stv/communication/stvlink_parser.hpp"
 #include "stv/utils.hpp"
 #include <cassert>
 #include <cstddef>
@@ -103,60 +86,148 @@
 
 namespace stv {
 
-/// @brief Передающий декоратор, добавляющий стартовый кадр и CRC-16.
+/// @brief Передающий декоратор, формирующий кадр stvlink целиком.
 ///
 /// @details
-/// Формирует канальный уровень серийного сообщения:
+/// Единый декоратор кадра протокола stvlink, объединяющий канальный уровень
+/// и заголовок сообщения:
 ///   - в начало записывается стартовый кадр @c 0xAA 0xAA и поле
-///     @c frame_size, равное размеру оставшейся части сообщения
-///     (полезная нагрузка + все хвосты);
+///     @c frame_size, равное размеру оставшейся части кадра
+///     (заголовок сообщения + полезная нагрузка + все хвосты);
+///   - следом записывается заголовок сообщения @ref message_header_t:
+///     идентификатор получателя @c dst_id, идентификатор сообщения
+///     @c msg_id и 16-битный размер полезной нагрузки @c pload_size;
 ///   - в конец записывается 16-битная контрольная сумма (CRC-16),
 ///     вычисленная по всем байтам сообщения, кроме самого CRC.
 ///
 /// Такая структура позволяет @c serial_parser находить начало кадра в
 /// потоке байт, определять длину сообщения и проверять его целостность.
+/// Получатель после парсинга получает сообщение вместе с заголовком
+/// сообщения и читает из него идентификатор @c msg_id, а поле @c dst_id
+/// не фильтрует -- оно сохранено в формате кадра для бинарной
+/// совместимости протокола.
 ///
 /// @note
 /// Поле @c frame_size не включает в себя размер стартового кадра. Если
 /// сообщение состоит из стартового кадра (4 байта: 0xAA, 0xAA и 16-битное
-/// поле размера), полезной нагрузки (5 байт) и CRC (2 байта), то
-/// @c frame_size будет равно 7, а общий размер сообщения — 11 байт.
-class stvlink_frame_tx
+/// поле размера), заголовка сообщения (4 байта), полезной нагрузки (5
+/// байт) и CRC (2 байта), то @c frame_size будет равно 11, а общий размер
+/// сообщения -- 15 байт.
+class stvlink_sender
 {
   public:
+    STV_NO_PADDING_NO_OPTIMIZE_BEGIN
+
+    /// @brief Параметры заголовка сообщения, задаваемые при создании
+    ///     декоратора.
+    struct setup_t {
+        /// @brief Идентификатор получателя сообщения.
+        ///
+        /// @details
+        /// Заполняется отправителем; приёмная сторона его не фильтрует.
+        /// Поле сохранено в формате кадра для бинарной совместимости
+        /// протокола.
+        std::uint8_t dst_id{0};
+
+        /// @brief Идентификатор сообщения.
+        ///
+        /// @details
+        /// Получатель выбирает обработчик сообщения по этому идентификатору.
+        std::uint8_t msg_id{0};
+    };
+
+    /// @brief Заголовок сообщения с полем размера полезной нагрузки.
+    ///
+    /// @details
+    /// Именно эта структура записывается в кадр сразу после стартового
+    /// кадра. Раскладка полей в памяти и размер (4 байта) соответствуют
+    /// бинарному формату заголовка сообщения stvlink.
+    struct message_header_t {
+        /// @brief Идентификатор получателя сообщения.
+        ///
+        /// @details
+        /// Заполняется отправителем; приёмная сторона его не фильтрует.
+        std::uint8_t dst_id{std::numeric_limits<decltype(dst_id)>::min()};
+
+        /// @brief Идентификатор сообщения.
+        ///
+        /// @details
+        /// Получатель выбирает обработчик сообщения по этому идентификатору.
+        std::uint8_t msg_id{std::numeric_limits<decltype(msg_id)>::min()};
+
+        /// @brief Размер полезной нагрузки в байтах.
+        std::uint16_t pload_size{
+            std::numeric_limits<decltype(pload_size)>::min(),
+        };
+    };
+
+    STV_NO_PADDING_NO_OPTIMIZE_END
+
+    static_assert(sizeof(message_header_t) == 4U,
+                  "message_header_t должен занимать 4 байта согласно "
+                  "формату заголовка сообщения stvlink");
+
+    /// @brief Конструирует декоратор с заданными параметрами заголовка.
+    ///
+    /// @param[in] setup Параметры заголовка сообщения. По умолчанию оба
+    ///     поля равны нулю.
+    explicit stvlink_sender(
+        const setup_t &setup = setup_t{.dst_id = 0, .msg_id = 0}):
+        setup_{setup}
+    {
+    }
+
     /// @brief Возвращает размер заголовка.
     ///
-    /// @return Размер заголовка в байтах.
+    /// @return Размер заголовка в байтах (старотовый кадр + заголовок
+    ///     сообщения = 8).
     static constexpr size_t header_size()
-    { return stvlink_frame::header_size(); }
+    { return stvlink_parser::header_size() + sizeof(message_header_t); }
+
+    /// @brief Возвращает размер заголовка сообщения.
+    ///
+    /// @return Размер заголовка сообщения в байтах (4).
+    static constexpr size_t message_header_size()
+    { return sizeof(message_header_t); }
 
     /// @brief Возвращает размер хвоста.
     ///
-    /// @return Размер хвоста в байтах.
+    /// @return Размер хвоста в байтах (CRC = 2).
     static constexpr size_t trailer_size()
-    { return stvlink_frame::trailer_size(); }
+    { return stvlink_parser::trailer_size(); }
 
-    /// @brief Заполняет стартовый кадр и поле размера сообщения.
+    /// @brief Заполняет стартовый кадр, поле размера и заголовок сообщения.
     ///
     /// @param[out] dst Указатель на начало заголовка в собранном
     /// сообщении.
     /// @param[in] total Границы всего сообщения.
     /// @param[in] pload Границы полезной нагрузки.
-    static void setup_header(
+    void setup_header(
         std::byte *const dst, const total_message_span &total,
-        const pload_span &pload)
+        const pload_span &pload) const
     {
-        (void)pload;
         auto *start_frame =
-            reinterpret_cast<stvlink_frame::start_frame_t *>(dst);
-        start_frame->start_frame_first  = stvlink_frame::first_byte;
-        start_frame->start_frame_second = stvlink_frame::second_byte;
+            reinterpret_cast<stvlink_parser::start_frame_t *>(dst);
+        start_frame->start_frame_first  = stvlink_parser::first_byte;
+        start_frame->start_frame_second = stvlink_parser::second_byte;
 
         // Неизвестно, есть ли другие декораторы, поэтому вычислим размер
-        // кадра из поля total.
+        // кадра из поля total. Поле frame_size не включает стартовый кадр.
         start_frame->frame_size =
-            static_cast<decltype(start_frame->frame_size)>(total.size_bytes()
-                                                           - header_size());
+            static_cast<decltype(start_frame->frame_size)>(
+                total.size_bytes() - stvlink_parser::header_size());
+
+        auto *header = reinterpret_cast<message_header_t *>(
+            dst + stvlink_parser::header_size());
+        header->dst_id = setup_.dst_id;
+        header->msg_id = setup_.msg_id;
+        header->pload_size =
+            static_cast<decltype(header->pload_size)>(pload.size_bytes());
+
+        // Нужно убедиться, что запись размера полезной нагрузки помещается
+        // в переменную pload_size без сужающих преобразований.
+        assert(pload.size_bytes()
+               <= std::numeric_limits<decltype(header->pload_size)>::max());
     }
 
     /// @brief Записывает CRC-16 в хвост сообщения.
@@ -182,133 +253,10 @@ class stvlink_frame_tx
     /// @return @c true, если CRC совпадает; @c false в противном случае.
     static auto is_crc_valid(
         const total_message_span &total)
-    { return stvlink_frame::is_crc_valid(total); }
-};
-
-/// ----------------------------------------------------------------------------
-
-/// @brief Передающий декоратор, добавляющий маршрутизацию и размер
-///     полезной нагрузки.
-///
-/// @details
-/// Записывает в заголовок идентификатор получателя @c dst_id, порядковый
-/// номер пакета @c pack_id и размер полезной нагрузки @c pload_size.
-/// Приемная сторона может использовать @c dst_id для выбора очереди
-/// обработчика, а @c pack_id — для обнаружения потерь или дублирования.
-///
-/// @note
-/// Размер полезной нагрузки сохраняется в 16-битном поле. Передача
-/// сообщения с полезной нагрузкой, превышающей максимальное значение
-/// @c uint16_t, приведет к срабатыванию assert.
-class stvlink_route_tx
-{
-  public:
-    STV_NO_PADDING_NO_OPTIMIZE_BEGIN
-
-    /// @brief Параметры маршрутизации, задаваемые при создании декоратора.
-    struct setup_t {
-        /// @brief Идентификатор получателя сообщения.
-        ///
-        /// @details
-        /// Используется @c stvlink_route для выбора очереди, в
-        /// которую будет направлен пакет.
-        std::uint8_t dst_id{std::numeric_limits<decltype(dst_id)>::min()};
-
-        /// @brief Порядковый номер пакета.
-        ///
-        /// @details
-        /// Позволяет получателю различать сообщения и отслеживать их
-        /// порядок доставки.
-        std::uint8_t pack_id{std::numeric_limits<decltype(pack_id)>::min()};
-    };
-
-    /// @brief Заголовок маршрутизации с полем размера полезной нагрузки.
-    ///
-    /// @details
-    /// Именно эта структура записывается в начало сообщения декоратором.
-    /// Раскладка полей в памяти и размер (4 байта) соответствуют
-    /// бинарному формату заголовка маршрутизации stvlink.
-    struct routing_header_t {
-        /// @brief Идентификатор получателя сообщения.
-        std::uint8_t dst_id{std::numeric_limits<decltype(dst_id)>::min()};
-
-        /// @brief Порядковый номер пакета.
-        std::uint8_t pack_id{std::numeric_limits<decltype(pack_id)>::min()};
-
-        /// @brief Размер полезной нагрузки в байтах.
-        std::uint16_t pload_size{
-            std::numeric_limits<decltype(pload_size)>::min(),
-        };
-    };
-
-    STV_NO_PADDING_NO_OPTIMIZE_END
-
-    static_assert(sizeof(routing_header_t) == 4U,
-                  "routing_header_t должен занимать 4 байта согласно "
-                  "формату заголовка маршрутизации stvlink");
-
-    /// @brief Конструирует декоратор с заданными параметрами маршрутизации.
-    ///
-    /// @param[in] setup Параметры маршрутизации. По умолчанию оба поля
-    /// равны нулю.
-    explicit stvlink_route_tx(
-        const setup_t &setup = setup_t{.dst_id = 0, .pack_id = 0}):
-        setup_{setup}
-    {
-    }
-
-    /// @brief Возвращает размер заголовка.
-    ///
-    /// @return Размер заголовка в байтах.
-    static constexpr size_t header_size() { return sizeof(routing_header_t); }
-
-    /// @brief Возвращает размер хвоста.
-    ///
-    /// @return Размер хвоста в байтах (всегда 0).
-    static constexpr size_t trailer_size() { return 0; }
-
-    /// @brief Заполняет заголовок маршрутизации.
-    ///
-    /// @param[out] dst Указатель на начало заголовка в собранном
-    /// сообщении.
-    /// @param[in] total Границы всего сообщения.
-    /// @param[in] pload Границы полезной нагрузки.
-    void setup_header(
-        std::byte *const dst, const total_message_span &total,
-        const pload_span &pload) const
-    {
-        (void)total;
-        auto *header    = reinterpret_cast<routing_header_t *>(dst);
-        header->dst_id  = setup_.dst_id;
-        header->pack_id = setup_.pack_id;
-        header->pload_size =
-            static_cast<decltype(header->pload_size)>(pload.size_bytes());
-
-        // Нужно убедиться, что запись размера полезной нагрузки помещается
-        // в переменную pload_size без сужающих преобразований.
-        assert(pload.size_bytes()
-               <= std::numeric_limits<decltype(header->pload_size)>::max());
-    }
-
-    /// @brief Заглушка для заполнения хвоста.
-    ///
-    /// @note Так как хвост отсутствует, метод не выполняет никаких
-    /// действий. Дополнительный параметр @c total_size оставлен для
-    /// совместимости с внутренними вызовами.
-    ///
-    /// @param[out] dst Указатель на область хвоста.
-    /// @param[in] total Границы всего сообщения.
-    /// @param[in] total_size Полный размер сообщения в байтах.
-    static void setup_trailer(
-        std::byte *dst, const total_message_span &total, size_t total_size)
-    {
-        (void)dst;
-        (void)total;
-        (void)total_size;
-    }
+    { return stvlink_parser::is_crc_valid(total); }
 
   private:
-    /// @brief Сохраненные параметры маршрутизации.
+    /// @brief Сохраненные параметры заголовка сообщения.
     setup_t setup_;
 };
 

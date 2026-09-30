@@ -7,10 +7,10 @@ find_package(FakeIt REQUIRED)
 
 add_executable(${PROJECT_NAME} test_serial_sender.cpp test_serial_parser.cpp
                                test_serial_parser_demux.cpp test_crsf.cpp
-                               test_stvlink_frame.cpp test_crc16.cpp
-                               test_mavlink_v2_frame.cpp
-                               test_mavlink_v2_sender.cpp
-                               test_mavlink_v2_route.cpp)
+                               test_stvlink_parser.cpp test_crc16.cpp
+                               test_stvlink_dispatcher.cpp
+                               test_mavlink_v2_parser.cpp
+                               test_mavlink_v2_sender.cpp)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Catch2::Catch2WithMain
                                               FakeIt::FakeIt-catch stv::stv)

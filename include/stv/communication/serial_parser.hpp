@@ -10,10 +10,10 @@
 /// DESCRIPTION
 ///     serial_parser выделяет сообщения из потока
 ///     байт кольцевого буфера и помещает готовые
-///     пакеты в выходную очередь, соответствующую
-///     формату кадра. Маршрутизация распарсенных
-///     пакетов stvlink выполняется маршрутизатором
-///     stv::stvlink_route (см. stvlink_route.hpp).
+///     сообщения в выходную очередь, соответствующую
+///     формату кадра. Потребитель сообщений читает
+///     очередь парсера напрямую (см. stv::stvlink_module
+///     в stv/communication/stvlink_dispatcher.hpp).
 ///
 ///     serial_parser_setup<TlwrbBase, TQueue,
 ///         TMutexOrPtr, Decorators...>
@@ -44,17 +44,15 @@
 ///         парсера.
 ///
 /// EXAMPLE
-///     Пример приема и маршрутизации сообщения:
+///     Пример приема сообщения:
 ///     ```cpp
 ///     #include "stv/communication/serial_parser.hpp"
 ///     #include "stv/communication/serial_sender.hpp"
-///     #include "stv/communication/stvlink_frame.hpp"
-///     #include "stv/communication/stvlink_route.hpp"
+///     #include "stv/communication/stvlink_parser.hpp"
 ///     #include "stv/communication/stvlink_sender.hpp"
 ///     #include "stv/containers/lwrb.hpp"
 ///     #include "stv/containers/simbuff.hpp"
 ///     #include "etl/queue.h"
-///     #include "etl/unordered_map.h"
 ///     #include <iostream>
 ///
 ///     int main() {
@@ -71,7 +69,7 @@
 ///
 ///         auto serial_message_buffer = make_serial_message_buffer(
 ///             serial_msg_queue,
-///             stv::stvlink_frame_tx{});
+///             stv::stvlink_sender{});
 ///
 ///         constexpr std::string_view payload{"Hello world"};
 ///         {
@@ -85,14 +83,14 @@
 ///
 ///         using parser_setup_type =
 ///             stv::serial_parser_setup<lwrb_base_type, queue_type,
-///                                      stv::stvlink_frame>;
+///                                      stv::stvlink_parser>;
 ///         parser_setup_type parser_setup;
 ///         parser_setup.lwrb = &lwrb;
-///         parser_setup.set_queue<stv::stvlink_frame>(
+///         parser_setup.set_queue<stv::stvlink_parser>(
 ///             parsed_msg_queue);
 ///
 ///         auto parser = stv::make_serial_parser<
-///             parser_setup_type, stv::stvlink_frame>(parser_setup);
+///             parser_setup_type, stv::stvlink_parser>(parser_setup);
 ///         if (!parser) {
 ///             std::cerr << "Invalid parser setup\n";
 ///             return 1;
@@ -101,21 +99,6 @@
 ///         if (parser.run()) {
 ///             std::cout << "Parsed messages: "
 ///                       << parsed_msg_queue.size() << "\n";
-///         }
-///
-///         using hash_type = etl::iunordered_map<int, queue_type *>;
-///         etl::unordered_map<int, queue_type *, 10> hash_table;
-///         hash_table.insert({1, &parsed_msg_queue});
-///
-///         using route_setup_type =
-///             stv::stvlink_route_setup<queue_type, hash_type>;
-///         route_setup_type route_setup;
-///         route_setup.queue_to_read = &parsed_msg_queue;
-///         route_setup.hash_to_write = &hash_table;
-///
-///         stv::stvlink_route<route_setup_type> router(route_setup);
-///         if (router.run()) {
-///             std::cout << "Message routed to destination\n";
 ///         }
 ///
 ///         return 0;
@@ -128,8 +111,7 @@
 ///
 /// SEE ALSO
 ///     parsed_queue.hpp, serial_decorators.hpp,
-///     serial_sender.hpp, stvlink_route.hpp,
-///     test_serial_parser.cpp.
+///     serial_sender.hpp, test_serial_parser.cpp.
 
 #ifndef SERIAL_PARSER_HPP
 #define SERIAL_PARSER_HPP
@@ -282,9 +264,12 @@ class serial_parser_setup
 /// Ожидаемый формат кадра определяется переданным пакетом декораторов
 /// @c Decorators. Парсер выбирает декоратор по стартовой последовательности,
 /// после чего использует его правила для проверки размера, CRC и обрезки
-/// служебных полей. Готовая полезная нагрузка (вместе с внутренним
-/// заголовком маршрутизации, если он есть) помещается в очередь,
-/// сопоставленную выбранному декоратору.
+/// служебных полей. Готовое сообщение (полезная нагрузка вместе с заголовком
+/// сообщения stvlink: dst_id, msg_id, pload_size) помещается в очередь,
+/// сопоставленную выбранному декоратору. Потребитель читает очередь парсера
+/// напрямую: поле @c dst_id отправитель заполняет сам, парсер и потребитель
+/// его не фильтруют -- поле сохранено в формате кадра для бинарной
+/// совместимости протокола.
 ///
 /// Парсер должен вызываться из одного потока/контекста. Если передан
 /// мьютекс, он защищает отдельные чтения и записи внутреннего состояния

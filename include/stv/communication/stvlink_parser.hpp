@@ -1,27 +1,34 @@
-/// @file stvlink_frame.hpp
+/// @file stvlink_parser.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
 ///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 ///
 /// NAME
-///     stv::stvlink_frame -- парсерный декоратор кадра протокола
+///     stv::stvlink_parser -- парсерный декоратор кадра протокола
 ///     stvlink.
 ///
 /// DESCRIPTION
 ///     Статический интерфейс декоратора кадра для парсера. Описывает
 ///     формат stvlink: стартовая последовательность 0xAA 0xAA, поле
-///     длины кадра frame_size (2 байта), полезная нагрузка,
+///     длины кадра frame_size (2 байта), заголовок сообщения (dst_id,
+///     msg_id, pload_size — 4 байта), полезная нагрузка,
 ///     CRC-16/MODBUS (2 байта). CRC вычисляется по всему кадру,
 ///     включая стартовую последовательность. Формат кадра
 ///     переиспользуется передающей стороной из stvlink_sender.hpp.
+///
+///     После успешного приёма парсер отрезает стартовый кадр и CRC,
+///     а заголовок сообщения оставляет в выдаваемом сообщении:
+///     получатель читает из него идентификатор сообщения msg_id, а
+///     поле dst_id не фильтрует — отправитель заполняет его сам, поле
+///     сохранено в формате кадра для бинарной совместимости протокола.
 ///
 /// SEE ALSO
 ///     crc16.hpp, serial_decorators.hpp, serial_parser.hpp,
 ///     stvlink_sender.hpp.
 
-#ifndef STVLINK_FRAME_HPP
-#define STVLINK_FRAME_HPP
+#ifndef STVLINK_PARSER_HPP
+#define STVLINK_PARSER_HPP
 
 #include "stv/communication/crc16.hpp"
 #include "stv/communication/serial_decorators.hpp"
@@ -44,7 +51,7 @@ namespace stv {
 ///   - хвост размером 2 байта (CRC-16/MODBUS);
 ///   - CRC вычисляется по всему кадру, включая стартовую последовательность;
 ///   - после успешного приёма кадра отрезается заголовок и хвост.
-class stvlink_frame
+class stvlink_parser
 {
     using frame_size_type = std::uint16_t;
     using crc_type        = std::uint16_t;
@@ -146,4 +153,4 @@ class stvlink_frame
 
 } // namespace stv
 
-#endif /* STVLINK_FRAME_HPP */
+#endif /* STVLINK_PARSER_HPP */

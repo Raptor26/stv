@@ -1,4 +1,4 @@
-/// @file test_stvlink_frame.cpp
+/// @file test_stvlink_parser.cpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
 ///
 /// SPDX-License-Identifier: MIT.
@@ -7,7 +7,7 @@
 #include "stv/communication/parsed_queue.hpp"
 #include "stv/communication/serial_decorators.hpp"
 #include "stv/communication/serial_sender.hpp"
-#include "stv/communication/stvlink_frame.hpp"
+#include "stv/communication/stvlink_parser.hpp"
 #include "stv/communication/stvlink_sender.hpp"
 #include "stv/containers/simbuff.hpp"
 #include <array>
@@ -23,7 +23,7 @@
 // NOLINTBEGIN(*-magic-numbers)
 
 TEST_CASE(
-    "stvlink_frame", "[stv][communication]")
+    "stvlink_parser", "[stv][communication]")
 {
     using sim_buffer_type = stv::sim_buff<stv::empty_mutex>;
     using queue_type      = etl::queue<sim_buffer_type, 10>;
@@ -31,14 +31,14 @@ TEST_CASE(
 
     SECTION("start bytes")
     {
-        REQUIRE(stv::stvlink_frame::first_byte == std::byte{0xAA});
-        REQUIRE(stv::stvlink_frame::second_byte == std::byte{0xAA});
+        REQUIRE(stv::stvlink_parser::first_byte == std::byte{0xAA});
+        REQUIRE(stv::stvlink_parser::second_byte == std::byte{0xAA});
     }
 
     SECTION("header and trailer sizes")
     {
-        REQUIRE(stv::stvlink_frame::header_size() == 4U);
-        REQUIRE(stv::stvlink_frame::trailer_size() == 2U);
+        REQUIRE(stv::stvlink_parser::header_size() == 4U);
+        REQUIRE(stv::stvlink_parser::trailer_size() == 2U);
     }
 
     SECTION("frame size extraction")
@@ -46,7 +46,7 @@ TEST_CASE(
         constexpr std::string_view payload{"Hello world"};
 
         auto                       serial_message_buffer =
-            stv::make_serial_message_buffer(tx_queue, stv::stvlink_frame_tx{});
+            stv::make_serial_message_buffer(tx_queue, stv::stvlink_sender{});
 
         {
             const auto msg = serial_message_buffer.request(payload);
@@ -57,9 +57,9 @@ TEST_CASE(
         const auto                   &frame = tx_queue.front();
 
         const stv::total_message_span header_span{
-            frame.data<std::byte>(), stv::stvlink_frame::header_size()};
+            frame.data<std::byte>(), stv::stvlink_parser::header_size()};
 
-        REQUIRE(stv::stvlink_frame::total_frame_size(header_span)
+        REQUIRE(stv::stvlink_parser::total_frame_size(header_span)
                 == frame.size_bytes());
     }
 
@@ -68,7 +68,7 @@ TEST_CASE(
         constexpr std::string_view payload{"Hello world"};
 
         auto                       serial_message_buffer =
-            stv::make_serial_message_buffer(tx_queue, stv::stvlink_frame_tx{});
+            stv::make_serial_message_buffer(tx_queue, stv::stvlink_sender{});
 
         {
             const auto msg = serial_message_buffer.request(payload);
@@ -81,7 +81,7 @@ TEST_CASE(
         const stv::total_message_span total{frame.data<std::byte>(),
                                             frame.size_bytes()};
 
-        REQUIRE(stv::stvlink_frame::is_crc_valid(total));
+        REQUIRE(stv::stvlink_parser::is_crc_valid(total));
 
         std::vector<std::byte> corrupted_frame{frame.data<std::byte>(),
                                                frame.data<std::byte>()
@@ -93,13 +93,13 @@ TEST_CASE(
         const stv::total_message_span corrupted_total{corrupted_frame.data(),
                                                       corrupted_frame.size()};
 
-        REQUIRE_FALSE(stv::stvlink_frame::is_crc_valid(corrupted_total));
+        REQUIRE_FALSE(stv::stvlink_parser::is_crc_valid(corrupted_total));
     }
 
     SECTION("parsed_queue tag")
     {
-        queue_type                                  queue;
-        const stv::parsed_queue<stv::stvlink_frame> stv_queue_tag{queue};
+        queue_type                                   queue;
+        const stv::parsed_queue<stv::stvlink_parser> stv_queue_tag{queue};
 
         REQUIRE(stv_queue_tag.queue() == &queue);
 
@@ -114,10 +114,18 @@ TEST_CASE(
 ///
 /// Эталонные последовательности байт (golden vectors) зафиксированы по
 /// формату кадра, действовавшему до рефакторинга декораторов
-/// (start_frame_and_crc_16 -> stvlink_frame_tx/stvlink_frame,
+/// (start_frame_and_crc_16 -> stvlink_sender/stvlink_parser,
 /// head_route -> stvlink_route_tx), и независимо проверены эталонной
 /// реализацией CRC-16/MODBUS (init 0xFFFF, полином 0xA001, контрольное
-/// значение для "123456789" == 0x4B37).
+/// значение для "123456789" == 0x4B37). После объединения передающих
+/// декораторов (stvlink_route_tx поглощён stvlink_sender) раскладка байт
+/// на проводе не изменилась: секция «заголовок сообщения» собирается
+/// объединённым декоратором и побайтово совпадает с эталоном, зафиксированным
+/// до рефакторинга. Секции «только полезная нагрузка» и «пустая полезная
+/// нагрузка» собираются тем же объединённым декоратором с параметрами по
+/// умолчанию (dst_id = 0, msg_id = 0): заголовок сообщения теперь
+/// присутствует в каждом кадре, поэтому их эталоны пересчитаны для формата
+/// «старотовый кадр | заголовок сообщения | полезная нагрузка | CRC».
 ///
 /// Падение этого теста означает, что изменился БИНАРНЫЙ формат кадра
 /// stvlink: устройства со старой прошивкой и обновлённый конфигуратор
@@ -125,24 +133,26 @@ TEST_CASE(
 /// «под новый формат» — сначала убедиться, что изменение протокола
 /// осознанно и согласовано со всеми сторонами обмена.
 TEST_CASE(
-    "stvlink_frame golden vectors",
+    "stvlink_parser golden vectors",
     "[stv][communication][golden][backward-compatibility]")
 {
     using sim_buffer_type = stv::sim_buff<stv::empty_mutex>;
     using queue_type      = etl::queue<sim_buffer_type, 10>;
     queue_type tx_queue;
 
-    SECTION("payload only: 0x01..0x05")
+    SECTION("payload only: 0x01..0x05, default message header")
     {
-        // 0xAA 0xAA | frame_size=7 (payload + CRC) | payload | CRC-16
+        // 0xAA 0xAA | frame_size=11 (заголовок сообщения + payload + CRC) |
+        // dst=0 | msg=0 | pload_size=5 | payload | CRC-16
         constexpr std::array golden{
-            std::byte{0xAA}, std::byte{0xAA}, std::byte{0x07}, std::byte{0x00},
+            std::byte{0xAA}, std::byte{0xAA}, std::byte{0x0B}, std::byte{0x00},
+            std::byte{0x00}, std::byte{0x00}, std::byte{0x05}, std::byte{0x00},
             std::byte{0x01}, std::byte{0x02}, std::byte{0x03}, std::byte{0x04},
-            std::byte{0x05}, std::byte{0x7E}, std::byte{0x2B},
+            std::byte{0x05}, std::byte{0x7E}, std::byte{0x06},
         };
 
         auto serial_message_buffer =
-            stv::make_serial_message_buffer(tx_queue, stv::stvlink_frame_tx{});
+            stv::make_serial_message_buffer(tx_queue, stv::stvlink_sender{});
 
         {
             constexpr std::array payload{
@@ -164,14 +174,16 @@ TEST_CASE(
 
     SECTION("empty payload")
     {
-        // 0xAA 0xAA | frame_size=2 (только CRC) | CRC-16
+        // 0xAA 0xAA | frame_size=6 (заголовок сообщения + CRC) |
+        // dst=0 | msg=0 | pload_size=0 | CRC-16
         constexpr std::array golden{
-            std::byte{0xAA}, std::byte{0xAA}, std::byte{0x02},
-            std::byte{0x00}, std::byte{0x00}, std::byte{0xBC},
+            std::byte{0xAA}, std::byte{0xAA}, std::byte{0x06}, std::byte{0x00},
+            std::byte{0x00}, std::byte{0x00}, std::byte{0x00}, std::byte{0x00},
+            std::byte{0xC0}, std::byte{0x60},
         };
 
         auto serial_message_buffer =
-            stv::make_serial_message_buffer(tx_queue, stv::stvlink_frame_tx{});
+            stv::make_serial_message_buffer(tx_queue, stv::stvlink_sender{});
 
         {
             constexpr std::array<std::byte, 0> payload{};
@@ -188,10 +200,10 @@ TEST_CASE(
             == 0);
     }
 
-    SECTION("routing header: dst_id=1, pack_id=7, payload 5 bytes")
+    SECTION("message header: dst_id=1, msg_id=7, payload 5 bytes")
     {
-        // 0xAA 0xAA | frame_size=11 (routing header + payload + CRC) |
-        // dst=1 | pack=7 | pload_size=5 | payload | CRC-16
+        // 0xAA 0xAA | frame_size=11 (заголовок сообщения + payload + CRC) |
+        // dst=1 | msg=7 | pload_size=5 | payload | CRC-16
         constexpr std::array golden{
             std::byte{0xAA}, std::byte{0xAA}, std::byte{0x0B}, std::byte{0x00},
             std::byte{0x01}, std::byte{0x07}, std::byte{0x05}, std::byte{0x00},
@@ -199,8 +211,8 @@ TEST_CASE(
             std::byte{0x42}, std::byte{0x18}, std::byte{0x51},
         };
 
-        auto serial_message_buffer = stv::make_serial_message_buffer(
-            tx_queue, stv::stvlink_frame_tx{}, stv::stvlink_route_tx{});
+        auto serial_message_buffer =
+            stv::make_serial_message_buffer(tx_queue, stv::stvlink_sender{});
 
         {
             constexpr std::array payload{
@@ -209,7 +221,7 @@ TEST_CASE(
             };
             const auto msg = serial_message_buffer.request(
                 payload,
-                stv::stvlink_route_tx::setup_t{.dst_id = 1, .pack_id = 7});
+                stv::stvlink_sender::setup_t{.dst_id = 1, .msg_id = 7});
             (void)msg;
         }
 
@@ -233,21 +245,21 @@ TEST_CASE(
             std::byte{0x42}, std::byte{0x18}, std::byte{0x51},
         };
 
-        REQUIRE(stv::stvlink_frame::matches(golden[0], golden[1]));
+        REQUIRE(stv::stvlink_parser::matches(golden[0], golden[1]));
 
         const stv::total_message_span header_span{
-            golden.data(), stv::stvlink_frame::header_size()};
-        REQUIRE(stv::stvlink_frame::total_frame_size(header_span)
+            golden.data(), stv::stvlink_parser::header_size()};
+        REQUIRE(stv::stvlink_parser::total_frame_size(header_span)
                 == golden.size());
 
         const stv::total_message_span total{golden.data(), golden.size()};
-        REQUIRE(stv::stvlink_frame::is_crc_valid(total));
+        REQUIRE(stv::stvlink_parser::is_crc_valid(total));
 
         std::array corrupted{golden};
         corrupted[8] = ~corrupted[8];
         const stv::total_message_span corrupted_total{corrupted.data(),
                                                       corrupted.size()};
-        REQUIRE_FALSE(stv::stvlink_frame::is_crc_valid(corrupted_total));
+        REQUIRE_FALSE(stv::stvlink_parser::is_crc_valid(corrupted_total));
     }
 }
 

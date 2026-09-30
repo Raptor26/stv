@@ -54,8 +54,8 @@
 ///     - явный размер в байтах (без копирования данных).
 ///
 /// EXAMPLE
-///     Пример отправки типизированного пакета со
-///     стартовым кадром, CRC и маршрутизацией:
+///     Пример отправки типизированного сообщения со
+///     стартовым кадром, заголовком сообщения и CRC:
 ///     ```cpp
 ///     #include <stv/communication/serial_sender.hpp>
 ///     #include <stv/communication/stvlink_sender.hpp>
@@ -78,11 +78,11 @@
 ///         queue_type queue{};
 ///
 ///         auto serial_message_buffer = make_serial_message_buffer(
-///             queue, stvlink_frame_tx{}, stvlink_route_tx{});
+///             queue, stvlink_sender{});
 ///
 ///         auto msg = serial_message_buffer.request<UserData>(
-///             stvlink_route_tx::setup_t{
-///                 .dst_id = 1, .pack_id = 7});
+///             stvlink_sender::setup_t{
+///                 .dst_id = 1, .msg_id = 7});
 ///
 ///         if (msg) {
 ///             msg->i = 11;
@@ -106,9 +106,9 @@
 ///     Пример передачи массива с параметрами декоратора:
 ///     ```cpp
 ///     std::array<std::uint16_t, 3> data{11, 22, 33};
-///     stvlink_route_tx::setup_t route{
-///         .dst_id = 1, .pack_id = 7};
-///     auto msg = serial_message_buffer.request(data, route);
+///     stvlink_sender::setup_t msg_setup{
+///         .dst_id = 1, .msg_id = 7};
+///     auto msg = serial_message_buffer.request(data, msg_setup);
 ///     ```
 ///
 /// SEE ALSO
@@ -801,7 +801,7 @@ class serial_message_buffer_base:
     /// @details
     /// Создаёт сообщение, размер которого равен sizeof(UserData). Данные
     /// копируются из переданного объекта. Удобно для передачи типизированных
-    /// пакетов.
+    /// сообщений.
     ///
     /// @tparam UserData Тип POD-структуры.
     /// @tparam SetupParams Типы параметров для декораторов.
@@ -1012,11 +1012,11 @@ class serial_message_buffer_base:
     ///
     /// @note Рекомендация для новых декораторов:
     /// - Если декоратор НЕ хранит состояния и полностью описывается
-    ///   параметром запроса (как stv::stvlink_route_tx), apply_setup
+    ///   параметром запроса (как stv::stvlink_sender), apply_setup
     ///   реализовывать НЕ нужно — достаточно конструктора из параметра.
     /// - Если декоратор хранит состояние, заданное при создании буфера
-    ///   (например, идентификатор отправителя или указатель на счётчик,
-    ///   как декоратор кадра KrdLink из karavan), apply_setup НЕОБХОДИМ:
+    ///   (например, идентификатор отправителя или указатель на счётчик
+    ///   в декораторе кадра из karavan), apply_setup НЕОБХОДИМ:
     ///   пересоздание из параметра запроса уничтожило бы это состояние.
     ///
     /// @param[in,out] decorator Декоратор, к которому применяется параметр.

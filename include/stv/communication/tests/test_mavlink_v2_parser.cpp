@@ -1,11 +1,11 @@
-/// @file test_mavlink_v2_frame.cpp
+/// @file test_mavlink_v2_parser.cpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
 ///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
 #include "stv/communication/crc16.hpp"
-#include "stv/communication/mavlink_v2_frame.hpp"
+#include "stv/communication/mavlink_v2_parser.hpp"
 #include "stv/communication/serial_decorators.hpp"
 #include <array>
 #include <catch2/catch_test_macros.hpp>
@@ -39,7 +39,7 @@ struct test_crc_extra_provider {
     }
 };
 
-using frame_type = stv::mavlink_v2_frame<test_crc_extra_provider>;
+using frame_type = stv::mavlink_v2_parser<test_crc_extra_provider>;
 
 /// @brief Собирает кадр MAVLink v2 с корректным CRC.
 ///
@@ -87,7 +87,7 @@ auto make_frame(
 } // namespace
 
 TEST_CASE(
-    "mavlink_v2_frame", "[stv][communication]")
+    "mavlink_v2_parser", "[stv][communication]")
 {
     SECTION("first byte and matches")
     {
