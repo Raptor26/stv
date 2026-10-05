@@ -36,7 +36,9 @@ class i_magnetic_latest
     [[nodiscard]] virtual auto give_latest_meas() const -> meas_type = 0;
 
     [[nodiscard]] virtual auto noise_level() const -> float
-    { return static_cast<value_type>(0); }
+    {
+        return static_cast<value_type>(0);
+    }
 
   protected:
     i_magnetic_latest() = default;
@@ -62,10 +64,14 @@ class i_magnetic: public i_magnetic_latest<NormalizeMeasType>
     virtual auto read_meas() -> meas_type = 0;
 
     [[nodiscard]] virtual auto freq() const -> float
-    { return static_cast<value_type>(0); }
+    {
+        return static_cast<value_type>(0);
+    }
 
     [[nodiscard]] virtual auto is_self_test_valid() const -> bool
-    { return false; }
+    {
+        return false;
+    }
 
     /// @brief Признак наличия у датчика аппаратного вывода готовности данных
     /// (DRDY/INT).
@@ -106,7 +112,9 @@ class magnetic_default: public TBase
     /// @brief Возвращает крайнее буферизированное значение измерений.
     /// @return Буферизированное значение измерения датчика.
     [[nodiscard]] auto give_latest_meas() const -> meas_type override
-    { return meas_type{}; }
+    {
+        return meas_type{};
+    }
 };
 
 } // namespace stv::drivers

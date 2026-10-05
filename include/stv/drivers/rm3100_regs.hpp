@@ -87,7 +87,9 @@ class rm3100_poll_reg
     /// @param[in] value Значение, считанное из регистра POLL.
     explicit rm3100_poll_reg(
         rm3100_reg_type value)
-    { parse(value); }
+    {
+        parse(value);
+    }
 
     /// @brief Преобразует регистр в сырое байтовое значение.
     ///
@@ -100,8 +102,8 @@ class rm3100_poll_reg
     {
         std::array<rm3100_reg_type, 1U> reg{0};
         etl::bit_stream_writer          bit_stream{std::to_address(reg.begin()),
-                                                   std::to_address(reg.end()),
-                                                   etl::endian::little};
+                                          std::to_address(reg.end()),
+                                          etl::endian::little};
         // Первым записывается старший бит.
         bit_stream.write(false);
         bit_stream.write(pmz);
@@ -159,8 +161,8 @@ class rm3100_poll_reg
     {
         std::array<rm3100_reg_type, 1U> reg{value};
         etl::bit_stream_reader          bit_stream{std::to_address(reg.begin()),
-                                                   std::to_address(reg.end()),
-                                                   etl::endian::little};
+                                          std::to_address(reg.end()),
+                                          etl::endian::little};
         // Первым считывается старший бит.
         bit_stream.skip(1);
         pmz = bit_stream.read_unchecked<bool>();
@@ -234,7 +236,9 @@ class rm3100_cmm_reg
     /// @param[in] value Значение, считанное из регистра CMM.
     explicit rm3100_cmm_reg(
         rm3100_reg_type value)
-    { parse(value); }
+    {
+        parse(value);
+    }
 
     /// @brief Преобразует регистр в сырое байтовое значение.
     ///
@@ -247,8 +251,8 @@ class rm3100_cmm_reg
     {
         std::array<rm3100_reg_type, 1U> reg{0};
         etl::bit_stream_writer          bit_stream{std::to_address(reg.begin()),
-                                                   std::to_address(reg.end()),
-                                                   etl::endian::little};
+                                          std::to_address(reg.end()),
+                                          etl::endian::little};
         // Первым записывается старший бит.
         bit_stream.write(false);
         bit_stream.write(cmz);
@@ -314,8 +318,8 @@ class rm3100_cmm_reg
     {
         std::array<rm3100_reg_type, 1U> reg{value};
         etl::bit_stream_reader          bit_stream{std::to_address(reg.begin()),
-                                                   std::to_address(reg.end()),
-                                                   etl::endian::little};
+                                          std::to_address(reg.end()),
+                                          etl::endian::little};
         // Первым считывается старший бит.
         bit_stream.skip(1);
         cmz = bit_stream.read_unchecked<bool>();
@@ -461,7 +465,9 @@ class rm3100_tmrc_reg
     /// @return `true`, если значения совпадают.
     auto operator==(
         const rm3100_tmrc_reg &other) const -> bool
-    { return value == other.value; }
+    {
+        return value == other.value;
+    }
 
     /// @brief Сырое значение кода частоты обновления.
     ///
@@ -511,7 +517,9 @@ class rm3100_status_reg
     /// @param[in] value Значение, считанное из регистра STATUS.
     explicit rm3100_status_reg(
         rm3100_reg_type value)
-    { parse(value); }
+    {
+        parse(value);
+    }
 
     /// @brief Преобразует регистр в сырое байтовое значение.
     ///
@@ -524,8 +532,8 @@ class rm3100_status_reg
     {
         std::array<rm3100_reg_type, 1U> reg{0};
         etl::bit_stream_writer          bit_stream{std::to_address(reg.begin()),
-                                                   std::to_address(reg.end()),
-                                                   etl::endian::little};
+                                          std::to_address(reg.end()),
+                                          etl::endian::little};
         // Первым записывается старший бит.
         bit_stream.write(drdy);
         bit_stream.write(false);
@@ -579,8 +587,8 @@ class rm3100_status_reg
     {
         std::array<rm3100_reg_type, 1U> reg{value};
         etl::bit_stream_reader          bit_stream{std::to_address(reg.begin()),
-                                                   std::to_address(reg.end()),
-                                                   etl::endian::little};
+                                          std::to_address(reg.end()),
+                                          etl::endian::little};
         // Первым считывается старший бит.
         drdy = bit_stream.read_unchecked<bool>();
         bit_stream.skip(7);
@@ -644,7 +652,9 @@ class rm3100_bist_reg
     /// @param[in] value Значение, считанное из регистра BIST.
     explicit rm3100_bist_reg(
         rm3100_reg_type value)
-    { parse(value); }
+    {
+        parse(value);
+    }
 
     /// @brief Преобразует регистр в сырое байтовое значение.
     ///
@@ -657,8 +667,8 @@ class rm3100_bist_reg
     {
         std::array<rm3100_reg_type, 1U> reg{0};
         etl::bit_stream_writer          bit_stream{std::to_address(reg.begin()),
-                                                   std::to_address(reg.end()),
-                                                   etl::endian::little};
+                                          std::to_address(reg.end()),
+                                          etl::endian::little};
         // Первым записывается старший бит.
         bit_stream.write(ste);
         bit_stream.write(zok);
@@ -741,8 +751,8 @@ class rm3100_bist_reg
     {
         std::array<rm3100_reg_type, 1U> reg{value};
         etl::bit_stream_reader          bit_stream{std::to_address(reg.begin()),
-                                                   std::to_address(reg.end()),
-                                                   etl::endian::little};
+                                          std::to_address(reg.end()),
+                                          etl::endian::little};
         // Первым считывается старший бит.
         ste = bit_stream.read_unchecked<bool>();
         zok = bit_stream.read_unchecked<bool>();
@@ -802,7 +812,9 @@ class rm3100_revid_reg
     /// @return `true`, если значения ревизий совпадают.
     auto operator==(
         const rm3100_revid_reg &other) const -> bool
-    { return revid == other.revid; }
+    {
+        return revid == other.revid;
+    }
 
     /// @brief Считанное значение идентификатора ревизии.
     rm3100_reg_type revid{0};

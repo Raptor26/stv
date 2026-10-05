@@ -843,7 +843,9 @@ class icm42688p:
     template<typename TDelayFnMs>
     auto reinit(
         TDelayFnMs &delay_ms)
-    { return init(init_copy_, delay_ms); }
+    {
+        return init(init_copy_, delay_ms);
+    }
 
     /// @brief Проверяет готовность новых данных (флаг DATA_RDY_INT регистра
     ///        INT_STATUS, бит 3).

@@ -174,7 +174,9 @@ class lwrb_base:
     auto write(
         const void *src, std::size_t len, bool write_all_or_nothing = true,
         bool is_isr = false)
-    { return write_helper(src, len, write_all_or_nothing, is_isr); }
+    {
+        return write_helper(src, len, write_all_or_nothing, is_isr);
+    }
 
     template<typename TIter>
         requires std::input_or_output_iterator<TIter>
@@ -498,7 +500,9 @@ class lwrb_base:
     /// @return Фактическое количество байт, которое помечено как прочитанное.
     auto skip(
         const container_type &to_skip, bool is_isr = false)
-    { return skip(to_skip.size_bytes(), is_isr); }
+    {
+        return skip(to_skip.size_bytes(), is_isr);
+    }
 
     /// @brief Подсматривает указанное количество байт без удаления из
     /// кольцевого буфера.

@@ -109,7 +109,9 @@ class qmc5883p: public stv::qmc5883p_i2c, public stv::imag<MagType>
 
       private:
         [[nodiscard]] auto is_default() const -> bool
-        { return (x == 0) && (y == 0) && (z == 0); }
+        {
+            return (x == 0) && (y == 0) && (z == 0);
+        }
     };
 
     STV_NO_PADDING_NO_OPTIMIZE_END
@@ -240,7 +242,9 @@ class qmc5883p: public stv::qmc5883p_i2c, public stv::imag<MagType>
     ///
     /// @return `true` - если `init()` завершился успешно.
     [[nodiscard]] auto is_initialized() const -> bool
-    { return is_init_success_; }
+    {
+        return is_init_success_;
+    }
 
     /// @brief Статический метод для проверки наличия датчика QMC5883P на
     /// шине I2C.
@@ -448,7 +452,9 @@ class qmc5883p: public stv::qmc5883p_i2c, public stv::imag<MagType>
     }
 
     [[nodiscard]] auto is_self_test_valid() const
-    { return is_self_test_valid_; }
+    {
+        return is_self_test_valid_;
+    }
 
     /// @brief Возвращает true, если новые данные готовы для чтения.
     auto is_data_ready()

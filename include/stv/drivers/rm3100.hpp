@@ -81,9 +81,10 @@ namespace stv {
 ///     Тип должен поддерживать вызов с одним аргументом, представляющим
 ///     количество миллисекунд (@c std::uint16_t).
 template<typename TDelayFnMs>
-concept rm3100_delayable = requires(TDelayFnMs delay_fn, std::uint16_t delay_ms) {
-    { delay_fn(delay_ms) };
-};
+concept rm3100_delayable =
+    requires(TDelayFnMs delay_fn, std::uint16_t delay_ms) {
+        { delay_fn(delay_ms) };
+    };
 
 /// @brief Параметры инициализации драйвера RM3100.
 ///
@@ -535,7 +536,9 @@ class rm3100:
     ///     `true`, если в конструктор был передан ненулевой указатель на
     ///     @ref stv::i2c_interface; `false` в противном случае.
     explicit operator bool() const override
-    { return i2c_base::operator bool(); }
+    {
+        return i2c_base::operator bool();
+    }
 
     /// @brief Проверяет наличие датчика RM3100 на шине I2C.
     ///
@@ -694,7 +697,9 @@ class rm3100:
     ///     `true`, если CMM активен (бит START установлен); `false` в противном
     ///     случае.
     [[nodiscard]] auto is_continuous_active() const -> bool
-    { return is_cmm_active_; }
+    {
+        return is_cmm_active_;
+    }
 
     /// @brief Запускает одиночное измерение по выбранным осям.
     ///
@@ -733,19 +738,25 @@ class rm3100:
     ///
     /// @return Текущее значение регистра STATUS.
     [[nodiscard]] auto read_status_reg() -> rm3100_status_reg
-    { return this->template read<rm3100_status_reg>(); }
+    {
+        return this->template read<rm3100_status_reg>();
+    }
 
     /// @brief Считывает регистр REVID.
     ///
     /// @return Текущее значение регистра REVID.
     [[nodiscard]] auto read_revid_reg() -> rm3100_revid_reg
-    { return this->template read<rm3100_revid_reg>(); }
+    {
+        return this->template read<rm3100_revid_reg>();
+    }
 
     /// @brief Считывает регистр BIST.
     ///
     /// @return Текущее значение регистра BIST.
     [[nodiscard]] auto read_bist_reg() -> rm3100_bist_reg
-    { return this->template read<rm3100_bist_reg>(); }
+    {
+        return this->template read<rm3100_bist_reg>();
+    }
 
     /// @brief Запускает встроенный самотест (BIST) RM3100.
     ///

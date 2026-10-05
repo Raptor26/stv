@@ -42,7 +42,9 @@ TEST_CASE(
     SECTION("Like container") { norm = stv::norm(vector); }
 
     SECTION("Like scalar")
-    { norm = stv::norm(vector.at(0), vector.at(1), vector.at(2)); }
+    {
+        norm = stv::norm(vector.at(0), vector.at(1), vector.at(2));
+    }
     REQUIRE_THAT(norm, Catch::Matchers::WithinRel(
                            static_cast<double>(expected_norm), 0.01));
 }

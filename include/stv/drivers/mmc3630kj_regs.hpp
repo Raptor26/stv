@@ -47,7 +47,9 @@ class mmc3630kj_status_reg
 
     explicit mmc3630kj_status_reg(
         mmc3630kj_reg_type value = mmc3630kj_reg_type{0})
-    { parse(value); }
+    {
+        parse(value);
+    }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator mmc3630kj_reg_type() const
@@ -198,7 +200,9 @@ class mmc3630kj_ctrl0_reg
 
     explicit mmc3630kj_ctrl0_reg(
         mmc3630kj_reg_type value = mmc3630kj_reg_type{0})
-    { parse(value); }
+    {
+        parse(value);
+    }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator mmc3630kj_reg_type() const
@@ -402,7 +406,9 @@ class mmc3630kj_ctrl1_reg
 
     explicit mmc3630kj_ctrl1_reg(
         mmc3630kj_reg_type value = mmc3630kj_reg_type{0})
-    { parse(value); }
+    {
+        parse(value);
+    }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator mmc3630kj_reg_type() const
@@ -558,7 +564,9 @@ class mmc3630kj_ctrl2_reg
 
     explicit mmc3630kj_ctrl2_reg(
         mmc3630kj_reg_type value = mmc3630kj_reg_type{0})
-    { parse(value); }
+    {
+        parse(value);
+    }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator mmc3630kj_reg_type() const
@@ -688,7 +696,9 @@ class mmc3630kj_product_id_reg
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     bool operator==(
         const mmc3630kj_product_id_reg &other) const
-    { return product_id == other.product_id; }
+    {
+        return product_id == other.product_id;
+    }
 
     /// @brief Значение идентификатора продукта.
     mmc3630kj_reg_type product_id{0};

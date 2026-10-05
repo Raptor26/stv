@@ -30,7 +30,9 @@ class mmc56xx_status_reg
 
     explicit mmc56xx_status_reg(
         mmc56xx_reg_type value = mmc56xx_reg_type{0})
-    { parse(value); }
+    {
+        parse(value);
+    }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator mmc56xx_reg_type() const
@@ -144,7 +146,9 @@ class mmc56xx_odr_reg
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     bool operator==(
         const mmc56xx_odr_reg &other) const
-    { return odr == other.odr; }
+    {
+        return odr == other.odr;
+    }
 
     /// @brief Значение частоты дискретизации.
     mmc56xx_reg_type odr{0x00};
@@ -167,7 +171,9 @@ class mmc56xx_ctrl0_reg
 
     explicit mmc56xx_ctrl0_reg(
         mmc56xx_reg_type value = mmc56xx_reg_type{0})
-    { parse(value); }
+    {
+        parse(value);
+    }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator mmc56xx_reg_type() const
@@ -291,7 +297,9 @@ class mmc56xx_ctrl1_reg
 
     explicit mmc56xx_ctrl1_reg(
         mmc56xx_reg_type value = mmc56xx_reg_type{0})
-    { parse(value); }
+    {
+        parse(value);
+    }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator mmc56xx_reg_type() const
@@ -404,7 +412,9 @@ class mmc56xx_ctrl2_reg
 
     explicit mmc56xx_ctrl2_reg(
         mmc56xx_reg_type value = mmc56xx_reg_type{0})
-    { parse(value); }
+    {
+        parse(value);
+    }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator mmc56xx_reg_type() const
@@ -506,7 +516,9 @@ class mmc56xx_product_id_reg
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     bool operator==(
         const mmc56xx_product_id_reg &other) const
-    { return product_id == other.product_id; }
+    {
+        return product_id == other.product_id;
+    }
 
     /// @brief Значение идентификатора продукта.
     mmc56xx_reg_type product_id{0};

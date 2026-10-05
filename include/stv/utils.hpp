@@ -262,7 +262,9 @@ class non_movable_non_copyable
 template<typename... Args>
 [[nodiscard]] auto all_true(
     Args... args)
-{ return (... && args); }
+{
+    return (... && args);
+}
 
 /// @brief Проверка истинности хотя бы одного аргумента (логическое ИЛИ).
 /// @details Функция использует fold expression для вычисления логического
@@ -282,7 +284,9 @@ template<typename... Args>
 template<typename... Args>
 [[nodiscard]] auto one_true(
     Args... args)
-{ return (... || args); }
+{
+    return (... || args);
+}
 
 /// @}
 
@@ -353,19 +357,25 @@ template<std::floating_point T>
 constexpr bool is_equal(
     const T first, const T second,
     const T epsilon = std::numeric_limits<T>::epsilon()) noexcept
-{ return std::abs(first - second) < epsilon; }
+{
+    return std::abs(first - second) < epsilon;
+}
 
 template<typename T>
     requires(!std::floating_point<T> && std::integral<T>)
 constexpr bool is_equal(
     const T first, const T second) noexcept
-{ return first == second; }
+{
+    return first == second;
+}
 
 template<typename T>
     requires(!std::floating_point<T>)
 constexpr bool is_equal(
     const T &first, const T &second) noexcept
-{ return first == second; }
+{
+    return first == second;
+}
 
 /// @brief Re-maps a number from one range to another. That is, a value of
 /// in_min would get mapped to out_min, a value of in_max to out_max, values

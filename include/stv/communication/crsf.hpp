@@ -340,7 +340,8 @@ consteval void assert_handler_map_capacity()
     for(const std::byte byte: data)
     {
         // Индекс — результат xor двух байт, всегда в диапазоне таблицы (256).
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index,
+        // cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
         crc = table[static_cast<std::size_t>(
             crc ^ std::to_integer<decltype(crc)>(byte))];
     }
@@ -532,8 +533,8 @@ class crsf_parser
     // Парсер автоматически регистрирует два встроенных обработчика кадров
     // (0x16 и 0x14): таблица обработчиков должна вмещать минимум два
     // элемента (см. документацию crsf_parser_setup::handler_map_type).
-    static_assert(
-        (detail::assert_handler_map_capacity<handler_map_type>(), true));
+    static_assert((detail::assert_handler_map_capacity<handler_map_type>(),
+                   true));
 
     /// @brief Контекст конечного автомата разбора кадров.
     struct parser_context {
@@ -711,7 +712,8 @@ class crsf_parser
             };
 
             // frame_size проверен выше: crc всегда в пределах кадра.
-            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index,
+            // cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
             if(crc_actual != context.frame[context.frame_size - crc_size])
             {
                 // Лимит resync-потребления исчерпан: кадр не потребляется,
@@ -892,8 +894,11 @@ class crsf_parser
     auto get_channel(
         std::uint8_t ch_numb) const
     // Номер канала по контракту меньше crsf_rc_channels_count.
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
-    { return channels_[ch_numb]; }
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index,
+    // cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+    {
+        return channels_[ch_numb];
+    }
 
     /// @brief Возвращает статистику канала связи, разобранную из крайнего
     /// принятого кадра link statistics (0x14).
@@ -904,7 +909,9 @@ class crsf_parser
     /// синхронизация. Возвращаемая ссылка указывает на внутренний буфер
     /// (живые данные, а не снимок): содержимое изменяется каждым run().
     auto link_statistics() const -> const crsf_link_statistics &
-    { return link_statistics_; }
+    {
+        return link_statistics_;
+    }
 
     /// @brief Регистрирует пользовательский обработчик кадра заданного типа.
     /// @param frame_type Тип кадра crsf.
@@ -1019,18 +1026,19 @@ class crsf_parser
             for(std::size_t bit{0U}; bit < bits_per_channel; ++bit)
             {
                 const std::size_t bit_index{(channel * bits_per_channel) + bit};
-                const auto        byte = static_cast<unsigned>(
-                    std::to_integer<std::uint8_t>(
-                        // bit_index < 176, поэтому индекс байта всегда меньше
-                        // crsf_rc_channels_payload_size (22), проверенного
-                        // выше.
-                        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
-                        payload[bit_index / bits_per_byte]));
+                const auto        byte = static_cast<
+                           unsigned>(std::to_integer<std::uint8_t>(
+                    // bit_index < 176, поэтому индекс байта всегда меньше
+                    // crsf_rc_channels_payload_size (22), проверенного
+                    // выше.
+                    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+                    payload[bit_index / bits_per_byte]));
                 value |= static_cast<std::uint16_t>(
                     ((byte >> (bit_index % bits_per_byte)) & 1U) << bit);
             }
             // Номер канала ограничен циклом значением crsf_rc_channels_count.
-            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index,
+            // cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
             channels_[channel] = value;
         }
 

@@ -32,7 +32,9 @@ class qmc5883_ctrl1_reg
 
     explicit qmc5883_ctrl1_reg(
         qmc5883_reg_type value = qmc5883_reg_type{0})
-    { parse(value); }
+    {
+        parse(value);
+    }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator qmc5883_reg_type() const
@@ -127,7 +129,9 @@ class qmc5883_ctrl2_reg
 
     explicit qmc5883_ctrl2_reg(
         qmc5883_reg_type value = qmc5883_reg_type{0})
-    { parse(value); }
+    {
+        parse(value);
+    }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator qmc5883_reg_type() const
@@ -213,12 +217,16 @@ class qmc5883_set_reset_period_reg
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator qmc5883_reg_type() const
-    { return static_cast<qmc5883_reg_type>(fbr); }
+    {
+        return static_cast<qmc5883_reg_type>(fbr);
+    }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     bool operator==(
         const qmc5883_set_reset_period_reg &other) const
-    { return fbr == other.fbr; }
+    {
+        return fbr == other.fbr;
+    }
 
     /// @brief Поле, содержащее значение периода сброса.
     qmc5883_reg_type fbr;
@@ -239,7 +247,9 @@ class qmc5883_status_reg
 
     explicit qmc5883_status_reg(
         qmc5883_reg_type value = qmc5883_reg_type{0})
-    { parse(value); }
+    {
+        parse(value);
+    }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator qmc5883_reg_type() const
@@ -328,7 +338,9 @@ class qmc5883_chip_id_reg
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     bool operator==(
         const qmc5883_chip_id_reg &other) const
-    { return chip_id == other.chip_id; }
+    {
+        return chip_id == other.chip_id;
+    }
 
     /// @brief Значение идентификатора продукта.
     qmc5883_reg_type chip_id{0};

@@ -336,10 +336,14 @@ TEST_CASE(
     SECTION("qmc5883p_chip_id_reg")
     {
         SECTION("Check address")
-        { REQUIRE(qmc5883p_chip_id_reg::addr == 0x00); }
+        {
+            REQUIRE(qmc5883p_chip_id_reg::addr == 0x00);
+        }
 
         SECTION("Check expected value")
-        { REQUIRE(qmc5883p_chip_id_reg::expected_value == 0x80); }
+        {
+            REQUIRE(qmc5883p_chip_id_reg::expected_value == 0x80);
+        }
 
         SECTION("Check default value")
         {
@@ -462,7 +466,9 @@ SCENARIO(
                     });
 
                 THEN("is_data_ready returns true")
-                { REQUIRE(driver.is_data_ready()); }
+                {
+                    REQUIRE(driver.is_data_ready());
+                }
             }
 
             AND_WHEN("New data ready bit reset")
@@ -482,7 +488,9 @@ SCENARIO(
                     });
 
                 THEN("is_data_ready returns false")
-                { REQUIRE_FALSE(driver.is_data_ready()); }
+                {
+                    REQUIRE_FALSE(driver.is_data_ready());
+                }
             }
         }
 
@@ -512,7 +520,9 @@ SCENARIO(
                 [&delay_ms](std::uint32_t ms) { delay_ms = ms; });
 
             THEN("Delay callback is called with 5 ms")
-            { REQUIRE(delay_ms == 5); }
+            {
+                REQUIRE(delay_ms == 5);
+            }
 
             THEN("Self-test passes") { REQUIRE(self_test_result); }
         }

@@ -284,7 +284,9 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
             AND_THEN("<buffer> from <dst_average> should have all values from "
                      "<src_average> object")
-            { REQUIRE(dst_average.buffer_ == src_average.buffer_); }
+            {
+                REQUIRE(dst_average.buffer_ == src_average.buffer_);
+            }
         }
 
         WHEN("User copy assign source object to destination one")
@@ -302,7 +304,9 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
             AND_THEN("<buffer> from <dst_average> should have all values from "
                      "<src_average> object")
-            { REQUIRE(dst_average.buffer_ == src_average.buffer_); }
+            {
+                REQUIRE(dst_average.buffer_ == src_average.buffer_);
+            }
         }
 
         WHEN("User move source object to destination one")
@@ -323,7 +327,9 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
             AND_THEN("<buffer> from <dst_average> should have all values from "
                      "<src_average> object")
-            { REQUIRE(dst_average.buffer_ == src_buffer_span); }
+            {
+                REQUIRE(dst_average.buffer_ == src_buffer_span);
+            }
         }
 
         WHEN("User move assign source object to destination one")
@@ -354,7 +360,9 @@ TEMPLATE_PRODUCT_TEST_CASE(
 
             AND_THEN("<buffer> from <dst_average> should have all values from "
                      "<src> object")
-            { REQUIRE(dst_average.buffer_ == src_buffer_span); }
+            {
+                REQUIRE(dst_average.buffer_ == src_buffer_span);
+            }
         }
     }
 }

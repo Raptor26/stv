@@ -60,8 +60,7 @@ class pid_interface
     ///
     /// @return Control output.
     virtual value_type update(value_type setpoint, value_type measurement,
-                              value_type dt)
-        = 0;
+                              value_type dt) = 0;
 
     /// @brief Clears the internal state (integral accumulator, previous
     /// error).

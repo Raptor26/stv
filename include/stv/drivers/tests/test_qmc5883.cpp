@@ -389,7 +389,9 @@ SCENARIO(
                     });
 
                 THEN("is_data_ready returns true")
-                { REQUIRE(driver.is_data_ready()); }
+                {
+                    REQUIRE(driver.is_data_ready());
+                }
             }
 
             AND_WHEN("New data ready bit reset")
@@ -409,7 +411,9 @@ SCENARIO(
                     });
 
                 THEN("is_data_ready returns false")
-                { REQUIRE_FALSE(driver.is_data_ready()); }
+                {
+                    REQUIRE_FALSE(driver.is_data_ready());
+                }
             }
         }
 
@@ -466,7 +470,9 @@ SCENARIO(
                 });
 
             THEN("is_detected returns true")
-            { REQUIRE(qmc5883<stv::mag<float>>::is_detected(&i2c_mock.get())); }
+            {
+                REQUIRE(qmc5883<stv::mag<float>>::is_detected(&i2c_mock.get()));
+            }
         }
 
         WHEN("Chip ID does not match expected value")

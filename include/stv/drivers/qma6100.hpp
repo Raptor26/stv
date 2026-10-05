@@ -259,7 +259,9 @@ class qma6100:
     /// @return Структура `normalize_t` с нормализованными значениями осей.
     auto normalize(
         const auto &raw)
-    { return acc_type{raw.x * lsb_, raw.y * lsb_, raw.z * lsb_, timestamp_}; }
+    {
+        return acc_type{raw.x * lsb_, raw.y * lsb_, raw.z * lsb_, timestamp_};
+    }
 
     /// @brief Записывает регистр в память датчика, а затем считывает его и
     /// сравнивает с тем что планировалось записать.

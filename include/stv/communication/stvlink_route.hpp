@@ -138,7 +138,9 @@ class stvlink_route: virtual public stv::non_movable_non_copyable
         const setup_type &setup):
         queue_to_read_{setup.queue_to_read},
         hash_to_write_{setup.hash_to_write}
-    { (void)setup; }
+    {
+        (void)setup;
+    }
 
     /// @brief Деструктор по умолчанию.
     virtual ~stvlink_route() = default;
@@ -148,7 +150,9 @@ class stvlink_route: virtual public stv::non_movable_non_copyable
     /// @return @c true, если оба указателя (очередь и хэш-таблица)
     ///     установлены; иначе @c false.
     explicit operator bool() const
-    { return stv::all_true(queue_to_read_, hash_to_write_); }
+    {
+        return stv::all_true(queue_to_read_, hash_to_write_);
+    }
 
     /// @brief Выполняет маршрутизацию сообщений из входной очереди.
     ///
@@ -169,7 +173,7 @@ class stvlink_route: virtual public stv::non_movable_non_copyable
             decltype(auto) msg = queue_to_read_->front();
 
             const auto    *router_ptr = reinterpret_cast<
-                const stv::stvlink_route_tx::routing_header_t *>(msg.data());
+                   const stv::stvlink_route_tx::routing_header_t *>(msg.data());
 
             if(router_ptr)
             {

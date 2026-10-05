@@ -128,13 +128,17 @@ class stvlink_frame_tx
     ///
     /// @return Размер заголовка в байтах.
     static constexpr size_t header_size()
-    { return stvlink_frame::header_size(); }
+    {
+        return stvlink_frame::header_size();
+    }
 
     /// @brief Возвращает размер хвоста.
     ///
     /// @return Размер хвоста в байтах.
     static constexpr size_t trailer_size()
-    { return stvlink_frame::trailer_size(); }
+    {
+        return stvlink_frame::trailer_size();
+    }
 
     /// @brief Заполняет стартовый кадр и поле размера сообщения.
     ///
@@ -182,7 +186,9 @@ class stvlink_frame_tx
     /// @return @c true, если CRC совпадает; @c false в противном случае.
     static auto is_crc_valid(
         const total_message_span &total)
-    { return stvlink_frame::is_crc_valid(total); }
+    {
+        return stvlink_frame::is_crc_valid(total);
+    }
 };
 
 /// ----------------------------------------------------------------------------

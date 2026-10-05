@@ -83,7 +83,7 @@ inline void pack_rc_channels(
     {
         bit_buffer |= static_cast<std::uint32_t>(channel & 0x07FFU)
                       << bit_count;
-        bit_count  += 11U;
+        bit_count += 11U;
         while(bit_count >= 8U)
         {
             payload[byte_index] = static_cast<std::byte>(bit_buffer & 0xFFU);

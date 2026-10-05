@@ -75,8 +75,8 @@ namespace stv {
 /// @param[in] crc Текущее значение CRC-16.
 /// @param[in] value Досчитываемый байт.
 /// @return Обновлённое значение CRC-16.
-[[nodiscard]] inline std::uint16_t crc16_x25_accumulate(std::uint16_t crc,
-                                                        std::byte value)
+[[nodiscard]] inline std::uint16_t crc16_x25_accumulate(
+    std::uint16_t crc, std::byte value)
 {
     // NOLINTBEGIN(hicpp-signed-bitwise, bugprone-signed-bitwise)
     crc ^= static_cast<std::uint8_t>(value);
@@ -108,8 +108,8 @@ namespace stv {
 /// @param[in] data Указатель на начало данных.
 /// @param[in] size Размер данных в байтах.
 /// @return Вычисленное значение CRC-16.
-[[nodiscard]] inline std::uint16_t crc16_x25(const std::byte *data,
-                                             std::size_t size)
+[[nodiscard]] inline std::uint16_t crc16_x25(
+    const std::byte *data, std::size_t size)
 {
     std::uint16_t crc = 0xFFFFU;
 

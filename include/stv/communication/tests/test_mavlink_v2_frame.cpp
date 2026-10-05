@@ -173,8 +173,8 @@ TEST_CASE(
 
     SECTION("corrupted crc is invalid")
     {
-        auto frame = make_frame(0x00U, 0x01U, 0x01U, 0U,
-                                {std::byte{0x48}, std::byte{0x69}}, 50U);
+        auto frame               = make_frame(0x00U, 0x01U, 0x01U, 0U,
+                                              {std::byte{0x48}, std::byte{0x69}}, 50U);
         frame[frame.size() - 1U] = ~frame[frame.size() - 1U];
 
         const stv::total_message_span total{frame.data(), frame.size()};

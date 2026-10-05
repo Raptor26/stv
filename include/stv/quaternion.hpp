@@ -57,11 +57,15 @@ struct quaternion {
 
     /// @brief Все компоненты конечны (не NaN и не inf).
     [[nodiscard]] explicit operator bool() const noexcept
-    { return is_finite(); }
+    {
+        return is_finite();
+    }
 
     /// @brief Все компоненты равны нулю.
     [[nodiscard]] constexpr auto is_zero() const noexcept
-    { return a == std::array<T, 4>{}; }
+    {
+        return a == std::array<T, 4>{};
+    }
 
   private:
     [[nodiscard]] auto is_finite() const noexcept
@@ -85,12 +89,16 @@ struct quat_traits<stv::quaternion<T>> {
     template<int I>
     [[nodiscard]] static constexpr auto read_element(
         const stv::quaternion<T> &quat) noexcept -> T
-    { return quat.a[static_cast<std::size_t>(I)]; }
+    {
+        return quat.a[static_cast<std::size_t>(I)];
+    }
 
     template<int I>
     [[nodiscard]] static constexpr auto write_element(
         stv::quaternion<T> &quat) noexcept -> T &
-    { return quat.a[static_cast<std::size_t>(I)]; }
+    {
+        return quat.a[static_cast<std::size_t>(I)];
+    }
 };
 
 } // namespace boost::qvm

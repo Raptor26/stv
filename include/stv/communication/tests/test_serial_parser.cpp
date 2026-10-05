@@ -68,7 +68,9 @@ class custom_allocator
     static auto           get_allocator_cnt() { return alloc_cnt; }
 
     static constexpr auto get_mem_ptr()
-    { return memory_to_serial_parser.data(); }
+    {
+        return memory_to_serial_parser.data();
+    }
 
     static auto data() { return memory_to_serial_parser.data(); }
 

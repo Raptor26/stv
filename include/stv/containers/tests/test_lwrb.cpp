@@ -154,7 +154,7 @@ TEMPLATE_PRODUCT_TEST_CASE(
             REQUIRE(buff_second.is_empty());
 
             const std::string     expected{std::string{str_first}
-                                           + std::string{str_second}};
+                                       + std::string{str_second}};
             std::array<char, 128> tmp{};
             REQUIRE(buff_first.read(tmp) == expected.size());
             REQUIRE(std::strcmp(tmp.data(), expected.c_str()) == 0);
@@ -205,7 +205,7 @@ TEMPLATE_PRODUCT_TEST_CASE(
             REQUIRE(buff_second.get_full() == str_second.size());
 
             const std::string     expected{std::string{str_first}
-                                           + std::string{str_second}};
+                                       + std::string{str_second}};
             std::array<char, 128> tmp{};
             REQUIRE(buff_first.read(tmp) == expected.size());
             REQUIRE(std::strcmp(tmp.data(), expected.c_str()) == 0);

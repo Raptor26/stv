@@ -95,7 +95,7 @@ inline constexpr std::uint8_t nibble_mask{0x0F};
                        | (static_cast<std::uint32_t>(data_lo) << lo_shift)
                        | (static_cast<std::uint32_t>(nibble) & nibble_mask);
 
-    auto       signed_value = static_cast<std::int32_t>(value);
+    auto signed_value = static_cast<std::int32_t>(value);
     if((value & sign_bit) != 0U)
     {
         signed_value -= sign_offset;

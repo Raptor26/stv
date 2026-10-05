@@ -265,7 +265,9 @@ class serial_parser_setup
     /// @return Константная ссылка на кортеж @ref parsed_queue.
     [[nodiscard]] auto queues() const
         -> const std::tuple<parsed_queue<Decorators, queue_type>...> &
-    { return queues_; }
+    {
+        return queues_;
+    }
 
   private:
     /// @brief Кортеж типизированных связок очередей с декораторами.
@@ -543,7 +545,9 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     ///
     /// @return Максимальный размер заголовка в байтах.
     static constexpr std::size_t max_header_size()
-    { return std::max({Decorators::header_size()...}); }
+    {
+        return std::max({Decorators::header_size()...});
+    }
 
     /// @brief Возвращает индекс декоратора @c D в пакете.
     ///
@@ -599,7 +603,7 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     static void dispatch_by_index(
         std::size_t idx, Func &&func, std::index_sequence<Is...> /*indexes*/)
     {
-        bool invoked{false};
+        bool       invoked{false};
         const auto invoke_once = [&](auto index_constant) {
             if(!invoked)
             {
@@ -814,7 +818,7 @@ class serial_parser: virtual private stv::non_movable_non_copyable
             std::size_t matched_idx{decorators_count};
             std::size_t remaining_size{0};
 
-            auto try_match = [&]<std::size_t Idx>(
+            auto        try_match = [&]<std::size_t Idx>(
                                  std::integral_constant<std::size_t, Idx>) {
                 using decorator_type = std::tuple_element_t<Idx, decorators_t>;
 
@@ -1027,7 +1031,9 @@ class serial_parser: virtual private stv::non_movable_non_copyable
 template<typename TSetup, typename... DecoratorTypes>
 auto make_serial_parser(
     const TSetup &setup)
-{ return serial_parser<TSetup, DecoratorTypes...>{setup}; }
+{
+    return serial_parser<TSetup, DecoratorTypes...>{setup};
+}
 
 } // namespace stv
 

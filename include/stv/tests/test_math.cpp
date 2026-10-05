@@ -31,7 +31,8 @@ TEST_CASE(
         const stv::quaternion<float> quat{std::cos(target_yaw / 2.0F), 0.0F,
                                           0.0F, std::sin(target_yaw / 2.0F)};
 
-        REQUIRE(stv::to_euler_roll(quat) == Catch::Approx(0.0F).margin(1.0e-6F));
+        REQUIRE(stv::to_euler_roll(quat)
+                == Catch::Approx(0.0F).margin(1.0e-6F));
         REQUIRE(stv::to_euler_pitch(quat)
                 == Catch::Approx(0.0F).margin(1.0e-6F));
         REQUIRE(stv::to_euler_yaw(quat) == Catch::Approx(target_yaw));
@@ -56,7 +57,8 @@ TEST_CASE(
         const stv::quaternion<float> quat{std::cos(target_pitch / 2.0F), 0.0F,
                                           std::sin(target_pitch / 2.0F), 0.0F};
 
-        REQUIRE(stv::to_euler_roll(quat) == Catch::Approx(0.0F).margin(1.0e-6F));
+        REQUIRE(stv::to_euler_roll(quat)
+                == Catch::Approx(0.0F).margin(1.0e-6F));
         REQUIRE(stv::to_euler_pitch(quat) == Catch::Approx(target_pitch));
         REQUIRE(stv::to_euler_yaw(quat) == Catch::Approx(0.0F).margin(1.0e-6F));
     }
@@ -67,7 +69,7 @@ TEST_CASE(
         const stv::quaternion<float> quat{std::cos(target_yaw / 2.0F), 0.0F,
                                           0.0F, std::sin(target_yaw / 2.0F)};
 
-        const auto euler = stv::to_euler(quat);
+        const auto                   euler = stv::to_euler(quat);
 
         REQUIRE(euler.size() == 3U);
         REQUIRE(euler[0] == Catch::Approx(0.0F).margin(1.0e-6F));
@@ -78,10 +80,10 @@ TEST_CASE(
     SECTION("Half-turn yaw is recovered with double precision")
     {
         const double                  target_yaw = std::numbers::pi / 2.0;
-        const stv::quaternion<double> quat{std::cos(target_yaw / 2.0), 0.0,
-                                           0.0, std::sin(target_yaw / 2.0)};
+        const stv::quaternion<double> quat{std::cos(target_yaw / 2.0), 0.0, 0.0,
+                                           std::sin(target_yaw / 2.0)};
 
-        const auto euler = stv::to_euler(quat);
+        const auto                    euler = stv::to_euler(quat);
 
         REQUIRE(euler[0] == Catch::Approx(0.0).margin(1.0e-12));
         REQUIRE(euler[1] == Catch::Approx(0.0).margin(1.0e-12));

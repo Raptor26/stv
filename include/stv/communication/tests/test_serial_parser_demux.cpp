@@ -121,9 +121,9 @@ auto make_stv_frame(
 /// @brief Собирает кадр MAVLink v2 с заданной полезной нагрузкой через
 ///     передающий декоратор mavlink_v2_frame_tx.
 auto make_mavlink_frame(
-    std::string_view payload, std::uint8_t compid, // NOLINT(bugprone-easily-swappable-parameters)
-    const mavlink_frame_tx_type::route_t &route)
-    -> std::vector<std::byte>
+    std::string_view payload,
+    std::uint8_t     compid, // NOLINT(bugprone-easily-swappable-parameters)
+    const mavlink_frame_tx_type::route_t &route) -> std::vector<std::byte>
 {
     queue_type                  tx_queue;
     stv::mavlink_v2_seq_counter counter;
@@ -131,7 +131,7 @@ auto make_mavlink_frame(
     auto                        buffer = stv::make_serial_message_buffer(
         tx_queue,
         mavlink_frame_tx_type{
-            {.sysid = mavlink_sysid, .compid = compid, .counter = &counter}});
+                                   {.sysid = mavlink_sysid, .compid = compid, .counter = &counter}});
 
     {
         const auto msg = buffer.request(payload, route);
@@ -150,7 +150,8 @@ auto make_mavlink_frame(
 
 /// @brief Собирает кадр stv_rx_v2 с байтовой полезной нагрузкой.
 auto make_stv_frame_bytes(
-    std::span<const std::byte> payload, std::uint8_t dst_id) // NOLINT(bugprone-easily-swappable-parameters)
+    std::span<const std::byte> payload,
+    std::uint8_t dst_id) // NOLINT(bugprone-easily-swappable-parameters)
     -> std::vector<std::byte>
 {
     queue_type tx_queue;
@@ -198,9 +199,9 @@ auto make_expected_stv_payload(
 /// @brief Возвращает ожидаемое содержимое распарсенного кадра MAVLink v2:
 ///     [compat_flags, seq, sysid, compid, msgid (3 байта, LE), payload].
 auto make_expected_mavlink_payload(
-    std::string_view payload, std::uint8_t compid, // NOLINT(bugprone-easily-swappable-parameters)
-    const mavlink_frame_tx_type::route_t &route)
-    -> std::vector<std::byte>
+    std::string_view payload,
+    std::uint8_t     compid, // NOLINT(bugprone-easily-swappable-parameters)
+    const mavlink_frame_tx_type::route_t &route) -> std::vector<std::byte>
 {
     const auto             msgid = route.msgid;
     std::vector<std::byte> result;
@@ -703,7 +704,7 @@ TEST_CASE(
             std::byte{0x01}, // sysid
             std::byte{0x01}, // compid
             std::byte{0x2A}, std::byte{0x00}, std::byte{0x00},
-        };                   // msgid = 42 (неизвестен провайдеру)
+        }; // msgid = 42 (неизвестен провайдеру)
 
         auto stv_frame_bad = make_stv_frame_bytes(tricky_payload, stv_dst_id);
         // Портим последний байт CRC кадра, не трогая его размер.

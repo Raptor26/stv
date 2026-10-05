@@ -89,7 +89,9 @@ class stvlink_frame
     ///     последовательностью @c 0xAA 0xAA; @c false в противном случае.
     static constexpr bool matches(
         std::byte first, std::byte second)
-    { return (first == first_byte) && (second == second_byte); }
+    {
+        return (first == first_byte) && (second == second_byte);
+    }
 
     /// @brief Возвращает размер заголовка кадра.
     ///

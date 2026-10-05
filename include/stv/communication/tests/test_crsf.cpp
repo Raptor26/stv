@@ -75,7 +75,9 @@ struct crsf_parser_fixture: crsf_runtime_mock_base {
     /// всё.
     auto write(
         std::span<const std::byte> data)
-    { REQUIRE(ringbuff.write(data) == data.size()); }
+    {
+        REQUIRE(ringbuff.write(data) == data.size());
+    }
 };
 
 /// @brief Обвязка тестов с доступом к setup до создания парсера (для тестов,
@@ -98,7 +100,9 @@ struct crsf_setup_fixture: crsf_runtime_mock_base {
     /// всё.
     auto write(
         std::span<const std::byte> data)
-    { REQUIRE(ringbuff.write(data) == data.size()); }
+    {
+        REQUIRE(ringbuff.write(data) == data.size());
+    }
 };
 
 /// @brief Обвязка тестов failsafe: мок runtime возвращает управляемое тестом
@@ -132,7 +136,9 @@ struct crsf_failsafe_fixture: crsf_runtime_mock_base {
     /// всё.
     auto write(
         std::span<const std::byte> data)
-    { REQUIRE(ringbuff.write(data) == data.size()); }
+    {
+        REQUIRE(ringbuff.write(data) == data.size());
+    }
 
     /// @brief Сдвигает возвращаемое моком runtime время вперед.
     auto advance_time(
@@ -242,12 +248,15 @@ SCENARIO(
 
     GIVEN("Строка \"123456789\"")
     {
-        static constexpr std::array<char, 9> chars{'1', '2', '3', '4', '5',
-                                                   '6', '7', '8', '9',};
+        static constexpr std::array<char, 9> chars{
+            '1', '2', '3', '4', '5', '6', '7', '8', '9',
+        };
         const auto data = std::as_bytes(std::span{chars});
 
         THEN("crc равен контрольному значению crc-8/dvb-s2")
-        { REQUIRE(stv::crsf_crc8(data) == 0xBC); }
+        {
+            REQUIRE(stv::crsf_crc8(data) == 0xBC);
+        }
     }
 
     GIVEN("Один нулевой байт")
@@ -270,7 +279,9 @@ SCENARIO(
         data_with_crc.back() = std::byte{crc};
 
         THEN("crc от данных с приложенным crc равен нулю")
-        { REQUIRE(stv::crsf_crc8(data_with_crc) == 0); }
+        {
+            REQUIRE(stv::crsf_crc8(data_with_crc) == 0);
+        }
     }
 }
 
@@ -979,8 +990,8 @@ SCENARIO(
         std::byte{0x42},
         std::byte{0x42},
     };
-    const auto           junk_crc_actual = std::byte{stv::crsf_crc8(junk_body)};
-    const auto           junk_crc =
+    const auto junk_crc_actual = std::byte{stv::crsf_crc8(junk_body)};
+    const auto junk_crc =
         junk_crc_actual != std::byte{0x00} ? std::byte{0x00} : std::byte{0xFF};
     REQUIRE(junk_crc != junk_crc_actual);
 
@@ -1149,7 +1160,7 @@ SCENARIO(
     constexpr std::size_t payload_size{
         stv::crsf_rc_channels_payload_size + extra_size,
     };
-    constexpr std::size_t payload_index{3U};
+    constexpr std::size_t                           payload_index{3U};
 
     std::array<std::byte, stv::crsf_frame_size_max> frame_buffer{};
     frame_buffer[0U] = std::byte{0xC8};

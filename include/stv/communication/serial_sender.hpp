@@ -289,7 +289,9 @@ class composite_serial_message
     ///
     /// @return Константный указатель на первый байт полезной нагрузки.
     [[nodiscard]] const std::byte *pload() const
-    { return memory_.begin() + header_size_; }
+    {
+        return memory_.begin() + header_size_;
+    }
 
     /// @brief Возвращает span, покрывающий полезную нагрузку.
     ///
@@ -489,14 +491,18 @@ class serial_message
     ///
     /// @return true, если память выделена; false в противном случае.
     explicit operator bool() const
-    { return static_cast<bool>(composite_message_); }
+    {
+        return static_cast<bool>(composite_message_);
+    }
 
     /// @brief Возвращает указатель на полезную нагрузку как на UserData.
     ///
     /// @return Указатель на объект типа UserData, расположенный в памяти
     /// полезной нагрузки.
     auto operator->()
-    { return reinterpret_cast<user_type *>(composite_message_.pload()); }
+    {
+        return reinterpret_cast<user_type *>(composite_message_.pload());
+    }
 
     /// @brief Возвращает указатель на начало полезной нагрузки.
     ///
@@ -693,7 +699,9 @@ class serial_message_buffer_base:
     /// @return Объект @ref serial_message<char>.
     auto request(
         const char *str)
-    { return request(std::string_view{str}); }
+    {
+        return request(std::string_view{str});
+    }
 
     /// @brief Запрашивает сообщение из C-строки с параметрами декораторов.
     ///
@@ -776,7 +784,9 @@ class serial_message_buffer_base:
     template<typename T>
     auto request(
         std::span<const T> span)
-    { return request_impl<std::remove_const_t<T>>(std::as_bytes(span)); }
+    {
+        return request_impl<std::remove_const_t<T>>(std::as_bytes(span));
+    }
 
     /// @brief Запрашивает сообщение из неизменяемого span с параметрами
     /// декораторов.
@@ -857,7 +867,9 @@ class serial_message_buffer_base:
     template<typename InputIt>
     auto request(
         InputIt cbegin, InputIt cend)
-    { return request(std::as_bytes(std::span{cbegin, cend})); }
+    {
+        return request(std::as_bytes(std::span{cbegin, cend}));
+    }
 
     /// @brief Возвращает ссылку на связанную очередь.
     ///

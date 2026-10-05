@@ -163,14 +163,18 @@ class moving_average_setup
     /// @return true, если параметры равны, иначе false.
     auto operator==(
         const moving_average_setup &other) const -> bool
-    { return (this->window_width == other.window_width); }
+    {
+        return (this->window_width == other.window_width);
+    }
 
     /// @brief Оператор сравнения на неравенство.
     /// @param[in] other Другой объект параметров.
     /// @return true, если параметры не равны, иначе false.
     auto operator!=(
         const moving_average_setup &other) const -> bool
-    { return !(*this == other); }
+    {
+        return !(*this == other);
+    }
 
     /// @brief Возвращает true если window_width находится в допустимом
     /// диапазоне.
@@ -346,7 +350,9 @@ class moving_average_base
     ///
     /// @return Значения по умолчанию для параметров фильтра.
     [[nodiscard]] auto get_default_setup() const noexcept -> setup_type
-    { return setup_default_; }
+    {
+        return setup_default_;
+    }
 
     /// @brief Получить фактические параметры настройки фильтра.
     [[nodiscard]] auto get_setup(

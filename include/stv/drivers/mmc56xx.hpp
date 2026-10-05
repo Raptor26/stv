@@ -83,7 +83,9 @@ class mmc56xx: public stv::mmc56xx_i2c, public stv::imag<MagType>
 
       private:
         [[nodiscard]] auto is_default() const -> bool
-        { return (x == 0) && (y == 0) && (z == 0); }
+        {
+            return (x == 0) && (y == 0) && (z == 0);
+        }
     };
 
     STV_NO_PADDING_NO_OPTIMIZE_END
@@ -279,7 +281,9 @@ class mmc56xx: public stv::mmc56xx_i2c, public stv::imag<MagType>
     }
 
     [[nodiscard]] auto is_self_test_valid() const
-    { return is_self_test_valid_; }
+    {
+        return is_self_test_valid_;
+    }
 
     /// @brief Возвращает true, если новые данные готовы для чтения.
     auto is_data_ready()
@@ -299,7 +303,9 @@ class mmc56xx: public stv::mmc56xx_i2c, public stv::imag<MagType>
     auto is_chip_id_valid(
         mmc56xx_reg_type expected_id =
             mmc56xx_product_id_reg::expected_value_mmc5616wa)
-    { return (read_chip_id().product_id == expected_id); }
+    {
+        return (read_chip_id().product_id == expected_id);
+    }
 
     /// @brief Считывает необработанные данные измерений.
     auto read_meas_raw()
