@@ -20,9 +20,9 @@
 #include "stv/gyraccmag_types.hpp"
 #include "stv/i2c.hpp"
 
-// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace)
+// NOLINTBEGIN(readability-function-cognitive-complexity)
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 
 TEST_CASE(
     "MMC3630KJ Registers")
@@ -506,7 +506,7 @@ SCENARIO(
 
     GIVEN("Default initialize setup")
     {
-        mmc3630kj_setup setup;
+        const mmc3630kj_setup setup;
 
         WHEN("Initialize with default setup")
         {
@@ -545,6 +545,8 @@ SCENARIO(
                 };
 
                 When(Method(i2c_mock, read))
+                    // сигнатура задана i2c_interface
+                    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                     .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                                   stv::i2c_interface::byte_type reg_addr,
                                   void *dst, std::size_t len) -> bool {
@@ -580,6 +582,8 @@ SCENARIO(
             // Simulate I2C write failure on the first write call
             std::size_t write_cnt{0};
             When(Method(i2c_mock, write))
+                // сигнатура задана i2c_interface
+                // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                 .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                               stv::i2c_interface::byte_type reg_addr,
                               stv::i2c_interface::byte_type value) -> bool {
@@ -610,6 +614,8 @@ SCENARIO(
         WHEN("Chip ID matches expected value")
         {
             When(Method(i2c_mock, read))
+                // сигнатура задана i2c_interface
+                // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                 .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                               stv::i2c_interface::byte_type reg_addr, void *dst,
                               std::size_t len) -> bool {
@@ -631,6 +637,8 @@ SCENARIO(
         WHEN("Chip ID does not match expected value")
         {
             When(Method(i2c_mock, read))
+                // сигнатура задана i2c_interface
+                // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                 .AlwaysDo([&](stv::i2c_interface::byte_type slave_addr,
                               stv::i2c_interface::byte_type reg_addr, void *dst,
                               std::size_t len) -> bool {
@@ -661,6 +669,6 @@ SCENARIO(
     }
 }
 
-// NOLINTEND(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-complexity,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(readability-function-cognitive-complexity)
+// NOLINTEND(*-magic-numbers, google-build-using-namespace)

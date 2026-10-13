@@ -10,21 +10,21 @@
 ///
 /// DESCRIPTION
 ///     mavlink_v2_sender предоставляет передающую сторону протокола
-///     MAVLink v2: декоратор mavlink_v2_frame_tx формирует кадр
+///     MAVLink v2: декоратор mavlink_v2_sender формирует кадр
 ///     (стартовый байт 0xFD, поле длины len, флаги, заголовок
 ///     маршрутизации seq/sysid/compid/msgid, полезная нагрузка,
 ///     CRC-16/X.25), а mavlink_v2_seq_counter ведёт сквозной атомарный
 ///     счётчик последовательности seq. Формат кадра переиспользуется из
-///     mavlink_v2_frame.hpp.
+///     mavlink_v2_parser.hpp.
 ///
 /// SEE ALSO
-///     mavlink_v2_frame.hpp, serial_decorators.hpp, serial_sender.hpp.
+///     mavlink_v2_parser.hpp, serial_decorators.hpp, serial_sender.hpp.
 
 #ifndef MAVLINK_V2_SENDER_HPP
 #define MAVLINK_V2_SENDER_HPP
 
 #include "stv/communication/crc16.hpp"
-#include "stv/communication/mavlink_v2_frame.hpp"
+#include "stv/communication/mavlink_v2_parser.hpp"
 #include "stv/communication/serial_decorators.hpp"
 #include <atomic>
 #include <bit>
@@ -107,7 +107,7 @@ class mavlink_v2_seq_counter
 ///
 /// @warning
 /// Декоратор ДОЛЖЕН быть единственным декоратором буфера сообщений:
-///   make_serial_message_buffer(queue, mavlink_v2_frame_tx{...})
+///   make_serial_message_buffer(queue, mavlink_v2_sender{...})
 /// Поле len вычисляется от размера полезной нагрузки всего сообщения,
 /// а CRC — по всем байтам после стартового байта, поэтому при
 /// добавлении других декораторов в буфер поля len и CRC будут
@@ -123,7 +123,7 @@ class mavlink_v2_seq_counter
 ///     std::optional<std::uint8_t>, возвращающий CRC_EXTRA для
 ///     известного msgid или @c std::nullopt для неизвестного.
 template<typename TCrcExtraProvider>
-class mavlink_v2_frame_tx
+class mavlink_v2_sender
 {
     /// @brief Максимальное значение идентификатора сообщения (3 байта).
     static constexpr std::uint32_t max_message_id{0xFF'FFFFU};
@@ -161,13 +161,13 @@ class mavlink_v2_frame_tx
     /// Требуется конструктором невалидного сообщения (request_null()):
     /// такое сообщение не выделяет память, поэтому setup_header() и
     /// setup_trailer() для него не вызываются.
-    mavlink_v2_frame_tx() = default;
+    mavlink_v2_sender() = default;
 
     /// @brief Конструирует декоратор с параметрами отправителя.
     ///
     /// @param[in] setup Параметры отправителя (sysid, compid и счётчик
     ///     seq).
-    explicit mavlink_v2_frame_tx(
+    explicit mavlink_v2_sender(
         const setup_t &setup):
         setup_{setup}
     { assert(setup.counter != nullptr); }
@@ -249,7 +249,7 @@ class mavlink_v2_frame_tx
         assert(route_.msgid <= max_message_id);
         assert(pload.size_bytes() <= std::numeric_limits<std::uint8_t>::max());
 
-        dst[0U] = mavlink_v2_frame<TCrcExtraProvider>::first_byte;
+        dst[0U] = mavlink_v2_parser<TCrcExtraProvider>::first_byte;
         dst[1U] = static_cast<std::byte>(pload.size_bytes());
         dst[2U] = std::byte{0x00}; // incompat_flags: подпись не
                                    // поддерживается.
@@ -273,7 +273,7 @@ class mavlink_v2_frame_tx
     /// CRC вычисляется по байтам от поля len до конца полезной нагрузки
     /// (без стартового байта @c 0xFD и без самого CRC) с досчётом байта
     /// CRC_EXTRA, предоставляемого @c TCrcExtraProvider для msgid кадра.
-    /// Диапазон байт CRC совпадает с mavlink_v2_frame::is_crc_valid.
+    /// Диапазон байт CRC совпадает с mavlink_v2_parser::is_crc_valid.
     ///
     /// @param[out] dst Указатель на начало хвоста в собранном сообщении.
     /// @param[in] total Границы всего сообщения.
@@ -283,7 +283,7 @@ class mavlink_v2_frame_tx
         // Запись CRC через memcpy предполагает, что порядок байт CRC на
         // проводе (little-endian) совпадает с порядком байт платформы.
         static_assert(std::endian::native == std::endian::little,
-                      "mavlink_v2_frame_tx::setup_trailer requires a"
+                      "mavlink_v2_sender::setup_trailer requires a"
                       " little-endian platform");
 
         // Гарантируется проверками на уровне request(): apply_setup()

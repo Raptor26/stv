@@ -75,9 +75,7 @@ struct crsf_parser_fixture: crsf_runtime_mock_base {
     /// всё.
     auto write(
         std::span<const std::byte> data)
-    {
-        REQUIRE(ringbuff.write(data) == data.size());
-    }
+    { REQUIRE(ringbuff.write(data) == data.size()); }
 };
 
 /// @brief Обвязка тестов с доступом к setup до создания парсера (для тестов,
@@ -100,9 +98,7 @@ struct crsf_setup_fixture: crsf_runtime_mock_base {
     /// всё.
     auto write(
         std::span<const std::byte> data)
-    {
-        REQUIRE(ringbuff.write(data) == data.size());
-    }
+    { REQUIRE(ringbuff.write(data) == data.size()); }
 };
 
 /// @brief Обвязка тестов failsafe: мок runtime возвращает управляемое тестом
@@ -136,9 +132,7 @@ struct crsf_failsafe_fixture: crsf_runtime_mock_base {
     /// всё.
     auto write(
         std::span<const std::byte> data)
-    {
-        REQUIRE(ringbuff.write(data) == data.size());
-    }
+    { REQUIRE(ringbuff.write(data) == data.size()); }
 
     /// @brief Сдвигает возвращаемое моком runtime время вперед.
     auto advance_time(
@@ -248,15 +242,18 @@ SCENARIO(
 
     GIVEN("Строка \"123456789\"")
     {
+        // clang-tidy 23 ошибочно колеблется: для этого списка требует и
+        // запрещает висячую запятую одновременно; формат соответствует
+        // .clang-format.
+        // NOLINTBEGIN(readability-trailing-comma)
         static constexpr std::array<char, 9> chars{
             '1', '2', '3', '4', '5', '6', '7', '8', '9',
         };
+        // NOLINTEND(readability-trailing-comma)
         const auto data = std::as_bytes(std::span{chars});
 
         THEN("crc равен контрольному значению crc-8/dvb-s2")
-        {
-            REQUIRE(stv::crsf_crc8(data) == 0xBC);
-        }
+        { REQUIRE(stv::crsf_crc8(data) == 0xBC); }
     }
 
     GIVEN("Один нулевой байт")
@@ -279,9 +276,7 @@ SCENARIO(
         data_with_crc.back() = std::byte{crc};
 
         THEN("crc от данных с приложенным crc равен нулю")
-        {
-            REQUIRE(stv::crsf_crc8(data_with_crc) == 0);
-        }
+        { REQUIRE(stv::crsf_crc8(data_with_crc) == 0); }
     }
 }
 

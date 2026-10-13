@@ -1,11 +1,11 @@
-/// @file mavlink_v2_frame.hpp
+/// @file mavlink_v2_parser.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
 ///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 ///
 /// NAME
-///     stv::mavlink_v2_frame -- парсерный декоратор кадра протокола
+///     stv::mavlink_v2_parser -- парсерный декоратор кадра протокола
 ///     MAVLink v2.
 ///
 /// DESCRIPTION
@@ -21,8 +21,8 @@
 /// SEE ALSO
 ///     crc16.hpp, serial_decorators.hpp, serial_parser.hpp.
 
-#ifndef MAVLINK_V2_FRAME_HPP
-#define MAVLINK_V2_FRAME_HPP
+#ifndef MAVLINK_V2_PARSER_HPP
+#define MAVLINK_V2_PARSER_HPP
 
 #include "stv/communication/crc16.hpp"
 #include "stv/communication/serial_decorators.hpp"
@@ -73,7 +73,7 @@ namespace stv {
 ///     std::optional<std::uint8_t>, возвращающий CRC_EXTRA для
 ///     известного msgid или @c std::nullopt для неизвестного.
 template<typename TCrcExtraProvider>
-class mavlink_v2_frame
+class mavlink_v2_parser
 {
     using length_type = std::uint8_t;
     using crc_type    = std::uint16_t;
@@ -168,7 +168,7 @@ class mavlink_v2_frame
         // Чтение CRC через memcpy предполагает, что порядок байт CRC на
         // проводе (little-endian) совпадает с порядком байт платформы.
         static_assert(std::endian::native == std::endian::little,
-                      "mavlink_v2_frame::is_crc_valid requires a little-endian"
+                      "mavlink_v2_parser::is_crc_valid requires a little-endian"
                       " platform");
 
         // Кадр должен содержать как минимум заголовок и хвост, иначе
@@ -224,4 +224,4 @@ class mavlink_v2_frame
 
 } // namespace stv
 
-#endif /* MAVLINK_V2_FRAME_HPP */
+#endif /* MAVLINK_V2_PARSER_HPP */

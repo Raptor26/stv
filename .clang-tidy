@@ -1,9 +1,12 @@
+# optin.core.EnumCastOutOfRange отключена: срабатывает внутри Catch2
+# (catch_result_type.hpp), header-filter для анализатора не работает.
 Checks: >
   boost-*,
   -boost-use-ranges,
   bugprone-*,
   cert-*,
   clang-analyzer-*,
+  -clang-analyzer-optin.core.EnumCastOutOfRange,
   cppcoreguidelines-*,
   -cppcoreguidelines-avoid-const-or-ref-data-members,
   -cppcoreguidelines-non-private-member-variables-in-classes,
@@ -64,5 +67,7 @@ CheckOptions:
   - key: readability-identifier-naming.MacroDefinitionCase
     value: UPPER_CASE
 WarningsAsErrors: '*'
+# Сторонние заголовки (Catch2, FakeIt, boost из Homebrew) не проверяются
+ExcludeHeaderFilterRegex: '(/build/|/opt/homebrew/|/usr/local/|cpptime\.h$)'
 HeaderFilterRegex: '.*'
 FormatStyle: file

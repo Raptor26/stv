@@ -12,9 +12,9 @@
 #include "stv/drivers/mmc56xx_regs.hpp"
 #include "stv/drivers/mmc56xx_types.hpp"
 
-// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace)
+// NOLINTBEGIN(readability-function-cognitive-complexity)
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 
 TEST_CASE(
     "MMC56xx Registers")
@@ -193,7 +193,7 @@ TEST_CASE(
     SECTION("ODR")
     {
         constexpr std::uint8_t expected_val{0x10};
-        mmc56xx_odr_reg        reg{expected_val};
+        const mmc56xx_odr_reg  reg{expected_val};
         REQUIRE(static_cast<std::uint8_t>(reg) == expected_val);
     }
 
@@ -542,6 +542,6 @@ TEST_CASE(
     }
 }
 
-// NOLINTEND(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-complexity,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(readability-function-cognitive-complexity)
+// NOLINTEND(*-magic-numbers, google-build-using-namespace)

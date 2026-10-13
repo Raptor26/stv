@@ -36,8 +36,8 @@ note left of serial_parser::run
 start_frame_and_size — поиск стартового
 кадра; декоратор выбирается статическим
 методом matches(b0, b1) по первым
-байтам (0xAA 0xAA — stvlink_frame,
-0xFD — mavlink_v2_frame, проверяется
+байтам (0xAA 0xAA — stvlink_parser,
+0xFD — mavlink_v2_parser, проверяется
 только первый байт);
 wait_message_ready — ожидание полного
 кадра и проверка CRC-16 через выбранный
@@ -48,7 +48,7 @@ parsed_queue<выбранный_декоратор>.
 отбрасывается.
 end note
 
-class "stv::stvlink_frame" as stvlink_frame {
+class "stv::stvlink_parser" as stvlink_parser {
     + first_byte : 0xAA
     + second_byte : 0xAA
     + header_size() : size_t
@@ -56,9 +56,17 @@ class "stv::stvlink_frame" as stvlink_frame {
     + total_frame_size(header) : size_t
     + is_crc_valid(total) : bool
 }
-note bottom of stvlink_frame: Декоратор кадра stvlink.\nCRC считается по всему кадру,\nвключая стартовую последовательность.
+note bottom of stvlink_parser: Декоратор кадра stvlink (приём).\nCRC считается по всему кадру,\nвключая стартовую последовательность.
 
-class "stv::mavlink_v2_frame<CrcExtraProvider>" as mavlink_v2_frame {
+class "stv::stvlink_sender" as stvlink_sender {
+    + setup_t{dst_id, msg_id}
+    + message_header_t{dst_id, msg_id, pload_size}
+    + setup_header(dst, total, pload)
+    + setup_trailer(dst, total)
+}
+note bottom of stvlink_sender: Передающий декоратор stvlink.\nФормирует кадр целиком: стартовая\nпоследовательность 0xAA 0xAA, поле\nframe_size, заголовок сообщения\n(dst_id, msg_id, pload_size) и CRC-16\nв хвосте. Раскладка байт на проводе\nнеизменна — бинарная совместимость\nсохраняется.
+
+class "stv::mavlink_v2_parser<CrcExtraProvider>" as mavlink_v2_parser {
     + first_byte : 0xFD
     + matches(first, second) : bool
     + header_size() : size_t
@@ -66,7 +74,7 @@ class "stv::mavlink_v2_frame<CrcExtraProvider>" as mavlink_v2_frame {
     + total_frame_size(header) : size_t
     + is_crc_valid(total) : bool
 }
-note bottom of mavlink_v2_frame: Декоратор кадра MAVLink v2.\nЗаголовок 3 байта (0xFD, len,\nincompat_flags), хвост — CRC-16/X.25.\nCRC считается от поля len до конца\nполезной нагрузки с досчётом байта\nCRC_EXTRA от провайдера по msgid.
+note bottom of mavlink_v2_parser: Декоратор кадра MAVLink v2.\nЗаголовок 3 байта (0xFD, len,\nincompat_flags), хвост — CRC-16/X.25.\nCRC считается от поля len до конца\nполезной нагрузки с досчётом байта\nCRC_EXTRA от провайдера по msgid.
 
 class "stv::sim_buff" as sim_buff {
   + trim_head()
@@ -75,61 +83,31 @@ class "stv::sim_buff" as sim_buff {
 }
 note top of sim_buff: RAII-контейнер, владеющий\nпамятью сообщения.
 
-class "parsed_queue<stvlink_frame>" as parsed_queue_stv {
+class "parsed_queue<stvlink_parser>" as parsed_queue_stv {
 }
 note bottom of parsed_queue_stv: Типизированная выходная очередь\nпарсера для кадров stvlink.
 
-class "parsed_queue<mavlink_v2_frame>" as parsed_queue_mavlink {
+class "parsed_queue<mavlink_v2_parser>" as parsed_queue_mavlink {
 }
 note bottom of parsed_queue_mavlink: Типизированная выходная очередь\nпарсера для кадров MAVLink v2.
 
-class "stv::stvlink_route_setup" as route_setup_stv {
-    queue_type *queue_to_read
-    hash_type *hash_to_write
-}
-note bottom of route_setup_stv: Параметры инициализации\nмаршрутизатора stvlink.
-
-class "stv::stvlink_route" as router_stv {
-    + run() : unsigned int
-}
-note top of router_stv: Маршрутизатор сообщений stvlink.\nЧитает parsed_queue<stvlink_frame>,\nизвлекает dst_id из заголовка\nstv::stvlink_route_tx и перемещает сообщение\nв очередь получателя. Если ключ\nотсутствует в таблице или целевая\nочередь переполнена — сообщение\nотбрасывается.
-
-class "stv::mavlink_v2_route_setup" as route_setup_mavlink {
-    parsed_queue<mavlink_v2_frame> queue_to_read
-    hash_type *hash_to_write
-}
-note bottom of route_setup_mavlink: Параметры инициализации\nмаршрутизатора MAVLink v2.
-
-class "stv::mavlink_v2_route" as router_mavlink {
-    + run() : size_t
-}
-note top of router_mavlink: Маршрутизатор сообщений MAVLink v2.\nЧитает parsed_queue<mavlink_v2_frame>,\nизвлекает compid (идентификатор\nкомпонента-источника) из заголовка\nмаршрутизации и перемещает сообщение\nв очередь получателя. Если ключ\nотсутствует в таблице или целевая\nочередь переполнена — сообщение\nотбрасывается. Широковещательная\nрассылка не поддерживается.
-
-class "etl::unordered_map<int, queue_type*>" as route_hash_table_stv {
-}
-note top of route_hash_table_stv: Таблица маршрутизации stvlink.\nКлюч — dst_id (идентификатор модуля\nв рамках всей системы), значение —\nуказатель на очередь получателя.
-
-class "etl::unordered_map<int, queue_type*>" as route_hash_table_mavlink {
-}
-note top of route_hash_table_mavlink: Таблица маршрутизации MAVLink v2.\nКлюч — compid (идентификатор\nкомпонента-источника), значение —\nуказатель на очередь получателя.
-
-class "telemetry_queue <<stv::sim_buff>>" as telemetry_queue {
-}
-note top of telemetry_queue: Очередь сообщений,\nпредназначенных модулю telemetry.
-
-class "telemetry <<karavan::cambridge>>" as telemetry {
+class "telemetry <<stv::stvlink_module>>" as telemetry {
     + process_one() : bool
 }
-note bottom of telemetry: Пример модуля-получателя.\nИзвлекает сообщение из своей очереди\nи передаёт его процессору сообщений.
+note bottom of telemetry: Пример модуля-получателя.\nКонструируется напрямую на выходной\nочереди парсера parsed_queue<stvlink_parser>.\nИзвлекает сообщение из очереди\nи передаёт его диспетчеру.
 
-class "karavan::cambridge_message_processor" as msg_processor {
-    + handle_message(msg) : bool
+class "stv::stvlink_dispatcher" as dispatcher {
+    + dispatch_message(msg) : bool
 }
-note bottom of msg_processor: Извлекает pack_id из заголовка\nstv::stvlink_route_tx, находит обработчик,\nсрезает заголовок маршрута (trim_head)\nи вызывает обработчик с полезной\nнагрузкой. Если не найден —\nсообщение отбрасывается.
+note bottom of dispatcher: Диспетчер. Читает msg_id из заголовка\nсообщения (stvlink_sender::message_header_t),\nнаходит обработчик в таблице, срезает\nзаголовок сообщения (trim_head) и\nвызывает обработчик с полезной\nнагрузкой. Если обработчик не найден —\nсообщение отбрасывается.
 
-class "etl::unordered_map<int, cambridge_message_processor_fnc_type>" as handler_hash_table {
+class "etl::unordered_map<int, stv::stvlink_message_handler_fnc_type>" as handler_hash_table {
 }
-note top of handler_hash_table: Таблица обработчиков.\nКлюч — pack_id (идентификатор сообщения\nв рамках модуля), значение — указатель\nна функцию-обработчик.
+note top of handler_hash_table: Таблица обработчиков.\nКлюч — msg_id (идентификатор\nсообщения), значение — указатель\nна функцию-обработчик.
+
+class "mavlink_module <<проект>>" as mavlink_module {
+}
+note bottom of mavlink_module: Потребитель кадров MAVLink v2\nиз интегрирующего проекта.\nЧитает parsed_queue<mavlink_v2_parser>\nнапрямую.
 
 usart_rx o-- lwrb
 comport_rx o-- lwrb
@@ -140,72 +118,79 @@ parser_setup o-- parsed_queue_stv
 parser_setup o-- parsed_queue_mavlink
 serial_parser o-- parsed_queue_stv
 serial_parser o-- parsed_queue_mavlink
-parsed_queue_stv --o router_stv
-parsed_queue_mavlink --o router_mavlink
-router_stv ..> route_setup_stv : конструируется из
-router_mavlink ..> route_setup_mavlink : конструируется из
-router_stv o-- route_hash_table_stv
-router_mavlink o-- route_hash_table_mavlink
-telemetry_queue --o route_hash_table_stv : регистрация очереди\nв таблице маршрутов
-telemetry_queue --* telemetry
-telemetry o-- msg_processor
-msg_processor o-- handler_hash_table
+parsed_queue_stv --* telemetry
+parsed_queue_mavlink --o mavlink_module
+telemetry o-- dispatcher
+dispatcher o-- handler_hash_table
 @enduml
+
+## Терминология
+
+Терминология ниже — единый источник имён для переменных, методов и классов во всех проектах, использующих stv и karavan.
+
+- **Кадр** (frame) — байтовая последовательность на проводе: стартовая последовательность, заголовки, полезная нагрузка, CRC. Кадр ещё не проверен и может быть битым. В коде: `stvlink_parser`, `mavlink_v2_parser` (декораторы кадра), `stvlink_sender` (формирование кадра на передаче).
+- **Сообщение** (message) — кадр, прошедший проверку парсером и помещённый в очередь; единица работы всех стадий после парсера. Заголовок сообщения в нём сохраняется. В коде: элемент `parsed_queue`, контейнер `sim_buff`.
+- **Заголовок сообщения** (message header) — служебные поля сообщения: `dst_id`, `msg_id`, `pload_size`. В коде: `stvlink_sender::message_header_t`.
+- **Парсер** (parser) — анализирует поток байт, находит границы кадра, проверяет CRC и помещает сообщение в очередь. Не вызывает обработчиков и не знает семантики протокола. В коде: `serial_parser`.
+- **Диспетчер** (dispatcher) — извлекает сообщение из очереди, читает идентификатор сообщения и вызывает соответствующий обработчик из таблицы. В коде: `stv::stvlink_dispatcher`.
+- **Идентификатор сообщения** (`msg_id`) — поле заголовка сообщения, ключ таблицы обработчиков. Не путать с адресом получателя. В коде: поле `msg_id`; в протоколе CRSF эту роль играет поле `type` — имя сохранено по спецификации протокола как осознанное исключение.
+- **Адрес получателя** (`dst_id`) — поле заголовка сообщения. Остаётся в формате кадра для бинарной совместимости: отправитель заполняет, приёмник игнорирует (проверка на приёме не выполняется). В коде: `dst_id`, значения адресов — `karavan::route_idx_t`.
+- **Таблица обработчиков** (handler table) — ассоциативный контейнер «ключ — значение», где ключ — идентификатор сообщения, а значение — функция-обработчик этого сообщения. В коде: `handlers`, `stvlink_setup::hash_table`.
+- **Обработчик** (handler) — свободная функция вида `bool(std::span<std::byte>)`, вызывается диспетчером с полезной нагрузкой сообщения. Не является методом класса. В коде: `stv::stvlink_message_handler_fnc_type`.
+- **Модуль** (module) — прикладной потребитель сообщений: диспетчер + таблица обработчиков, работающие на очереди парсера. В коде: `stv::stvlink_module`.
+- ~~**Маршрутизатор**~~ — понятие удалено из библиотек (см. ADR [docs/adr/0001-single-queue-stvlink-rx.md](../../../docs/adr/0001-single-queue-stvlink-rx.md)): практика показала, что во всех интегрирующих проектах входящие сообщения обрабатывает ровно один модуль, поэтому промежуточная стадия перекладывания сообщений между очередями оказалась чистым оверхедом. Диспетчер читает очередь парсера напрямую.
 
 ## Архитектура обработки сообщений
 
-> Декораторы протокола KrdLink (`krd_link_frame`, `krd_link_frame_tx` + `krd_link_counter`, `krd_link_route`) перенесены из `stv` в библиотеку karavan (пространство имён `karavan::`, заголовки `karavan/include/karavan/krd_link_*.hpp`) и на схеме не показаны. Вместо них в `stv/communication` добавлены декораторы MAVLink v2: парсерный кадр `stv::mavlink_v2_frame`, TX-декоратор `stv::mavlink_v2_frame_tx` + `stv::mavlink_v2_seq_counter` и маршрутизатор `stv::mavlink_v2_route`.
+> Кадровые декораторы протокола обмена с полезной нагрузкой живут в библиотеке karavan и на схеме не показаны. Вместо них в `stv/communication` добавлены декораторы MAVLink v2: парсерный кадр `stv::mavlink_v2_parser` и TX-декоратор `stv::mavlink_v2_sender` + `stv::mavlink_v2_seq_counter`.
 
-Обработка полученных сообщений построена в два этапа:
+Обработка полученных сообщений построена в три этапа:
 
-- **Первичное демультиплексирование (parser):** `stv::serial_parser` анализирует поток байт, выделяет кадр и проверяет его достоверность с помощью CRC. Декоратор кадра выбирается статическим методом `matches(b0, b1)` по первым байтам (`0xAA 0xAA` — `stv::stvlink_frame`, `0xFD` — `stv::mavlink_v2_frame`, проверяется только первый байт). Распарсенное сообщение помещается в типизированную выходную очередь `stv::parsed_queue<Декоратор>`, соответствующую выбранному формату.
-- **Маршрутизация stvlink:** `stv::stvlink_route` читает `parsed_queue<stv::stvlink_frame>`, извлекает из заголовка `stv::stvlink_route_tx` идентификатор получателя `dst_id` и передаёт сообщение в очередь целевого модуля.
-- **Маршрутизация MAVLink v2:** `stv::mavlink_v2_route` читает `parsed_queue<stv::mavlink_v2_frame>`, извлекает из заголовка маршрутизации идентификатор компонента-источника `compid`, выполняет поиск ключа в хеш-таблице и перемещает сообщение в целевую очередь. Если ключ отсутствует в таблице или целевая очередь переполнена, сообщение отбрасывается. Широковещательная рассылка не поддерживается.
-- **Диспетчеризация:** программный модуль (`karavan::cambridge`) считывает идентификатор сообщения (поле `pack_id`) и вызывает соответствующий обработчик.
+- **Первичное демультиплексирование (парсер):** `stv::serial_parser` анализирует поток байт, выделяет кадр и проверяет его достоверность с помощью CRC. Декоратор кадра выбирается статическим методом `matches(b0, b1)` по первым байтам (`0xAA 0xAA` — `stv::stvlink_parser`, `0xFD` — `stv::mavlink_v2_parser`, проверяется только первый байт). Распарсенное сообщение помещается в типизированную выходную очередь `stv::parsed_queue<Декоратор>`, соответствующую выбранному формату.
+- **Диспетчеризация:** модуль (`stv::stvlink_module`) конструируется напрямую на выходной очереди парсера — обе стороны работают через интерфейс `etl::iqueue<sim_buff>`, поэтому типы совместимы. Диспетчер (`stv::stvlink_dispatcher`) считывает идентификатор сообщения (поле `msg_id`) и вызывает соответствующий обработчик. Проверка `dst_id` на приёме не выполняется: поле остаётся в формате кадра, отправитель продолжает его заполнять, бинарная совместимость протокола сохраняется; на линке точка-точка с единственным пэром адресная фильтрация не несёт нагрузки. Решение об удалении промежуточной стадии маршрутизации зафиксировано в ADR [docs/adr/0001-single-queue-stvlink-rx.md](../../../docs/adr/0001-single-queue-stvlink-rx.md); перенос диспетчера, базового класса и модуля из karavan в stv — в ADR [docs/adr/0003-stvlink-dispatcher-moved-to-stv.md](../../../docs/adr/0003-stvlink-dispatcher-moved-to-stv.md).
 - **Обработка данных:** вызванный обработчик анализирует полезную нагрузку и выполняет действия согласно её содержимому.
 
 ## Пример: модуль telemetry с двумя обработчиками
 
-Один модуль может обслуживать несколько типов сообщений. Каждый тип регистрируется в таблице обработчиков под своим `pack_id`:
+Один модуль может обслуживать несколько типов сообщений. Каждый тип регистрируется в таблице обработчиков под своим `msg_id`:
 
 ```cpp
 // Обработчики двух типов телеметрических сообщений.
-bool handle_voltage(karavan::cambridge_message_span msg);
-bool handle_current(karavan::cambridge_message_span msg);
+bool handle_voltage(stv::stvlink_message_span msg);
+bool handle_current(stv::stvlink_message_span msg);
 
-// Регистрация обработчиков: каждому pack_id — свой обработчик.
-constexpr std::pair<int, karavan::cambridge_message_processor_fnc_type>
-    voltage_processing{0x01, &handle_voltage};  // pack_id = 0x01 — напряжение
-constexpr std::pair<int, karavan::cambridge_message_processor_fnc_type>
-    current_processing{0x02, &handle_current};  // pack_id = 0x02 — ток
+// Регистрация обработчиков: каждому msg_id — свой обработчик.
+constexpr std::pair<int, stv::stvlink_message_handler_fnc_type>
+    voltage_processing{0x01, &handle_voltage};  // msg_id = 0x01 — напряжение
+constexpr std::pair<int, stv::stvlink_message_handler_fnc_type>
+    current_processing{0x02, &handle_current};  // msg_id = 0x02 — ток
 
 const auto handlers =
     etl::make_unordered_map<int,
-                            karavan::cambridge_message_processor_fnc_type>(
+                            stv::stvlink_message_handler_fnc_type>(
         voltage_processing, current_processing);
 
 using hash_table_type =
-    etl::iunordered_map<int, karavan::cambridge_message_processor_fnc_type>;
-using setup_type = karavan::cambridge_setup<hash_table_type>;
+    etl::iunordered_map<int, stv::stvlink_message_handler_fnc_type>;
+using setup_type = stv::stvlink_setup<hash_table_type>;
 
-karavan::cambridge<queue_type, setup_type> telemetry{
+stv::stvlink_module<queue_type, setup_type> telemetry{
     telemetry_queue, setup_type{.hash_table = &handlers}};
 ```
 
-Пусть в очереди модуля лежат два сообщения: первое с `pack_id = 0x01`, второе с `pack_id = 0x02`. Каждый вызов `process_one()` извлекает очередное сообщение и направляет его своему обработчику:
+Пусть в очереди лежат два сообщения: первое с `msg_id = 0x01`, второе с `msg_id = 0x02`. Каждый вызов `process_one()` извлекает очередное сообщение и направляет его своему обработчику:
 
 ```cpp
 telemetry.process_one();  // первое сообщение → handle_voltage()
 telemetry.process_one();  // второе сообщение → handle_current()
 ```
 
-Если `pack_id` сообщения не зарегистрирован в таблице, обработчик не вызывается, а сообщение отбрасывается (`process_one()` в любом случае удаляет его из очереди).
+Если `msg_id` сообщения не зарегистрирован в таблице, обработчик не вызывается, а сообщение отбрасывается (`process_one()` в любом случае удаляет его из очереди).
 
 Данный подход вдохновлён структурой сообщений протокола MAVLink.
-Представленная схема реализована и апробирована в проекте «Отблеск» и его конфигураторе.
 
 **Преимущества:**
-- **Расширяемость (принцип Open/Closed):** поддерживается добавление новых пакетов и модулей без модификации существующей логики информационного обмена.
-- **Гибкость обработки:** один модуль может обслуживать несколько типов пакетов. Например, различные телеметрические данные можно отправлять с разной частотой, учитывая время их актуальности и ограничения пропускной способности канала связи.
+- **Расширяемость (принцип Open/Closed):** поддерживается добавление новых сообщений и модулей без модификации существующей логики информационного обмена.
+- **Гибкость обработки:** один модуль может обслуживать несколько типов сообщений. Например, различные телеметрические данные можно отправлять с разной частотой, учитывая время их актуальности и ограничения пропускной способности канала связи.
 - **Бесшовная смена источника данных:** архитектура абстрагируется от физического интерфейса (`COM-порт`, `USART`, `сокет`). Переключение порта происходит прозрачно для остальной части программы.
-- **Детерминированная маршрутизация:** арбитраж сообщений реализован на основе хеш-таблиц, что гарантирует стабильное и предсказуемое время маршрутизации независимо от их количества (при отсутствии коллизий).
+- **Детерминированная диспетчеризация:** выбор обработчика реализован на основе хэш-таблицы, что гарантирует стабильное и предсказуемое время диспетчеризации независимо от количества обработчиков (при отсутствии коллизий).

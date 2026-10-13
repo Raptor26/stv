@@ -16,9 +16,9 @@
 #include "stv/gyraccmag_types.hpp"
 #include "stv/i2c.hpp"
 
-// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace)
+// NOLINTBEGIN(readability-function-cognitive-complexity)
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 
 TEST_CASE(
     "qmc6100", "[stv][drivers]")
@@ -61,8 +61,8 @@ TEST_CASE(
     Mock<stv::i2c_interface> i2c;
     Fake(Method(i2c, write));
     Fake(Method(i2c, read));
-    qma6100_setup setup{{.i2c = &i2c.get()}};
-    qma6100_type  driver{setup};
+    const qma6100_setup setup{{.i2c = &i2c.get()}};
+    qma6100_type        driver{setup};
     REQUIRE(driver);
 
     SECTION("Init")
@@ -154,6 +154,6 @@ TEST_CASE(
     }
 }
 
-// NOLINTEND(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-complexity,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(readability-function-cognitive-complexity)
+// NOLINTEND(*-magic-numbers, google-build-using-namespace)

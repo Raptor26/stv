@@ -10,11 +10,11 @@
 /// DESCRIPTION
 ///     parsed_queue оборачивает указатель на очередь, связывая её с
 ///     конкретным декоратором кадра на уровне типа. Это позволяет
-///     serial_parser и маршрутизаторам проверять соответствие очереди
-///     декоратору на этапе компиляции.
+///     serial_parser и потребителям сообщений проверять соответствие
+///     очереди декоратору на этапе компиляции.
 ///
 /// SEE ALSO
-///     stvlink_frame.hpp, serial_parser.hpp.
+///     stvlink_parser.hpp, serial_parser.hpp.
 
 #ifndef PARSED_QUEUE_HPP
 #define PARSED_QUEUE_HPP

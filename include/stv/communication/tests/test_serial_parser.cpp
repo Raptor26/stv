@@ -14,53 +14,50 @@
 #include <string_view>
 #include <utility>
 
-#include "etl/unordered_map.h"
 #include "stv/communication/parsed_queue.hpp"
 #include "stv/communication/serial_decorators.hpp"
 #include "stv/communication/serial_parser.hpp"
 #include "stv/communication/serial_sender.hpp"
-#include "stv/communication/stvlink_frame.hpp"
-#include "stv/communication/stvlink_route.hpp"
+#include "stv/communication/stvlink_parser.hpp"
 #include "stv/communication/stvlink_sender.hpp"
 #include "stv/containers/lwrb.hpp"
 #include "stv/containers/simbuff.hpp"
 #include "stv/mutex_guard.hpp"
 
-// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace)
+// NOLINTBEGIN(readability-function-cognitive-complexity)
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 
-std::array<char, 64> memory_to_serial_parser;
-int                  alloc_cnt;
+namespace {
 
 template<typename T>
 class custom_allocator
 {
-    inline static std::size_t alloc_size_{};
+    inline static std::size_t alloc_size{};
 
   public:
     using value_type = T;
 
-    custom_allocator() {}
+    custom_allocator() = default;
 
     template<typename U>
-    custom_allocator(
-        const custom_allocator<U> &)
+    explicit custom_allocator(
+        const custom_allocator<U> & /*unused*/)
     {
     }
 
     T *allocate(
         std::size_t n)
     {
-        alloc_size_ = n;
+        alloc_size = n;
         ++alloc_cnt;
         return reinterpret_cast<T *>(memory_to_serial_parser.data());
     }
 
     void deallocate(
-        T *p, std::size_t n)
+        T *ptr, std::size_t n)
     {
-        (void)p;
+        (void)ptr;
         (void)n;
         --alloc_cnt;
     }
@@ -68,14 +65,18 @@ class custom_allocator
     static auto           get_allocator_cnt() { return alloc_cnt; }
 
     static constexpr auto get_mem_ptr()
-    {
-        return memory_to_serial_parser.data();
-    }
+    { return memory_to_serial_parser.data(); }
 
     static auto data() { return memory_to_serial_parser.data(); }
 
-    static auto get_last_alloc_size() { return alloc_size_; }
+    static auto get_last_alloc_size() { return alloc_size; }
+
+  private:
+    inline static std::array<char, 64> memory_to_serial_parser{};
+    inline static int                  alloc_cnt{};
 };
+
+} // namespace
 
 TEST_CASE(
     "Serial Parser", "[stv][communication]")
@@ -84,7 +85,6 @@ TEST_CASE(
     // using sim_buffer_with_custom_allocator_type =
     //     stv::sim_buff<stv::empty_mutex, custom_allocator>;
     using sim_buffer_type = stv::sim_buff<stv::empty_mutex>;
-    using queue_base_type = etl::iqueue<sim_buffer_type>;
     using queue_type      = etl::queue<sim_buffer_type, 10>;
     queue_type parsed_msg_queue;
     queue_type serial_msg_queue;
@@ -97,18 +97,18 @@ TEST_CASE(
     {
         /// @brief Объект используется для создания сообщений требуемой для
         /// проверки парсера структуры.
-        auto serial_message_buffer = make_serial_message_buffer(
-            serial_msg_queue, stv::stvlink_frame_tx{});
+        auto serial_message_buffer =
+            make_serial_message_buffer(serial_msg_queue, stv::stvlink_sender{});
 
         using serial_parser_setup_type =
             stv::serial_parser_setup<lwrb_base_type, queue_type,
-                                     stv::empty_mutex, stv::stvlink_frame>;
+                                     stv::empty_mutex, stv::stvlink_parser>;
 
         SECTION("Invalid Setup")
         {
             const serial_parser_setup_type setup;
             auto parser = stv::make_serial_parser<serial_parser_setup_type,
-                                                  stv::stvlink_frame>(setup);
+                                                  stv::stvlink_parser>(setup);
             REQUIRE_FALSE(parser);
         }
 
@@ -116,10 +116,10 @@ TEST_CASE(
         {
             serial_parser_setup_type setup;
             setup.lwrb = &lwrb;
-            setup.set_queue<stv::stvlink_frame>(parsed_msg_queue);
+            setup.set_queue<stv::stvlink_parser>(parsed_msg_queue);
 
             auto parser = stv::make_serial_parser<serial_parser_setup_type,
-                                                  stv::stvlink_frame>(setup);
+                                                  stv::stvlink_parser>(setup);
             REQUIRE(parser);
 
             SECTION("Parse per message")
@@ -135,7 +135,8 @@ TEST_CASE(
                 SECTION("Without offset")
                 {
                     {
-                        auto msg = serial_message_buffer.request(test_message);
+                        const auto msg =
+                            serial_message_buffer.request(test_message);
 
                         // В деструкторе msg будет записан вызван декоратор,
                         // который вычислит CRC.
@@ -158,7 +159,8 @@ TEST_CASE(
                     {
                         // А это уже запись обернутого с помощью декоратора
                         // сообщения.
-                        auto msg = serial_message_buffer.request(test_message);
+                        const auto msg =
+                            serial_message_buffer.request(test_message);
 
                         // В деструкторе msg будет записан вызван декоратор,
                         // который вычислит CRC.
@@ -175,6 +177,12 @@ TEST_CASE(
                 if(!parsed_msg_queue.empty())
                 {
                     auto msg = parsed_msg_queue.front();
+
+                    // Парсер отрезает стартовый кадр и CRC, а заголовок
+                    // сообщения (dst_id, msg_id, pload_size) оставляет в
+                    // начале сообщения: срежем его перед сверкой нагрузки.
+                    msg.trim_head(stv::stvlink_sender::message_header_size());
+
                     REQUIRE(memcmp(test_message.data(), msg.data(),
                                    test_message.size())
                             == 0);
@@ -192,14 +200,16 @@ TEST_CASE(
                 constexpr std::string_view test_message_two{"World"};
 
                 {
-                    auto msg = serial_message_buffer.request(test_message_one);
+                    const auto msg =
+                        serial_message_buffer.request(test_message_one);
 
                     // В деструкторе msg будет записан вызван декоратор, который
                     // вычислит CRC.
                 }
 
                 {
-                    auto msg = serial_message_buffer.request(test_message_two);
+                    const auto msg =
+                        serial_message_buffer.request(test_message_two);
 
                     // В деструкторе msg будет записан вызван декоратор, который
                     // вычислит CRC.
@@ -224,6 +234,7 @@ TEST_CASE(
 
                 {
                     auto msg = parsed_msg_queue.front();
+                    msg.trim_head(stv::stvlink_sender::message_header_size());
                     REQUIRE(memcmp(test_message_one.data(), msg.data(),
                                    test_message_one.size())
                             == 0);
@@ -232,6 +243,7 @@ TEST_CASE(
 
                 {
                     auto msg = std::move(parsed_msg_queue.front());
+                    msg.trim_head(stv::stvlink_sender::message_header_size());
                     REQUIRE(memcmp(test_message_two.data(), msg.data(),
                                    test_message_two.size())
                             == 0);
@@ -245,14 +257,16 @@ TEST_CASE(
                 constexpr std::string_view test_message_two{"World"};
 
                 {
-                    auto msg = serial_message_buffer.request(test_message_one);
+                    const auto msg =
+                        serial_message_buffer.request(test_message_one);
 
                     // В деструкторе msg будет записан вызван декоратор, который
                     // вычислит CRC.
                 }
 
                 {
-                    auto msg = serial_message_buffer.request(test_message_two);
+                    const auto msg =
+                        serial_message_buffer.request(test_message_two);
 
                     // В деструкторе msg будет записан вызван декоратор, который
                     // вычислит CRC.
@@ -285,6 +299,7 @@ TEST_CASE(
 
                 {
                     auto msg = std::move(parsed_msg_queue.front());
+                    msg.trim_head(stv::stvlink_sender::message_header_size());
                     REQUIRE(memcmp(test_message_two.data(), msg.data(),
                                    test_message_two.size())
                             == 0);
@@ -306,12 +321,14 @@ TEST_CASE(
                     std::byte{0x00}, std::byte{0x01}, std::byte{0x02},
                     std::byte{0x03}, std::byte{0x04}, std::byte{0x05},
                     std::byte{0x06}, std::byte{0x07}, std::byte{0x08},
-                    std::byte{0x09}, std::byte{0x0A}};
+                    std::byte{0x09}, std::byte{0x0A},
+                };
 
                 constexpr std::string_view test_message{"B"};
 
                 {
-                    auto msg = serial_message_buffer.request(test_message);
+                    const auto msg =
+                        serial_message_buffer.request(test_message);
                     (void)msg;
                 }
 
@@ -341,6 +358,9 @@ TEST_CASE(
 
                 {
                     auto msg = std::move(parsed_msg_queue.front());
+                    // В распарсенном сообщении перед нагрузкой остаётся
+                    // заголовок сообщения (dst_id, msg_id, pload_size).
+                    msg.trim_head(stv::stvlink_sender::message_header_size());
                     REQUIRE(msg.size() == test_message.size());
                     REQUIRE(memcmp(test_message.data(), msg.data(),
                                    test_message.size())
@@ -354,7 +374,8 @@ TEST_CASE(
                 constexpr std::string_view test_message{"Hello world"};
 
                 {
-                    auto msg = serial_message_buffer.request(test_message);
+                    const auto msg =
+                        serial_message_buffer.request(test_message);
                 }
 
                 decltype(auto) queue_instance =
@@ -381,6 +402,8 @@ TEST_CASE(
 
                 {
                     auto parsed_msg = std::move(parsed_msg_queue.front());
+                    parsed_msg.trim_head(
+                        stv::stvlink_sender::message_header_size());
                     REQUIRE(memcmp(test_message.data(), parsed_msg.data(),
                                    test_message.size())
                             == 0);
@@ -393,7 +416,8 @@ TEST_CASE(
                 constexpr std::string_view test_message{"Hello world"};
 
                 {
-                    auto msg = serial_message_buffer.request(test_message);
+                    const auto msg =
+                        serial_message_buffer.request(test_message);
                 }
 
                 decltype(auto) queue_instance =
@@ -406,7 +430,7 @@ TEST_CASE(
                     lwrb.write(msg.begin(),
                                msg.begin()
                                    + static_cast<std::ptrdiff_t>(
-                                       stv::stvlink_frame_tx::header_size()));
+                                       stv::stvlink_sender::header_size()));
                     queue_instance.pop();
                 }
 
@@ -427,12 +451,13 @@ TEST_CASE(
                 // остальные байты будут отброшены при обработке следующего
                 // валидного кадра.
                 REQUIRE(lwrb.get_full()
-                        == (stv::stvlink_frame_tx::header_size() - 1U));
+                        == (stv::stvlink_sender::header_size() - 1U));
 
                 // После восстановления следующее валидное сообщение должно
                 // быть распарсено.
                 {
-                    auto msg = serial_message_buffer.request(test_message);
+                    const auto msg =
+                        serial_message_buffer.request(test_message);
                 }
 
                 {
@@ -446,6 +471,8 @@ TEST_CASE(
 
                 {
                     auto parsed_msg = std::move(parsed_msg_queue.front());
+                    parsed_msg.trim_head(
+                        stv::stvlink_sender::message_header_size());
                     REQUIRE(memcmp(test_message.data(), parsed_msg.data(),
                                    test_message.size())
                             == 0);
@@ -464,7 +491,8 @@ TEST_CASE(
                 for(std::size_t i{0}; i < parsed_msg_queue.capacity(); ++i)
                 {
                     {
-                        auto msg = serial_message_buffer.request(test_message);
+                        const auto msg =
+                            serial_message_buffer.request(test_message);
                     }
 
                     decltype(auto) msg = queue_instance.front();
@@ -478,7 +506,8 @@ TEST_CASE(
                 // Очередь заполнена: следующее сообщение должно быть
                 // отброшено без порчи очереди.
                 {
-                    auto msg = serial_message_buffer.request(test_message);
+                    const auto msg =
+                        serial_message_buffer.request(test_message);
                 }
 
                 {
@@ -498,7 +527,8 @@ TEST_CASE(
                 }
 
                 {
-                    auto msg = serial_message_buffer.request(test_message);
+                    const auto msg =
+                        serial_message_buffer.request(test_message);
                 }
 
                 {
@@ -512,6 +542,8 @@ TEST_CASE(
 
                 {
                     auto parsed_msg = std::move(parsed_msg_queue.front());
+                    parsed_msg.trim_head(
+                        stv::stvlink_sender::message_header_size());
                     REQUIRE(memcmp(test_message.data(), parsed_msg.data(),
                                    test_message.size())
                             == 0);
@@ -521,129 +553,64 @@ TEST_CASE(
         }
     }
 
-    SECTION("Route")
+    SECTION("Parsed message keeps message header")
     {
-        using hash_type = etl::iunordered_map<int, queue_base_type *>;
-        using serial_route_setup_type =
-            stv::stvlink_route_setup<queue_base_type, hash_type>;
-        using serial_route_type = stv::stvlink_route<serial_route_setup_type>;
-        queue_type queue{};
+        // Парсер отрезает стартовый кадр и CRC, а заголовок сообщения
+        // (dst_id, msg_id, pload_size) оставляет в начале распарсенного
+        // сообщения: потребитель читает из него идентификатор сообщения.
+        auto serial_message_buffer =
+            make_serial_message_buffer(serial_msg_queue, stv::stvlink_sender{});
 
-        auto       serial_message_buffer =
-            make_serial_message_buffer(queue, stv::stvlink_route_tx{});
+        using serial_parser_setup_type =
+            stv::serial_parser_setup<lwrb_base_type, queue_type,
+                                     stv::empty_mutex, stv::stvlink_parser>;
 
-        etl::unordered_map<int, queue_base_type *, 10U> hash_table;
-        constexpr int                                   parsed_msg_queue_id{10};
-        hash_table.insert({parsed_msg_queue_id, &parsed_msg_queue});
+        serial_parser_setup_type setup;
+        setup.lwrb = &lwrb;
+        setup.set_queue<stv::stvlink_parser>(parsed_msg_queue);
 
-        serial_route_setup_type setup;
-        setup.queue_to_read = &serial_message_buffer.queue_instance();
-        setup.hash_to_write = &hash_table;
-        serial_route_type route{setup};
-        REQUIRE(route);
+        auto parser = stv::make_serial_parser<serial_parser_setup_type,
+                                              stv::stvlink_parser>(setup);
+        REQUIRE(parser);
 
-        SECTION("Route message")
+        constexpr std::string_view test_message{"Hello world"};
+        constexpr std::uint8_t     dst_id{42U};
+        constexpr std::uint8_t     msg_id{24U};
+
         {
-            constexpr std::string_view test_message{"Hello world"};
-            SECTION("If valid key ID")
-            {
-                stv::stvlink_route_tx::setup_t route_setup{
-                    .dst_id  = parsed_msg_queue_id,
-                    .pack_id = 0,
-                };
+            const auto msg = serial_message_buffer.request(
+                test_message, stv::stvlink_sender::setup_t{
+                                  .dst_id = dst_id,
+                                  .msg_id = msg_id,
+                              });
+            (void)msg;
+        }
 
-                {
-                    auto msg = serial_message_buffer.request(test_message,
-                                                             route_setup);
-                }
+        decltype(auto) queue_instance = serial_message_buffer.queue_instance();
+        {
+            decltype(auto) msg = queue_instance.front();
+            lwrb.write(msg.begin(), msg.end());
+            queue_instance.pop();
+        }
 
-                REQUIRE(route.run());
-                decltype(auto) queue_to_check =
-                    hash_table.at(parsed_msg_queue_id);
-                REQUIRE_FALSE(queue_to_check->empty());
-                auto msg = queue_to_check->front();
-                msg.trim_head(stv::stvlink_route_tx::header_size());
-                REQUIRE(
-                    memcmp(test_message.data(), msg.data(), test_message.size())
+        REQUIRE(parser.run());
+        REQUIRE(parsed_msg_queue.size() == 1U);
+
+        {
+            auto        msg = std::move(parsed_msg_queue.front());
+
+            const auto *header =
+                reinterpret_cast<const stv::stvlink_sender::message_header_t *>(
+                    msg.data());
+            REQUIRE(header->dst_id == dst_id);
+            REQUIRE(header->msg_id == msg_id);
+            REQUIRE(header->pload_size == test_message.size());
+
+            msg.trim_head(stv::stvlink_sender::message_header_size());
+            REQUIRE(memcmp(test_message.data(), msg.data(), test_message.size())
                     == 0);
-                queue_to_check->pop();
-            }
 
-            SECTION("Skip empty message with null data")
-            {
-                // Добавляем пустое сообщение (data() == nullptr) в очередь
-                // Это проверяет защиту от nullptr после reinterpret_cast
-                sim_buffer_type empty_msg;
-                REQUIRE(empty_msg.data() == nullptr);
-                serial_message_buffer.queue_instance().push(
-                    std::move(empty_msg));
-
-                // Добавляем валидное сообщение после пустого
-                stv::stvlink_route_tx::setup_t route_setup{
-                    .dst_id  = parsed_msg_queue_id,
-                    .pack_id = 0,
-                };
-                {
-                    auto msg = serial_message_buffer.request(test_message,
-                                                             route_setup);
-                }
-
-                // route.run() должен пропустить пустое сообщение
-                // и обработать валидное
-                REQUIRE(route.run());
-                decltype(auto) queue_to_check =
-                    hash_table.at(parsed_msg_queue_id);
-                REQUIRE_FALSE(queue_to_check->empty());
-                auto msg = queue_to_check->front();
-                msg.trim_head(stv::stvlink_route_tx::header_size());
-                REQUIRE(
-                    memcmp(test_message.data(), msg.data(), test_message.size())
-                    == 0);
-                queue_to_check->pop();
-            }
-
-            SECTION("Drop message when destination queue is full")
-            {
-                stv::stvlink_route_tx::setup_t route_setup{
-                    .dst_id  = parsed_msg_queue_id,
-                    .pack_id = 0,
-                };
-
-                decltype(auto) src_queue =
-                    serial_message_buffer.queue_instance();
-
-                // Заполняем целевую очередь до ее емкости.
-                for(std::size_t i{0}; i < parsed_msg_queue.capacity(); ++i)
-                {
-                    {
-                        auto msg = serial_message_buffer.request(test_message,
-                                                                 route_setup);
-                    }
-                    REQUIRE(route.run());
-                    REQUIRE(parsed_msg_queue.size() == i + 1);
-                }
-
-                // Целевая очередь переполнена: сообщение отбрасывается, но
-                // удаляется из входной очереди и не ломает целевую.
-                {
-                    auto msg = serial_message_buffer.request(test_message,
-                                                             route_setup);
-                }
-                REQUIRE_FALSE(route.run());
-                REQUIRE(src_queue.empty());
-                REQUIRE(parsed_msg_queue.full());
-
-                // Целевая очередь не сломана: после освобождения места
-                // маршрутизация продолжается.
-                parsed_msg_queue.pop();
-
-                {
-                    auto msg = serial_message_buffer.request(test_message,
-                                                             route_setup);
-                }
-                REQUIRE(route.run());
-                REQUIRE(parsed_msg_queue.full());
-            }
+            parsed_msg_queue.pop();
         }
     }
 
@@ -651,13 +618,14 @@ TEST_CASE(
     {
         using serial_parser_setup_type =
             stv::serial_parser_setup<lwrb_base_type, queue_type,
-                                     stv::empty_mutex, stv::stvlink_frame>;
+                                     stv::empty_mutex, stv::stvlink_parser>;
         serial_parser_setup_type setup;
         setup.lwrb = &lwrb;
-        setup.set_queue<stv::stvlink_frame>(static_cast<queue_type *>(nullptr));
+        setup.set_queue<stv::stvlink_parser>(
+            static_cast<queue_type *>(nullptr));
 
         auto parser = stv::make_serial_parser<serial_parser_setup_type,
-                                              stv::stvlink_frame>(setup);
+                                              stv::stvlink_parser>(setup);
         REQUIRE_FALSE(parser);
     }
 
@@ -665,21 +633,21 @@ TEST_CASE(
     {
         using serial_parser_setup_type =
             stv::serial_parser_setup<lwrb_base_type, queue_type,
-                                     stv::empty_mutex, stv::stvlink_frame>;
+                                     stv::empty_mutex, stv::stvlink_parser>;
         serial_parser_setup_type setup;
         setup.lwrb = &lwrb;
-        setup.set_queue<stv::stvlink_frame>(parsed_msg_queue);
+        setup.set_queue<stv::stvlink_parser>(parsed_msg_queue);
 
         auto parser = stv::make_serial_parser<serial_parser_setup_type,
-                                              stv::stvlink_frame>(setup);
+                                              stv::stvlink_parser>(setup);
         REQUIRE(parser);
 
-        auto serial_message_buffer = make_serial_message_buffer(
-            serial_msg_queue, stv::stvlink_frame_tx{});
+        auto serial_message_buffer =
+            make_serial_message_buffer(serial_msg_queue, stv::stvlink_sender{});
         constexpr std::string_view test_message{"A"};
 
         {
-            auto msg = serial_message_buffer.request(test_message);
+            const auto msg = serial_message_buffer.request(test_message);
         }
 
         decltype(auto) queue_instance = serial_message_buffer.queue_instance();
@@ -691,6 +659,7 @@ TEST_CASE(
         REQUIRE(parsed_msg_queue.size() == 1);
 
         auto parsed_msg = std::move(parsed_msg_queue.front());
+        parsed_msg.trim_head(stv::stvlink_sender::message_header_size());
         REQUIRE(
             memcmp(test_message.data(), parsed_msg.data(), test_message.size())
             == 0);
@@ -698,6 +667,6 @@ TEST_CASE(
     }
 }
 
-// NOLINTEND(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-complexity,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(readability-function-cognitive-complexity)
+// NOLINTEND(*-magic-numbers, google-build-using-namespace)

@@ -34,13 +34,14 @@ void request(
         std::uint8_t z{44};
     };
 
-    auto serial_message_buffer = make_serial_message_buffer(
-        queue, stv::stvlink_frame_tx{}, stv::stvlink_route_tx{});
+    auto serial_message_buffer =
+        make_serial_message_buffer(queue, stv::stvlink_sender{});
 
     for(const auto unused: state)
     {
         (void)unused;
-        auto msg = serial_message_buffer.request<user_data>();
+        auto msg = serial_message_buffer.request<user_data>(
+            stvlink_sender::setup_t{.dst_id = 1, .msg_id = 7});
 
         msg->i = 1;
         msg->j = 2;

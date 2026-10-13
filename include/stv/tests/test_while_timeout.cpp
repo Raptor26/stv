@@ -13,9 +13,9 @@
 #include "stv/runtime.hpp"
 #include "stv/while_timeout.hpp"
 
-// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTBEGIN(*-magic-numbers, google-build-using-namespace)
+// NOLINTBEGIN(readability-function-cognitive-complexity)
+// NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 
 TEST_CASE(
     "while_timeout", "[stv]")
@@ -35,10 +35,10 @@ TEST_CASE(
         auto polls{0};
 
         // Тип while_timeout выводится автоматически (CTAD).
-        stv::while_timeout wait{runtime_mock.get(), 200ms, [&polls]() {
-                                    ++polls;
-                                    return true;
-                                }};
+        const stv::while_timeout wait{runtime_mock.get(), 200ms, [&polls] {
+                                          ++polls;
+                                          return true;
+                                      }};
 
         // Условие выполнилось до истечения таймаута.
         REQUIRE_FALSE(wait.is_elapsed());
@@ -52,12 +52,12 @@ TEST_CASE(
         // Время не продвигается: таймаут не наступает никогда.
         Fake(Method(runtime_mock, get));
 
-        auto               polls{0};
+        auto                     polls{0};
 
-        stv::while_timeout wait{runtime_mock.get(), 200ms, [&polls]() {
-                                    ++polls;
-                                    return polls >= 3;
-                                }};
+        const stv::while_timeout wait{runtime_mock.get(), 200ms, [&polls] {
+                                          ++polls;
+                                          return polls >= 3;
+                                      }};
 
         // Условие выполнилось до истечения таймаута.
         REQUIRE_FALSE(wait.is_elapsed());
@@ -75,12 +75,12 @@ TEST_CASE(
                     stv::runtime_counter_type{100ms},
                     stv::runtime_counter_type{200ms});
 
-        auto               polls{0};
+        auto                     polls{0};
 
-        stv::while_timeout wait{runtime_mock.get(), 200ms, [&polls]() {
-                                    ++polls;
-                                    return false;
-                                }};
+        const stv::while_timeout wait{runtime_mock.get(), 200ms, [&polls] {
+                                          ++polls;
+                                          return false;
+                                      }};
 
         // Ожидание прервано по таймауту.
         REQUIRE(wait.is_elapsed());
@@ -89,6 +89,6 @@ TEST_CASE(
     }
 }
 
-// NOLINTEND(*-magic-numbers, google-build-using-namespace,
-// readability-function-cognitive-,
-// cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTEND(readability-function-cognitive-complexity)
+// NOLINTEND(*-magic-numbers, google-build-using-namespace)

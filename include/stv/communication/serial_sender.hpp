@@ -54,8 +54,8 @@
 ///     - явный размер в байтах (без копирования данных).
 ///
 /// EXAMPLE
-///     Пример отправки типизированного пакета со
-///     стартовым кадром, CRC и маршрутизацией:
+///     Пример отправки типизированного сообщения со
+///     стартовым кадром, заголовком сообщения и CRC:
 ///     ```cpp
 ///     #include <stv/communication/serial_sender.hpp>
 ///     #include <stv/communication/stvlink_sender.hpp>
@@ -78,11 +78,11 @@
 ///         queue_type queue{};
 ///
 ///         auto serial_message_buffer = make_serial_message_buffer(
-///             queue, stvlink_frame_tx{}, stvlink_route_tx{});
+///             queue, stvlink_sender{});
 ///
 ///         auto msg = serial_message_buffer.request<UserData>(
-///             stvlink_route_tx::setup_t{
-///                 .dst_id = 1, .pack_id = 7});
+///             stvlink_sender::setup_t{
+///                 .dst_id = 1, .msg_id = 7});
 ///
 ///         if (msg) {
 ///             msg->i = 11;
@@ -106,9 +106,9 @@
 ///     Пример передачи массива с параметрами декоратора:
 ///     ```cpp
 ///     std::array<std::uint16_t, 3> data{11, 22, 33};
-///     stvlink_route_tx::setup_t route{
-///         .dst_id = 1, .pack_id = 7};
-///     auto msg = serial_message_buffer.request(data, route);
+///     stvlink_sender::setup_t msg_setup{
+///         .dst_id = 1, .msg_id = 7};
+///     auto msg = serial_message_buffer.request(data, msg_setup);
 ///     ```
 ///
 /// SEE ALSO
@@ -289,9 +289,7 @@ class composite_serial_message
     ///
     /// @return Константный указатель на первый байт полезной нагрузки.
     [[nodiscard]] const std::byte *pload() const
-    {
-        return memory_.begin() + header_size_;
-    }
+    { return memory_.begin() + header_size_; }
 
     /// @brief Возвращает span, покрывающий полезную нагрузку.
     ///
@@ -491,18 +489,14 @@ class serial_message
     ///
     /// @return true, если память выделена; false в противном случае.
     explicit operator bool() const
-    {
-        return static_cast<bool>(composite_message_);
-    }
+    { return static_cast<bool>(composite_message_); }
 
     /// @brief Возвращает указатель на полезную нагрузку как на UserData.
     ///
     /// @return Указатель на объект типа UserData, расположенный в памяти
     /// полезной нагрузки.
     auto operator->()
-    {
-        return reinterpret_cast<user_type *>(composite_message_.pload());
-    }
+    { return reinterpret_cast<user_type *>(composite_message_.pload()); }
 
     /// @brief Возвращает указатель на начало полезной нагрузки.
     ///
@@ -699,9 +693,7 @@ class serial_message_buffer_base:
     /// @return Объект @ref serial_message<char>.
     auto request(
         const char *str)
-    {
-        return request(std::string_view{str});
-    }
+    { return request(std::string_view{str}); }
 
     /// @brief Запрашивает сообщение из C-строки с параметрами декораторов.
     ///
@@ -784,9 +776,7 @@ class serial_message_buffer_base:
     template<typename T>
     auto request(
         std::span<const T> span)
-    {
-        return request_impl<std::remove_const_t<T>>(std::as_bytes(span));
-    }
+    { return request_impl<std::remove_const_t<T>>(std::as_bytes(span)); }
 
     /// @brief Запрашивает сообщение из неизменяемого span с параметрами
     /// декораторов.
@@ -811,7 +801,7 @@ class serial_message_buffer_base:
     /// @details
     /// Создаёт сообщение, размер которого равен sizeof(UserData). Данные
     /// копируются из переданного объекта. Удобно для передачи типизированных
-    /// пакетов.
+    /// сообщений.
     ///
     /// @tparam UserData Тип POD-структуры.
     /// @tparam SetupParams Типы параметров для декораторов.
@@ -867,9 +857,7 @@ class serial_message_buffer_base:
     template<typename InputIt>
     auto request(
         InputIt cbegin, InputIt cend)
-    {
-        return request(std::as_bytes(std::span{cbegin, cend}));
-    }
+    { return request(std::as_bytes(std::span{cbegin, cend})); }
 
     /// @brief Возвращает ссылку на связанную очередь.
     ///
@@ -1024,11 +1012,11 @@ class serial_message_buffer_base:
     ///
     /// @note Рекомендация для новых декораторов:
     /// - Если декоратор НЕ хранит состояния и полностью описывается
-    ///   параметром запроса (как stv::stvlink_route_tx), apply_setup
+    ///   параметром запроса (как stv::stvlink_sender), apply_setup
     ///   реализовывать НЕ нужно — достаточно конструктора из параметра.
     /// - Если декоратор хранит состояние, заданное при создании буфера
-    ///   (например, идентификатор отправителя или указатель на счётчик,
-    ///   как декоратор кадра KrdLink из karavan), apply_setup НЕОБХОДИМ:
+    ///   (например, идентификатор отправителя или указатель на счётчик
+    ///   в декораторе кадра из karavan), apply_setup НЕОБХОДИМ:
     ///   пересоздание из параметра запроса уничтожило бы это состояние.
     ///
     /// @param[in,out] decorator Декоратор, к которому применяется параметр.
