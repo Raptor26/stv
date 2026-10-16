@@ -117,9 +117,7 @@ class icm42688p_device_config_reg
 
     explicit icm42688p_device_config_reg(
         icm42688p_reg_type value = icm42688p_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator icm42688p_reg_type() const
@@ -180,9 +178,7 @@ class icm42688p_drive_config_reg
 
     explicit icm42688p_drive_config_reg(
         icm42688p_reg_type value = icm42688p_reg_type{0x05})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator icm42688p_reg_type() const
@@ -259,9 +255,7 @@ class icm42688p_int_config_reg
 
     explicit icm42688p_int_config_reg(
         icm42688p_reg_type value = icm42688p_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator icm42688p_reg_type() const
@@ -365,9 +359,7 @@ class icm42688p_fifo_config_reg
 
     explicit icm42688p_fifo_config_reg(
         icm42688p_reg_type value = icm42688p_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator icm42688p_reg_type() const
@@ -434,9 +426,7 @@ class icm42688p_int_status_reg
 
     explicit icm42688p_int_status_reg(
         icm42688p_reg_type value = icm42688p_reg_type{0x10})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator icm42688p_reg_type() const
@@ -536,9 +526,7 @@ class icm42688p_intf_config0_reg
 
     explicit icm42688p_intf_config0_reg(
         icm42688p_reg_type value = icm42688p_reg_type{0x30})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator icm42688p_reg_type() const
@@ -598,10 +586,10 @@ class icm42688p_intf_config0_reg
         fifo_hold_last_data_en =
             parse_flag(reg, fifo_hold_last_data_en_offset, switcher_t::enable,
                        switcher_t::disable);
-        fifo_count_rec     = parse_flag(reg, fifo_count_rec_offset,
-                                        switcher_t::enable, switcher_t::disable);
-        fifo_count_endian  = parse_flag(reg, fifo_count_endian_offset,
-                                        endian_t::big, endian_t::little);
+        fifo_count_rec    = parse_flag(reg, fifo_count_rec_offset,
+                                       switcher_t::enable, switcher_t::disable);
+        fifo_count_endian = parse_flag(reg, fifo_count_endian_offset,
+                                       endian_t::big, endian_t::little);
         sensor_data_endian = parse_flag(reg, sensor_data_endian_offset,
                                         endian_t::big, endian_t::little);
     }
@@ -627,9 +615,7 @@ class icm42688p_pwr_mgmt0_reg
 
     explicit icm42688p_pwr_mgmt0_reg(
         icm42688p_reg_type value = icm42688p_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator icm42688p_reg_type() const
@@ -718,9 +704,7 @@ class icm42688p_gyro_config0_reg
 
     explicit icm42688p_gyro_config0_reg(
         icm42688p_reg_type value = icm42688p_reg_type{0x06})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator icm42688p_reg_type() const
@@ -782,9 +766,7 @@ class icm42688p_accel_config0_reg
 
     explicit icm42688p_accel_config0_reg(
         icm42688p_reg_type value = icm42688p_reg_type{0x06})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator icm42688p_reg_type() const
@@ -853,9 +835,7 @@ class icm42688p_fifo_config1_reg
 
     explicit icm42688p_fifo_config1_reg(
         icm42688p_reg_type value = icm42688p_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator icm42688p_reg_type() const
@@ -952,9 +932,7 @@ class icm42688p_int_config0_reg
 
     explicit icm42688p_int_config0_reg(
         icm42688p_reg_type value = icm42688p_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator icm42688p_reg_type() const
@@ -1032,9 +1010,7 @@ class icm42688p_int_config1_reg
 
     explicit icm42688p_int_config1_reg(
         icm42688p_reg_type value = icm42688p_reg_type{0x10})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator icm42688p_reg_type() const
@@ -1127,9 +1103,7 @@ class icm42688p_int_source0_reg
 
     explicit icm42688p_int_source0_reg(
         icm42688p_reg_type value = icm42688p_reg_type{0x10})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator icm42688p_reg_type() const
@@ -1234,9 +1208,7 @@ class icm42688p_self_test_config_reg
 
     explicit icm42688p_self_test_config_reg(
         icm42688p_reg_type value = icm42688p_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator icm42688p_reg_type() const
@@ -1331,9 +1303,7 @@ class icm42688p_who_am_i_reg
 
     explicit icm42688p_who_am_i_reg(
         icm42688p_reg_type value = icm42688p_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator icm42688p_reg_type() const { return who_am_i; }
@@ -1349,9 +1319,7 @@ class icm42688p_who_am_i_reg
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     bool operator==(
         const icm42688p_who_am_i_reg &other) const
-    {
-        return who_am_i == other.who_am_i;
-    }
+    { return who_am_i == other.who_am_i; }
 
     /// @brief Значение идентификатора устройства.
     icm42688p_reg_type who_am_i{0};
@@ -1359,9 +1327,7 @@ class icm42688p_who_am_i_reg
   private:
     void parse(
         icm42688p_reg_type reg)
-    {
-        who_am_i = reg;
-    }
+    { who_am_i = reg; }
 };
 
 /// @brief Регистр REG_BANK_SEL (адрес 0x76, доступен из всех банков) для
@@ -1379,9 +1345,7 @@ class icm42688p_reg_bank_sel_reg
 
     explicit icm42688p_reg_bank_sel_reg(
         icm42688p_reg_type value = icm42688p_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator icm42688p_reg_type() const
@@ -1454,9 +1418,7 @@ class icm42688p_intf_config6_reg
 
     explicit icm42688p_intf_config6_reg(
         icm42688p_reg_type value = icm42688p_reg_type{0x5F})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator icm42688p_reg_type() const

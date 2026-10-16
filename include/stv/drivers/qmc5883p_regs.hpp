@@ -47,9 +47,7 @@ class qmc5883p_chip_id_reg
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     bool operator==(
         const qmc5883p_chip_id_reg &other) const
-    {
-        return chip_id == other.chip_id;
-    }
+    { return chip_id == other.chip_id; }
 
     /// @brief Значение идентификатора чипа.
     qmc5883p_reg_type chip_id{0};
@@ -98,9 +96,7 @@ class qmc5883p_status_reg
 
     explicit qmc5883p_status_reg(
         qmc5883p_reg_type value = qmc5883p_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator qmc5883p_reg_type() const
@@ -171,9 +167,7 @@ class qmc5883p_ctrl1_reg
 
     explicit qmc5883p_ctrl1_reg(
         qmc5883p_reg_type value = qmc5883p_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator qmc5883p_reg_type() const
@@ -271,9 +265,7 @@ class qmc5883p_ctrl2_reg
 
     explicit qmc5883p_ctrl2_reg(
         qmc5883p_reg_type value = qmc5883p_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     explicit operator qmc5883p_reg_type() const

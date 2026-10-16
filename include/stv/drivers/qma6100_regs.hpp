@@ -47,9 +47,7 @@ class qma6100_bw_reg
     /// @param value Начальное сырое значение регистра (по умолчанию 0).
     explicit qma6100_bw_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     ///
@@ -159,9 +157,7 @@ class qma6100_fsr_reg
 
     explicit qma6100_fsr_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     ///
@@ -283,9 +279,7 @@ class qma6100_int_en1_reg
 
     explicit qma6100_int_en1_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     ///
@@ -381,9 +375,7 @@ class qma6100_int_map1_reg
 
     explicit qma6100_int_map1_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     ///
@@ -514,9 +506,7 @@ class qma6100_int_map3_reg
 
     explicit qma6100_int_map3_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     ///
@@ -651,9 +641,7 @@ class qma6100_intpin_conf_reg
 
     explicit qma6100_intpin_conf_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     ///
@@ -852,9 +840,7 @@ class qma6100_int_cfg_reg
 
     explicit qma6100_int_cfg_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     ///
@@ -1040,9 +1026,7 @@ class qma6100_pm_reg
 
     explicit qma6100_pm_reg(
         qma6100_reg_type value = qma6100_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     ///
@@ -1187,9 +1171,7 @@ class qma6100_st_reg
     /// @param value Начальное сырое значение регистра (по умолчанию 0).
     explicit qma6100_st_reg(
         stv::qma6100_reg_type value = stv::qma6100_reg_type{0})
-    {
-        parse(value);
-    }
+    { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
     ///

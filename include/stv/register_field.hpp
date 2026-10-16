@@ -61,9 +61,7 @@ template<typename T>
 template<typename Reg>
 [[nodiscard]] constexpr bool is_bit_set(
     Reg reg, unsigned offset) noexcept
-{
-    return (detail::to_u32(reg) & (std::uint32_t{1} << offset)) != 0U;
-}
+{ return (detail::to_u32(reg) & (std::uint32_t{1} << offset)) != 0U; }
 
 /// @brief Извлекает сырое значение поля регистра по смещению и маске.
 /// @details Эквивалентна выражению `(reg >> offset) & mask`, но выполняется
@@ -77,9 +75,7 @@ template<typename Reg>
 template<typename Reg, typename Mask>
 [[nodiscard]] constexpr std::uint32_t field_raw(
     Reg reg, unsigned offset, Mask mask) noexcept
-{
-    return (detail::to_u32(reg) >> offset) & detail::to_u32(mask);
-}
+{ return (detail::to_u32(reg) >> offset) & detail::to_u32(mask); }
 
 /// @brief Извлекает типизированное поле регистра по смещению и маске.
 /// @details Комбинация `field_raw` с приведением результата к целевому
@@ -95,9 +91,7 @@ template<typename Reg, typename Mask>
 template<typename Field, typename Reg, typename Mask>
 [[nodiscard]] constexpr Field extract_field(
     Reg reg, unsigned offset, Mask mask) noexcept
-{
-    return static_cast<Field>(field_raw(reg, offset, mask));
-}
+{ return static_cast<Field>(field_raw(reg, offset, mask)); }
 
 /// @brief Парсит однобитовый флаг регистра в перечисление.
 /// @details Выбирает значение `on`, если бит в позиции offset установлен,
@@ -113,9 +107,7 @@ template<typename Field, typename Reg, typename Mask>
 template<typename Reg, typename Enum>
 [[nodiscard]] constexpr Enum parse_flag(
     Reg reg, unsigned offset, Enum enabled, Enum disabled) noexcept
-{
-    return is_bit_set(reg, offset) ? enabled : disabled;
-}
+{ return is_bit_set(reg, offset) ? enabled : disabled; }
 
 /// @brief Сериализует значение поля для записи в регистр.
 /// @details Эквивалентна выражению `field << offset` в домене
@@ -128,9 +120,7 @@ template<typename Reg, typename Enum>
 template<typename Field>
 [[nodiscard]] constexpr std::uint32_t field_to_raw(
     Field field, unsigned offset) noexcept
-{
-    return detail::to_u32(field) << offset;
-}
+{ return detail::to_u32(field) << offset; }
 
 } // namespace stv
 
