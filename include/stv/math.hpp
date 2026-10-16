@@ -27,18 +27,16 @@ inline constexpr T pi = std::numbers::pi_v<T>;
 /// @brief Число pi, делённое на 2.
 /// @tparam T Тип с плавающей точкой.
 template<std::floating_point T>
-inline constexpr T pi_over_2 = std::numbers::pi_v<T> / T(2);
+inline constexpr T pi_over_2 = std::numbers::pi_v<T> / static_cast<T>(2);
 
 /// @brief Удвоенное число pi (2*pi).
 /// @tparam T Тип с плавающей точкой.
 template<std::floating_point T>
-inline constexpr T two_pi = T(2) * std::numbers::pi_v<T>;
+inline constexpr T two_pi = static_cast<T>(2) * std::numbers::pi_v<T>;
 
 // NOLINTEND(*readability-identifier-length)
 
 /// @brief Угол крена (roll, вращение вокруг оси X) из кватерниона.
-/// @tparam Q Тип кватерниона, адаптированный под boost::qvm::quat_traits
-/// (например, stv::quaternion или boost::qvm::quat).
 /// @param quat Кватернион ориентации с порядком компонент (w, x, y, z).
 /// @return Угол крена в радианах.
 inline auto to_euler_roll(
@@ -50,18 +48,17 @@ inline auto to_euler_roll(
     constexpr auto two = static_cast<scalar_t>(2);
     constexpr auto one = static_cast<scalar_t>(1);
 
-    return std::atan2(two
-                          * (boost::qvm::S(quat) * boost::qvm::X(quat)
-                             + boost::qvm::Y(quat) * boost::qvm::Z(quat)),
-                      one
-                          - (two
-                             * (boost::qvm::X(quat) * boost::qvm::X(quat)
-                                + boost::qvm::Y(quat) * boost::qvm::Y(quat))));
+    return std::atan2(
+        two
+            * ((boost::qvm::S(quat) * boost::qvm::X(quat))
+               + (boost::qvm::Y(quat) * boost::qvm::Z(quat))),
+        one
+            - (two
+               * ((boost::qvm::X(quat) * boost::qvm::X(quat))
+                  + (boost::qvm::Y(quat) * boost::qvm::Y(quat)))));
 }
 
 /// @brief Угол тангажа (pitch, вращение вокруг оси Y) из кватерниона.
-/// @tparam Q Тип кватерниона, адаптированный под boost::qvm::quat_traits
-/// (например, stv::quaternion или boost::qvm::quat).
 /// @param quat Кватернион ориентации с порядком компонент (w, x, y, z).
 /// @return Угол тангажа в радианах.
 inline auto to_euler_pitch(
@@ -71,13 +68,11 @@ inline auto to_euler_pitch(
         std::remove_cvref_t<decltype(quat)>>::scalar_type;
 
     return std::asin(static_cast<scalar_t>(2)
-                     * (boost::qvm::S(quat) * boost::qvm::Y(quat)
-                        - boost::qvm::Z(quat) * boost::qvm::X(quat)));
+                     * ((boost::qvm::S(quat) * boost::qvm::Y(quat))
+                        - (boost::qvm::Z(quat) * boost::qvm::X(quat))));
 }
 
 /// @brief Угол рыскания (yaw, вращение вокруг оси Z) из кватерниона.
-/// @tparam Q Тип кватерниона, адаптированный под boost::qvm::quat_traits
-/// (например, stv::quaternion или boost::qvm::quat).
 /// @param quat Кватернион ориентации с порядком компонент (w, x, y, z).
 /// @return Угол рыскания в радианах.
 inline auto to_euler_yaw(
@@ -89,18 +84,17 @@ inline auto to_euler_yaw(
     constexpr auto two = static_cast<scalar_t>(2);
     constexpr auto one = static_cast<scalar_t>(1);
 
-    return std::atan2(two
-                          * (boost::qvm::S(quat) * boost::qvm::Z(quat)
-                             + boost::qvm::X(quat) * boost::qvm::Y(quat)),
-                      one
-                          - (two
-                             * (boost::qvm::Y(quat) * boost::qvm::Y(quat)
-                                + boost::qvm::Z(quat) * boost::qvm::Z(quat))));
+    return std::atan2(
+        two
+            * ((boost::qvm::S(quat) * boost::qvm::Z(quat))
+               + (boost::qvm::X(quat) * boost::qvm::Y(quat))),
+        one
+            - (two
+               * ((boost::qvm::Y(quat) * boost::qvm::Y(quat))
+                  + (boost::qvm::Z(quat) * boost::qvm::Z(quat)))));
 }
 
 /// @brief Углы Эйлера (roll, pitch, yaw) из кватерниона.
-/// @tparam Q Тип кватерниона, адаптированный под boost::qvm::quat_traits
-/// (например, stv::quaternion или boost::qvm::quat).
 /// @param quat Кватернион ориентации с порядком компонент (w, x, y, z).
 /// @return Массив {roll, pitch, yaw} в радианах.
 inline auto to_euler(
