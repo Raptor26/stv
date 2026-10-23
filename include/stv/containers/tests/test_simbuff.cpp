@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cstring>
 #include <string_view>
+#include <utility>
 
 #include "stv/containers/simbuff.hpp"
 
@@ -73,5 +74,33 @@ TEST_CASE(
                                 buffer.size())
                     == 0);
         }
+    }
+
+    SECTION("Move assignment")
+    {
+        const std::string_view test_msg{"Hello World!"};
+
+        stv::sim_buff          source{test_msg.size()};
+        std::copy(test_msg.begin(), test_msg.end(),
+                  reinterpret_cast<char *>(source.begin()));
+
+        // Смещения trim*() — часть состояния: move-assignment обязан
+        // переносить их вместе с буфером (регрессия: data()/size() теряли
+        // границы области памяти).
+        source.trim_head(1);
+        source.trim_tail(2);
+
+        stv::sim_buff target{};
+        target = std::move(source);
+
+        // Приёмник забирает область памяти и смещения источника.
+        REQUIRE(target.size() == test_msg.size() - 3U);
+        REQUIRE(std::memcmp(target.data(), test_msg.data() + 1, target.size())
+                == 0);
+
+        // Источник опустошён (перенос, а не копия): область памяти
+        // забрана, data() не валиден.
+        REQUIRE_FALSE(source);
+        REQUIRE(source.data() == nullptr);
     }
 }

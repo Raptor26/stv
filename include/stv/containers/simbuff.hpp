@@ -101,6 +101,12 @@ class sim_buff
             other.data_ptr_ = nullptr;
 
             this->size_in_bytes_ = other.size_in_bytes_;
+
+            // Смещения trim*() — часть состояния объекта: без их копирования
+            // принимающий буфер теряет границы полезной области памяти
+            // (data()/size() рассчитываются через offset_head_/offset_tail_).
+            this->offset_head_ = other.offset_head_;
+            this->offset_tail_ = other.offset_tail_;
         }
 
         return *this;
