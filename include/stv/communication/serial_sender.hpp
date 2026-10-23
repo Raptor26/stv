@@ -114,8 +114,8 @@
 /// SEE ALSO
 ///     test_serial_sender.cpp, bench_serial.cpp.
 
-#ifndef SERIAL_HPP
-#define SERIAL_HPP
+#ifndef SERIAL_SENDER_HPP
+#define SERIAL_SENDER_HPP
 
 #include "etl/queue.h"
 #include "serial_decorators.hpp"
@@ -145,6 +145,14 @@ namespace stv {
 /// декоратор заполняет свой заголовок и/или хвост, после чего готовый
 /// буфер помещается во входную очередь.
 ///
+/// Декоратор может объявить статический метод @c fixed_pload_size() —
+/// тогда область полезной нагрузки всегда имеет этот размер независимо
+/// от запрошенного: запрошенная нагрузка короче дополняется нулями, а
+/// бо́льшая отклоняется через max_pload_size(). Так декораторы кадров
+/// фиксированной длины (например, rmp_sender) формируют кадр постоянного
+/// размера. Декораторы без fixed_pload_size() не меняют поведения:
+/// область полезной нагрузки равна запрошенному размеру.
+///
 /// @note Этот класс является внутренней реализацией. Обычно пользователю
 /// удобнее работать через @ref serial_message_buffer и @ref serial_message.
 ///
@@ -166,7 +174,11 @@ class composite_serial_message
     /// @brief Кортеж декораторов, применяемых к сообщению.
     const std::tuple<Decorators...> decorators_;
 
-    /// @brief Размер полезной нагрузки в байтах.
+    /// @brief Размер области полезной нагрузки в байтах.
+    ///
+    /// @details Может превышать размер запрошенной полезной нагрузки,
+    /// если декоратор объявляет fixed_pload_size(): недостающие байты
+    /// дополняются нулями.
     const std::uint16_t payload_size_;
 
     /// @brief Суммарный размер всех заголовков в байтах.
@@ -184,6 +196,30 @@ class composite_serial_message
     /// @brief Буфер, выделенный под всё сообщение (заголовки, полезная
     /// нагрузка, хвосты).
     container_type memory_;
+
+    /// @brief Вычисляет размер области полезной нагрузки с учётом
+    ///     фиксированного размера декораторов.
+    ///
+    /// @details Декоратор может объявить статический метод
+    ///     @c fixed_pload_size() — тогда область полезной нагрузки имеет
+    ///     размер не менее этого значения. При нескольких декораторах с
+    ///     fixed_pload_size() используется максимум объявленных размеров.
+    ///
+    /// @param[in] pload Span с запрошенной полезной нагрузкой.
+    /// @return Размер области полезной нагрузки в байтах.
+    static constexpr size_t compute_payload_area_size(
+        const pload_span &pload)
+    {
+        if constexpr((requires { Decorators::fixed_pload_size(); } && ...))
+        {
+            return std::max(
+                {pload.size_bytes(), Decorators::fixed_pload_size()...});
+        }
+        else
+        {
+            return pload.size_bytes();
+        }
+    }
 
   public:
     /// @brief Тип неизменяемого span для представления байтового диапазона.
@@ -205,7 +241,10 @@ class composite_serial_message
         queue_base_type &queue, const pload_span &pload,
         Decorators &&...decorators):
         decorators_{std::forward<Decorators>(decorators)...},
-        payload_size_{static_cast<decltype(payload_size_)>(pload.size_bytes())},
+        payload_size_{
+            static_cast<decltype(payload_size_)>(
+                compute_payload_area_size(pload)),
+        },
         header_size_{
             static_cast<decltype(header_size_)>(compute_header_size()),
         },
@@ -223,6 +262,24 @@ class composite_serial_message
         {
             memcpy(memory_.begin() + header_size_, pload.data(),
                    pload.size_bytes());
+
+            // Хвост области, не заполненный запрошенными данными,
+            // дополняется нулями до фиксированного размера кадра.
+            if(payload_size_ > pload.size_bytes())
+            {
+                memset(memory_.begin() + header_size_ + pload.size_bytes(), 0,
+                       payload_size_ - pload.size_bytes());
+            }
+        }
+        else if constexpr((requires { Decorators::fixed_pload_size(); } || ...))
+        {
+            // Типизированный запрос (без копирования данных): пользователь
+            // заполняет начало области через operator->() или data(), а
+            // нулевое дополнение до фиксированного размера уже готово.
+            if(memory_.begin())
+            {
+                memset(memory_.begin() + header_size_, 0, payload_size_);
+            }
         }
     }
 
@@ -893,6 +950,11 @@ class serial_message_buffer_base:
     /// нагрузки max_pload_size() либо apply_setup() вернул false),
     /// возвращается невалидное сообщение: оно не выделяет память и не
     /// попадает в очередь (как сообщение из request_null()).
+    ///
+    /// Декоратор с фиксированным размером кадра объявляет статический метод
+    /// @c fixed_pload_size(): тогда под полезную нагрузку всегда выделяется
+    /// область этого размера, а запрошенная нагрузка короче дополняется
+    /// нулями (см. composite_serial_message).
     template<typename UserData, typename... SetupParams>
     auto request_impl(
         const span_type &pload, SetupParams &&...setup_params)
@@ -1121,4 +1183,4 @@ auto make_serial_message_buffer(
 
 } // namespace stv
 
-#endif /* SERIAL_HPP */
+#endif // SERIAL_SENDER_HPP

@@ -164,8 +164,8 @@ class stvlink_sender
     STV_NO_PADDING_NO_OPTIMIZE_END
 
     static_assert(sizeof(message_header_t) == 4U,
-                  "message_header_t должен занимать 4 байта согласно "
-                  "формату заголовка сообщения stvlink");
+                  "message_header_t must be 4 bytes according to "
+                  "the stvlink message header format");
 
     /// @brief Конструирует декоратор с заданными параметрами заголовка.
     ///

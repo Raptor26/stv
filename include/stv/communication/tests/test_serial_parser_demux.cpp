@@ -4,14 +4,19 @@
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
+#include "etl/delegate.h"
 #include "stv/communication/crc16.hpp"
 #include "stv/communication/mavlink_v2_parser.hpp"
 #include "stv/communication/mavlink_v2_sender.hpp"
+#include "stv/communication/rmp_parser.hpp"
+#include "stv/communication/rmp_sender.hpp"
 #include "stv/communication/serial_decorators.hpp"
 #include "stv/communication/serial_parser.hpp"
 #include "stv/communication/serial_sender.hpp"
 #include "stv/communication/stvlink_parser.hpp"
 #include "stv/communication/stvlink_sender.hpp"
+#include "stv/communication/stvlinkv2_parser.hpp"
+#include "stv/communication/stvlinkv2_sender.hpp"
 #include "stv/containers/lwrb.hpp"
 #include "stv/containers/simbuff.hpp"
 #include <array>
@@ -58,6 +63,9 @@ struct test_crc_extra_provider {
 
 using mavlink_frame_type    = stv::mavlink_v2_parser<test_crc_extra_provider>;
 using mavlink_frame_tx_type = stv::mavlink_v2_sender<test_crc_extra_provider>;
+
+using rmp_frame_type    = stv::rmp_parser<>;
+using rmp_frame_tx_type = stv::rmp_sender<>;
 
 /// @brief Значение dst_id, которое отправитель записывает в кадр.
 ///
@@ -227,6 +235,110 @@ void require_front_equals(
     REQUIRE(std::memcmp(msg.data<std::byte>(), expected.data(), expected.size())
             == 0);
     queue.pop();
+}
+
+/// @brief Собирает кадр stvlinkv2 с заданной полезной нагрузкой.
+auto make_stvlinkv2_frame(
+    std::string_view payload, std::uint16_t msg_id) -> std::vector<std::byte>
+{
+    queue_type tx_queue;
+    auto       buffer =
+        stv::make_serial_message_buffer(tx_queue, stv::stvlinkv2_sender{});
+
+    {
+        const auto msg = buffer.request(
+            payload, stv::stvlinkv2_sender::setup_t{.msg_id = msg_id});
+        (void)msg;
+    }
+
+    REQUIRE(!tx_queue.empty());
+
+    const auto            &frame = tx_queue.front();
+    std::vector<std::byte> result(frame.begin(), frame.end());
+    tx_queue.pop();
+
+    return result;
+}
+
+/// @brief Собирает кадр RMP с заданной полезной нагрузкой.
+///
+/// @details Кадр RMP имеет фиксированную длину: отправитель дополняет
+///     короткую полезную нагрузку нулями до rmp_sender<>::fixed_pload_size().
+auto make_rmp_frame(
+    const std::vector<std::byte> &payload_prefix) -> std::vector<std::byte>
+{
+    REQUIRE(payload_prefix.size() <= rmp_frame_tx_type::max_pload_size());
+
+    queue_type tx_queue;
+    auto       buffer =
+        stv::make_serial_message_buffer(tx_queue, rmp_frame_tx_type{});
+
+    {
+        const auto msg = buffer.request(payload_prefix);
+        (void)msg;
+    }
+
+    REQUIRE(!tx_queue.empty());
+
+    const auto            &frame = tx_queue.front();
+    std::vector<std::byte> result(frame.begin(), frame.end());
+    tx_queue.pop();
+
+    return result;
+}
+
+/// @brief Возвращает ожидаемое содержимое распарсенного кадра RMP: голая
+///     полезная нагрузка (парсер отрезает заголовок и CRC) -- запрошенные
+///     байты и нулевое дополнение до фиксированного размера.
+auto make_expected_rmp_payload(
+    const std::vector<std::byte> &payload_prefix) -> std::vector<std::byte>
+{
+    std::vector<std::byte> result = payload_prefix;
+    result.resize(rmp_frame_tx_type::fixed_pload_size(), std::byte{0x00});
+    return result;
+}
+
+/// @brief Возвращает ожидаемое содержимое распарсенного кадра stvlinkv2:
+///     заголовок сообщения (msg_id, pload_size -- little-endian) + нагрузка.
+auto make_expected_stvlinkv2_payload(
+    std::string_view payload, std::uint16_t msg_id) -> std::vector<std::byte>
+{
+    const auto pload_size = static_cast<std::uint16_t>(payload.size());
+
+    std::vector<std::byte> result;
+    result.reserve(stv::stvlinkv2_sender::message_header_size()
+                   + payload.size());
+    // msg_id записывается little-endian (хостовая платформа — LE).
+    result.push_back(static_cast<std::byte>(msg_id & 0xFFU));
+    result.push_back(static_cast<std::byte>(
+        (static_cast<std::uint32_t>(msg_id) >> 8U) & 0xFFU));
+    result.push_back(static_cast<std::byte>(pload_size & 0xFFU));
+    result.push_back(static_cast<std::byte>(
+        (static_cast<std::uint32_t>(pload_size) >> 8U) & 0xFFU));
+
+    const auto bytes = std::as_bytes(std::span(payload.data(), payload.size()));
+    result.insert(result.end(), bytes.begin(), bytes.end());
+
+    return result;
+}
+
+/// @brief Регистратор вызовов обратного вызова on_frame_parsed: запоминает
+///     индексы декораторов в порядке приёма кадров.
+struct frame_parsed_recorder {
+    std::vector<std::size_t> decorator_indexes;
+
+    void                     record(
+        std::size_t decorator_idx)
+    { decorator_indexes.push_back(decorator_idx); }
+};
+
+/// @brief Формирует обратный вызов факта приёма кадра, записывающий индексы
+///     декораторов в регистратор @c recorder.
+auto make_frame_parsed_recorder_hook(
+    frame_parsed_recorder &recorder) -> etl::delegate<void(std::size_t)>
+{
+    return etl::delegate<void(std::size_t)>::create<
+        frame_parsed_recorder, &frame_parsed_recorder::record>(recorder);
 }
 
 } // namespace
@@ -736,6 +848,178 @@ TEST_CASE(
 }
 
 TEST_CASE(
+    "serial_parser demultiplexes stvlinkv2 and rmp frames",
+    "[stv][communication]")
+{
+    constexpr std::size_t                       lwrb_buffer_size{256};
+    stv::lwrb<lwrb_base_type, lwrb_buffer_size> lwrb{lwrb_setup_type{}};
+    queue_type                                  stvlinkv2_parsed_queue;
+    queue_type                                  rmp_parsed_queue;
+
+    using parser_setup_type =
+        stv::serial_parser_setup<lwrb_base_type, queue_type, stv::empty_mutex,
+                                 stv::stvlinkv2_parser, rmp_frame_type>;
+
+    parser_setup_type setup;
+    setup.lwrb = &lwrb;
+    setup.set_queue<stv::stvlinkv2_parser>(stvlinkv2_parsed_queue);
+    setup.set_queue<rmp_frame_type>(rmp_parsed_queue);
+
+    auto parser =
+        stv::make_serial_parser<parser_setup_type, stv::stvlinkv2_parser,
+                                rmp_frame_type>(setup);
+    REQUIRE(parser);
+
+    SECTION("distinct start sequences")
+    {
+        // stvlinkv2 выбирается по паре 0x55 0x55, RMP — по паре 0xAA 0x55.
+        STATIC_REQUIRE(
+            stv::stvlinkv2_parser::matches(std::byte{0x55}, std::byte{0x55}));
+        STATIC_REQUIRE_FALSE(
+            stv::stvlinkv2_parser::matches(std::byte{0xAA}, std::byte{0x55}));
+        STATIC_REQUIRE(
+            rmp_frame_type::matches(std::byte{0xAA}, std::byte{0x55}));
+        STATIC_REQUIRE_FALSE(
+            rmp_frame_type::matches(std::byte{0x55}, std::byte{0x55}));
+    }
+
+    SECTION("mixed stream")
+    {
+        constexpr std::string_view stv_payload_one{"A"};
+        constexpr std::string_view stv_payload_two{"BC"};
+        const auto                 rmp_payload_one =
+            std::vector<std::byte>{std::byte{0x01}, std::byte{0x02}};
+        const auto rmp_payload_two = std::vector<std::byte>{std::byte{0x03}};
+
+        constexpr std::uint16_t stv_msgid{7U};
+
+        lwrb.write(make_stvlinkv2_frame(stv_payload_one, stv_msgid));
+        lwrb.write(make_rmp_frame(rmp_payload_one));
+        lwrb.write(make_stvlinkv2_frame(stv_payload_two, stv_msgid));
+        lwrb.write(make_rmp_frame(rmp_payload_two));
+
+        // Кадры обоих протоколов за один вызов run() разошлись по своим
+        // очередям.
+        REQUIRE(parser.run());
+        REQUIRE(stvlinkv2_parsed_queue.size() == 2U);
+        REQUIRE(rmp_parsed_queue.size() == 2U);
+
+        require_front_equals(
+            stvlinkv2_parsed_queue,
+            make_expected_stvlinkv2_payload(stv_payload_one, stv_msgid));
+        require_front_equals(
+            stvlinkv2_parsed_queue,
+            make_expected_stvlinkv2_payload(stv_payload_two, stv_msgid));
+        require_front_equals(rmp_parsed_queue,
+                             make_expected_rmp_payload(rmp_payload_one));
+        require_front_equals(rmp_parsed_queue,
+                             make_expected_rmp_payload(rmp_payload_two));
+    }
+
+    SECTION("stream arriving byte by byte")
+    {
+        // Побайтная запись всего потока с периодическим вызовом run():
+        // парсер удерживает частично принятый кадр и досматривает его,
+        // а кадры обоих протоколов разошлись по своим очередям.
+        constexpr std::string_view stv_payload{"byte-by-byte"};
+        const auto                 rmp_payload =
+            std::vector<std::byte>{std::byte{0x11}, std::byte{0x22}};
+        constexpr std::uint16_t stv_msgid{3U};
+
+        std::vector<std::byte>  stream;
+        const auto stv_frame = make_stvlinkv2_frame(stv_payload, stv_msgid);
+        const auto rmp_frame = make_rmp_frame(rmp_payload);
+        stream.insert(stream.end(), stv_frame.begin(), stv_frame.end());
+        stream.insert(stream.end(), rmp_frame.begin(), rmp_frame.end());
+
+        for(const std::byte byte: stream)
+        {
+            lwrb.write(&byte, 1U);
+            static_cast<void>(parser.run());
+        }
+
+        REQUIRE(stvlinkv2_parsed_queue.size() == 1U);
+        REQUIRE(rmp_parsed_queue.size() == 1U);
+
+        require_front_equals(
+            stvlinkv2_parsed_queue,
+            make_expected_stvlinkv2_payload(stv_payload, stv_msgid));
+        require_front_equals(rmp_parsed_queue,
+                             make_expected_rmp_payload(rmp_payload));
+    }
+
+    SECTION("garbage between frames")
+    {
+        constexpr std::string_view stv_payload{"stv2"};
+        const auto rmp_payload = std::vector<std::byte>{std::byte{0x77}};
+        constexpr std::uint16_t stv_msgid{1U};
+
+        // Мусор не должен содержать стартовых последовательностей
+        // 0x55 0x55 или 0xAA 0x55, в том числе на границе со следующим
+        // кадром.
+        constexpr std::array<std::byte, 6> garbage{
+            std::byte{0x00}, std::byte{0x11}, std::byte{0x22},
+            std::byte{0x33}, std::byte{0x44}, std::byte{0x66},
+        };
+
+        lwrb.write(garbage);
+        lwrb.write(make_rmp_frame(rmp_payload));
+        lwrb.write(garbage);
+        lwrb.write(make_stvlinkv2_frame(stv_payload, stv_msgid));
+        lwrb.write(garbage);
+
+        REQUIRE(parser.run());
+        REQUIRE(stvlinkv2_parsed_queue.size() == 1U);
+        REQUIRE(rmp_parsed_queue.size() == 1U);
+
+        require_front_equals(
+            stvlinkv2_parsed_queue,
+            make_expected_stvlinkv2_payload(stv_payload, stv_msgid));
+        require_front_equals(rmp_parsed_queue,
+                             make_expected_rmp_payload(rmp_payload));
+    }
+
+    SECTION("corrupted crc of each protocol")
+    {
+        constexpr std::string_view stv_payload_one{"first"};
+        constexpr std::string_view stv_payload_two{"second"};
+        const auto rmp_payload_one = std::vector<std::byte>{std::byte{0x0A}};
+        const auto rmp_payload_two = std::vector<std::byte>{std::byte{0x0B}};
+        constexpr std::uint16_t stv_msgid{5U};
+
+        auto stv_frame_bad = make_stvlinkv2_frame("bad", stv_msgid);
+        auto rmp_frame_bad = make_rmp_frame({std::byte{0xFF}});
+
+        // Портим последний байт CRC каждого кадра, не трогая их размер.
+        stv_frame_bad.back() ^= std::byte{0xFF};
+        rmp_frame_bad.back() ^= std::byte{0xFF};
+
+        lwrb.write(make_stvlinkv2_frame(stv_payload_one, stv_msgid));
+        lwrb.write(stv_frame_bad);
+        lwrb.write(make_rmp_frame(rmp_payload_one));
+        lwrb.write(rmp_frame_bad);
+        lwrb.write(make_stvlinkv2_frame(stv_payload_two, stv_msgid));
+        lwrb.write(make_rmp_frame(rmp_payload_two));
+
+        // Битые кадры отброшены, синхронизация потока не потеряна.
+        REQUIRE(parser.run());
+        REQUIRE(stvlinkv2_parsed_queue.size() == 2U);
+        REQUIRE(rmp_parsed_queue.size() == 2U);
+
+        require_front_equals(
+            stvlinkv2_parsed_queue,
+            make_expected_stvlinkv2_payload(stv_payload_one, stv_msgid));
+        require_front_equals(
+            stvlinkv2_parsed_queue,
+            make_expected_stvlinkv2_payload(stv_payload_two, stv_msgid));
+        require_front_equals(rmp_parsed_queue,
+                             make_expected_rmp_payload(rmp_payload_one));
+        require_front_equals(rmp_parsed_queue,
+                             make_expected_rmp_payload(rmp_payload_two));
+    }
+}
+
+TEST_CASE(
     "serial_parser with external std::mutex", "[stv][communication]")
 {
     constexpr std::size_t                       lwrb_buffer_size{256};
@@ -809,6 +1093,145 @@ TEST_CASE(
         mavlink_queue,
         make_expected_mavlink_payload(mav_payload, mavlink_compid,
                                       {.msgid = mavlink_msgid_heartbeat}));
+}
+
+TEST_CASE(
+    "serial_parser reports accepted frames via on_frame_parsed callback",
+    "[stv][communication]")
+{
+    constexpr std::size_t                       lwrb_buffer_size{256};
+    stv::lwrb<lwrb_base_type, lwrb_buffer_size> lwrb{lwrb_setup_type{}};
+    queue_type                                  stvlinkv2_parsed_queue;
+    queue_type                                  rmp_parsed_queue;
+
+    using parser_setup_type =
+        stv::serial_parser_setup<lwrb_base_type, queue_type, stv::empty_mutex,
+                                 stv::stvlinkv2_parser, rmp_frame_type>;
+
+    // Обратный вызов по умолчанию пустой: setup без хука компилируется и
+    // ведёт себя как раньше.
+    parser_setup_type setup;
+    setup.lwrb = &lwrb;
+    setup.set_queue<stv::stvlinkv2_parser>(stvlinkv2_parsed_queue);
+    setup.set_queue<rmp_frame_type>(rmp_parsed_queue);
+    REQUIRE_FALSE(setup.on_frame_parsed.is_valid());
+
+    SECTION("parser without callback works as before")
+    {
+        auto parser =
+            stv::make_serial_parser<parser_setup_type, stv::stvlinkv2_parser,
+                                    rmp_frame_type>(setup);
+        REQUIRE(parser);
+
+        constexpr std::string_view stv_payload{"hookless"};
+        constexpr std::uint16_t    stv_msgid{1U};
+        lwrb.write(make_stvlinkv2_frame(stv_payload, stv_msgid));
+
+        REQUIRE(parser.run());
+        REQUIRE(stvlinkv2_parsed_queue.size() == 1U);
+        require_front_equals(
+            stvlinkv2_parsed_queue,
+            make_expected_stvlinkv2_payload(stv_payload, stv_msgid));
+    }
+
+    SECTION("callback reports frames in wire order")
+    {
+        frame_parsed_recorder recorder;
+        setup.on_frame_parsed = make_frame_parsed_recorder_hook(recorder);
+
+        auto parser =
+            stv::make_serial_parser<parser_setup_type, stv::stvlinkv2_parser,
+                                    rmp_frame_type>(setup);
+        REQUIRE(parser);
+
+        constexpr std::string_view stv_payload_one{"A"};
+        constexpr std::string_view stv_payload_two{"BC"};
+        const auto                 rmp_payload_one =
+            std::vector<std::byte>{std::byte{0x01}, std::byte{0x02}};
+        const auto rmp_payload_two = std::vector<std::byte>{std::byte{0x03}};
+        constexpr std::uint16_t stv_msgid{7U};
+
+        lwrb.write(make_stvlinkv2_frame(stv_payload_one, stv_msgid));
+        lwrb.write(make_rmp_frame(rmp_payload_one));
+        lwrb.write(make_stvlinkv2_frame(stv_payload_two, stv_msgid));
+        lwrb.write(make_rmp_frame(rmp_payload_two));
+
+        REQUIRE(parser.run());
+        // Индексы декораторов в порядке кадров на проводе: stvlinkv2 = 0,
+        // rmp = 1.
+        REQUIRE(recorder.decorator_indexes
+                == std::vector<std::size_t>{0U, 1U, 0U, 1U});
+        REQUIRE(stvlinkv2_parsed_queue.size() == 2U);
+        REQUIRE(rmp_parsed_queue.size() == 2U);
+    }
+
+    SECTION("corrupted crc frame is not reported")
+    {
+        frame_parsed_recorder recorder;
+        setup.on_frame_parsed = make_frame_parsed_recorder_hook(recorder);
+
+        auto parser =
+            stv::make_serial_parser<parser_setup_type, stv::stvlinkv2_parser,
+                                    rmp_frame_type>(setup);
+        REQUIRE(parser);
+
+        constexpr std::string_view stv_payload_one{"first"};
+        constexpr std::string_view stv_payload_two{"second"};
+        const auto rmp_payload_one = std::vector<std::byte>{std::byte{0x0A}};
+        const auto rmp_payload_two = std::vector<std::byte>{std::byte{0x0B}};
+        constexpr std::uint16_t stv_msgid{5U};
+
+        auto stv_frame_bad = make_stvlinkv2_frame("bad", stv_msgid);
+        auto rmp_frame_bad = make_rmp_frame({std::byte{0xFF}});
+
+        // Портим последний байт CRC каждого кадра, не трогая их размер.
+        stv_frame_bad.back() ^= std::byte{0xFF};
+        rmp_frame_bad.back() ^= std::byte{0xFF};
+
+        lwrb.write(make_stvlinkv2_frame(stv_payload_one, stv_msgid));
+        lwrb.write(stv_frame_bad);
+        lwrb.write(make_rmp_frame(rmp_payload_one));
+        lwrb.write(rmp_frame_bad);
+        lwrb.write(make_stvlinkv2_frame(stv_payload_two, stv_msgid));
+        lwrb.write(make_rmp_frame(rmp_payload_two));
+
+        // Битые кадры отброшены без вызова хука, синхронизация потока не
+        // потеряна.
+        REQUIRE(parser.run());
+        REQUIRE(stvlinkv2_parsed_queue.size() == 2U);
+        REQUIRE(rmp_parsed_queue.size() == 2U);
+        REQUIRE(recorder.decorator_indexes
+                == std::vector<std::size_t>{0U, 1U, 0U, 1U});
+    }
+
+    SECTION("frame dropped by queue overflow is not reported")
+    {
+        frame_parsed_recorder recorder;
+        setup.on_frame_parsed = make_frame_parsed_recorder_hook(recorder);
+
+        auto parser =
+            stv::make_serial_parser<parser_setup_type, stv::stvlinkv2_parser,
+                                    rmp_frame_type>(setup);
+        REQUIRE(parser);
+
+        // Ёмкость очереди -- 10 кадров: 11-й кадр отброшен, хук для него не
+        // вызван.
+        constexpr std::size_t      frames_to_send{11U};
+        constexpr std::string_view payload{"overflow"};
+        constexpr std::uint16_t    stv_msgid{9U};
+
+        for(std::size_t i{0}; i < frames_to_send; ++i)
+        {
+            lwrb.write(make_stvlinkv2_frame(payload, stv_msgid));
+            static_cast<void>(parser.run());
+        }
+
+        REQUIRE(stvlinkv2_parsed_queue.size() == 10U);
+        REQUIRE(recorder.decorator_indexes.size() == 10U);
+        REQUIRE(std::all_of(recorder.decorator_indexes.begin(),
+                            recorder.decorator_indexes.end(),
+                            [](std::size_t idx) { return idx == 0U; }));
+    }
 }
 
 // NOLINTEND(readability-function-cognitive-complexity)

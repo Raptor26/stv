@@ -321,8 +321,8 @@ consteval void assert_handler_map_capacity()
         // Парсер автоматически регистрирует два встроенных обработчика
         // кадров (0x16 и 0x14): таблица должна вмещать минимум два элемента.
         static_assert(THandlerMap::MAX_SIZE >= 2U,
-                      "handler_map_type должен вмещать минимум 2 обработчика "
-                      "(встроенные обработчики кадров 0x16 и 0x14)");
+                      "handler_map_type must hold at least 2 handlers "
+                      "(built-in handlers for frames 0x16 and 0x14)");
     }
 }
 

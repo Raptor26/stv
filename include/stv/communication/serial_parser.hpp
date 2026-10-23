@@ -37,6 +37,15 @@
 ///         Метод run() выполняет один цикл парсинга
 ///         и возвращает true, если хотя бы одно
 ///         сообщение было успешно обработано.
+///         Опциональный обратный вызов
+///         serial_parser_setup::on_frame_parsed
+///         сообщает индекс декоратора каждого кадра,
+///         успешно помещенного в очередь.
+///         Опциональный обратный вызов
+///         serial_parser_setup::on_frame_dropped
+///         сообщает индекс декоратора кадра,
+///         отброшенного из-за переполненной
+///         выходной очереди (диагностика потерь).
 ///
 ///     make_serial_parser<TSetup, Decorators...>(
 ///         setup)
@@ -116,6 +125,7 @@
 #ifndef SERIAL_PARSER_HPP
 #define SERIAL_PARSER_HPP
 
+#include "etl/delegate.h"
 #include "lwrb/lwrb.h"
 #include "stv/communication/parsed_queue.hpp"
 #include "stv/communication/serial_decorators.hpp"
@@ -198,6 +208,44 @@ class serial_parser_setup
     /// При использовании внешнего мьютекса следует передать его адрес.
     /// При использовании @ref stv::empty_mutex поле остается пустым.
     mutex_condition_type mutex{};
+
+    /// @brief Тип обратного вызова факта приёма кадра.
+    ///
+    /// @details Аргумент обратного вызова — индекс декоратора в пакете
+    ///     декораторов структуры (порядок перечисления типов в шаблоне
+    ///     @c serial_parser_setup).
+    using frame_parsed_callback = etl::delegate<void(std::size_t)>;
+
+    /// @brief Обратный вызов факта приёма кадра.
+    ///
+    /// @details
+    /// Вызывается, только если кадр успешно прошел проверку CRC и помещен
+    /// в очередь (при битом CRC и при переполнении очереди вызова нет).
+    /// По умолчанию пустой: обратный вызов отключен, поведение парсера
+    /// не меняется.
+    ///
+    /// @warning Вызывается из потока @c run() до возврата @c run();
+    ///     обработчик не должен блокироваться.
+    frame_parsed_callback on_frame_parsed;
+
+    /// @brief Тип обратного вызова факта отбрасывания кадра.
+    ///
+    /// @details Аргумент обратного вызова — индекс декоратора в пакете
+    ///     декораторов структуры (аналогично @c frame_parsed_callback).
+    using frame_dropped_callback = etl::delegate<void(std::size_t)>;
+
+    /// @brief Обратный вызов факта отбрасывания принятого кадра.
+    ///
+    /// @details
+    /// Вызывается, если кадр успешно прошел проверку CRC, но не был помещен
+    /// в очередь из-за её переполнения (push в полную очередь ETL
+    /// перезаписал бы живой элемент без вызова деструктора — утечка памяти
+    /// и порча счетчиков очереди, поэтому кадр отбрасывается). По умолчанию
+    /// пустой: обратный вызов отключен, поведение парсера не меняется.
+    ///
+    /// @warning Вызывается из потока @c run() до возврата @c run();
+    ///     обработчик не должен блокироваться.
+    frame_dropped_callback on_frame_dropped;
 
     /// @brief Устанавливает очередь для декоратора @c Decorator.
     ///
@@ -295,6 +343,12 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     using mutex_type     = typename TSetup::mutex_type;
     using decorators_t   = std::tuple<Decorators...>;
 
+    /// @brief Тип обратного вызова факта приёма кадра.
+    using frame_parsed_callback = typename setup_type::frame_parsed_callback;
+
+    /// @brief Тип обратного вызова факта отбрасывания кадра.
+    using frame_dropped_callback = typename setup_type::frame_dropped_callback;
+
     /// @brief true, если тип @c T входит в пакет @c Us.
     template<typename T, typename... Us>
     static constexpr bool is_one_of_v = (std::is_same_v<T, Us> || ...);
@@ -352,6 +406,12 @@ class serial_parser: virtual private stv::non_movable_non_copyable
 
     /// @brief Очереди для готовых сообщений (по одной на декоратор).
     std::array<queue_type *, decorators_count> queues_{};
+
+    /// @brief Обратный вызов факта приёма кадра (пустой — отключен).
+    frame_parsed_callback on_frame_parsed_{};
+
+    /// @brief Обратный вызов факта отбрасывания кадра (пустой — отключен).
+    frame_dropped_callback on_frame_dropped_{};
 
     /// @brief Максимальный допустимый размер одного сообщения.
     const std::size_t max_one_message_size_{0};
@@ -649,6 +709,8 @@ class serial_parser: virtual private stv::non_movable_non_copyable
             make_queues_pointers(setup.queues(),
                                  std::make_index_sequence<decorators_count>{}),
         },
+        on_frame_parsed_{setup.on_frame_parsed},
+        on_frame_dropped_{setup.on_frame_dropped},
         max_one_message_size_{calculate_max_one_message_size(setup)}
     {
         if constexpr(std::is_pointer_v<decltype(mutex_)>)
@@ -856,6 +918,119 @@ class serial_parser: virtual private stv::non_movable_non_copyable
         return is_need_continue;
     }
 
+    /// @brief Помещает принятый кадр в очередь и уведомляет обработчик.
+    ///
+    /// @details Вызывается только для кадра с валидным CRC и свободной
+    ///     очередью: увеличивает счетчик принятых кадров и вызывает
+    ///     обратный вызов @c on_frame_parsed_ (если он задан).
+    ///
+    /// @param[in,out] target_queue Очередь выбранного декоратора.
+    /// @param[in] msg Буфер с принятым кадром без служебных полей.
+    void accept_parsed_frame(
+        queue_type &target_queue, container_type &&msg)
+    {
+        target_queue.push(std::move(msg));
+        ++parsed_cnt_;
+
+        if(on_frame_parsed_.is_valid())
+        {
+            on_frame_parsed_(selected_decorator_idx_);
+        }
+    }
+
+    /// @brief Обрабатывает собранный целиком кадр: проверяет CRC и передаёт
+    ///     сообщение в очередь выбранного декоратора.
+    ///
+    /// @details Выделен из wait_message_ready_state() для удержания
+    ///     когнитивной сложности состояния в пороге. Кадр уже проверен на
+    ///     полноту и допустимый размер; буфер сообщения выделяется
+    ///     динамически с идиомой RAII. При успехе CRC удаляет кадр из
+    ///     буфера, отрезает служебные поля и помещает сообщение в очередь
+    ///     выбранного декоратора. Если выходная очередь переполнена,
+    ///     сообщение отбрасывается: push в полную очередь ETL перезаписывает
+    ///     живой элемент без вызова деструктора, что приводит к утечке
+    ///     памяти и порче счетчиков очереди; потребитель получает
+    ///     диагностику через обратный вызов @c on_frame_dropped_. При ошибке
+    ///     CRC пропускает только заголовок, чтобы продолжить поиск со
+    ///     следующего байта.
+    ///
+    /// @param[in] expect_total_message_size Полный размер кадра (заголовок +
+    ///     поле размера + полезная нагрузка + CRC).
+    /// @param[in] header_size Размер заголовка выбранного декоратора.
+    /// @param[in] trailer_size Размер CRC выбранного декоратора.
+    // NOLINTBEGIN(bugprone-easily-swappable-parameters) -- размеры разного
+    // назначения, порядок подсказан именами параметров и их документацией.
+    void accept_ready_frame(
+        const std::size_t expect_total_message_size,
+        const std::size_t header_size, const std::size_t trailer_size)
+    // NOLINTEND(bugprone-easily-swappable-parameters)
+    {
+        constexpr auto is_isr{false};
+
+        // Динамическое выделение памяти с идиомой RAII.
+        container_type msg{expect_total_message_size};
+
+        const auto     peek_bytes = lwrb_->peek(
+            typename lwrb_base_type::container_type{
+                msg.data(),
+                msg.size_bytes(),
+            },
+            0, is_isr);
+
+        if(peek_bytes != expect_total_message_size)
+        {
+            // Кадр ещё не целиком в буфере: обработка на следующем
+            // вызове run().
+            return;
+        }
+
+        // Присваивание происходит внутри лямбды dispatch_by_index.
+        // NOLINTNEXTLINE(misc-const-correctness)
+        auto is_crc_valid{false};
+
+        dispatch_by_index(selected_decorator_idx_, [&](auto index_constant) {
+            constexpr auto idx   = decltype(index_constant)::value;
+            using decorator_type = std::tuple_element_t<idx, decorators_t>;
+
+            is_crc_valid = decorator_type::is_crc_valid(
+                total_message_span{msg.begin(), msg.size()});
+        });
+
+        if(is_crc_valid)
+        {
+            lwrb_->skip(expect_total_message_size, is_isr);
+
+            msg.trim_head(header_size);
+            msg.trim_tail(trailer_size);
+
+            auto *const target_queue = queues_.at(selected_decorator_idx_);
+            if(target_queue != nullptr)
+            {
+                if(!target_queue->full())
+                {
+                    accept_parsed_frame(*target_queue, std::move(msg));
+                }
+                else if(on_frame_dropped_.is_valid())
+                {
+                    // Переполненная очередь: сообщение отброшено, его
+                    // буфер освобождается деструктором msg. Потребитель
+                    // получает диагностику потери через обратный вызов.
+                    on_frame_dropped_(selected_decorator_idx_);
+                }
+            }
+        }
+        else
+        {
+            // CRC не сошлось: ложный заголовок. Пропускаем один
+            // байт, чтобы поиск продолжился побайтно со следующего
+            // байта после ложного начала кадра.
+            lwrb_->skip(1U, is_isr);
+        }
+
+        set_state(states::start_frame_and_size);
+        set_frame_selection(frame_selection{decorators_count, 0});
+    }
+
     /// @brief Состояние ожидания и обработки полного кадра.
     ///
     /// @details
@@ -872,7 +1047,8 @@ class serial_parser: virtual private stv::non_movable_non_copyable
     /// сообщение в очередь выбранного декоратора. Если выходная очередь
     /// переполнена, сообщение отбрасывается: push в полную очередь ETL
     /// перезаписывает живой элемент без вызова деструктора, что приводит
-    /// к утечке памяти и порче счетчиков очереди. При ошибке CRC
+    /// к утечке памяти и порче счетчиков очереди; потребитель получает
+    /// диагностику через обратный вызов @c on_frame_dropped_. При ошибке CRC
     /// пропускает только заголовок, чтобы продолжить поиск со
     /// следующего байта. Если заявленный размер кадра превышает
     /// @c max_one_message_size_, заголовок отбрасывается и парсер
@@ -934,60 +1110,8 @@ class serial_parser: virtual private stv::non_movable_non_copyable
         // Кадр собран целиком: таймаут ожидания более неактуален.
         reset_wait_message_ready_timeout();
 
-        // Динамическое выделение памяти с идиомой RAII.
-        container_type msg{expect_total_message_size};
-
-        constexpr auto is_isr{false};
-        const auto     peek_bytes = lwrb_->peek(
-            typename lwrb_base_type::container_type{
-                msg.data(),
-                msg.size_bytes(),
-            },
-            0, is_isr);
-
-        if(peek_bytes == expect_total_message_size)
-        {
-            // Присваивание происходит внутри лямбды dispatch_by_index.
-            // NOLINTNEXTLINE(misc-const-correctness)
-            auto is_crc_valid{false};
-
-            dispatch_by_index(
-                selected_decorator_idx_, [&](auto index_constant) {
-                    constexpr auto idx = decltype(index_constant)::value;
-                    using decorator_type =
-                        std::tuple_element_t<idx, decorators_t>;
-
-                    is_crc_valid = decorator_type::is_crc_valid(
-                        total_message_span{msg.begin(), msg.size()});
-                });
-
-            if(is_crc_valid)
-            {
-                lwrb_->skip(expect_total_message_size, is_isr);
-
-                msg.trim_head(header_size);
-                msg.trim_tail(trailer_size);
-
-                auto *const target_queue = queues_.at(selected_decorator_idx_);
-                if((target_queue != nullptr) && !target_queue->full())
-                {
-                    target_queue->push(std::move(msg));
-                    ++parsed_cnt_;
-                }
-                // Переполненная очередь: сообщение отброшено, его буфер
-                // освобождается деструктором msg.
-            }
-            else
-            {
-                // CRC не сошлось: ложный заголовок. Пропускаем один
-                // байт, чтобы поиск продолжился побайтно со следующего
-                // байта после ложного начала кадра.
-                lwrb_->skip(1U, is_isr);
-            }
-
-            set_state(states::start_frame_and_size);
-            set_frame_selection(frame_selection{decorators_count, 0});
-        }
+        accept_ready_frame(expect_total_message_size, header_size,
+                           trailer_size);
 
         if(lwrb_->get_full() >= header_size)
         {
@@ -1016,4 +1140,4 @@ auto make_serial_parser(
 
 } // namespace stv
 
-#endif /* SERIAL_PARSER_HPP */
+#endif // SERIAL_PARSER_HPP

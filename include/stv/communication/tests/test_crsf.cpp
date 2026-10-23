@@ -221,7 +221,7 @@ SCENARIO(
 
 /// @brief Проверяет константы протокола и функцию crsf_crc8.
 SCENARIO(
-    "Константы протокола и функция crc8", "[stv][communication][crsf]")
+    "Protocol constants and crc8 function", "[stv][communication][crsf]")
 {
     static_assert(stv::crsf_frame_length_min == 2);
     static_assert(stv::crsf_frame_length_max == 62);
@@ -235,12 +235,12 @@ SCENARIO(
     static_assert(stv::crsf_channel_value_mid == 992);
     static_assert(stv::crsf_channel_value_max == 1811);
 
-    GIVEN("Пустой диапазон")
+    GIVEN("Empty range")
     {
-        THEN("crc равен нулю") { REQUIRE(stv::crsf_crc8({}) == 0); }
+        THEN("crc is zero") { REQUIRE(stv::crsf_crc8({}) == 0); }
     }
 
-    GIVEN("Строка \"123456789\"")
+    GIVEN("String \"123456789\"")
     {
         // clang-tidy 23 ошибочно колеблется: для этого списка требует и
         // запрещает висячую запятую одновременно; формат соответствует
@@ -252,18 +252,18 @@ SCENARIO(
         // NOLINTEND(readability-trailing-comma)
         const auto data = std::as_bytes(std::span{chars});
 
-        THEN("crc равен контрольному значению crc-8/dvb-s2")
+        THEN("crc equals the crc-8/dvb-s2 check value")
         { REQUIRE(stv::crsf_crc8(data) == 0xBC); }
     }
 
-    GIVEN("Один нулевой байт")
+    GIVEN("Single zero byte")
     {
         static constexpr std::array<std::byte, 1> data{std::byte{0x00}};
 
-        THEN("crc равен нулю") { REQUIRE(stv::crsf_crc8(data) == 0); }
+        THEN("crc is zero") { REQUIRE(stv::crsf_crc8(data) == 0); }
     }
 
-    GIVEN("Произвольный набор данных")
+    GIVEN("Arbitrary data set")
     {
         static constexpr std::array data{
             std::byte{0x16}, std::byte{0xC8}, std::byte{0x03}, std::byte{0xE0},
@@ -275,28 +275,28 @@ SCENARIO(
         std::copy(data.begin(), data.end(), data_with_crc.begin());
         data_with_crc.back() = std::byte{crc};
 
-        THEN("crc от данных с приложенным crc равен нулю")
+        THEN("crc of data with appended crc is zero")
         { REQUIRE(stv::crsf_crc8(data_with_crc) == 0); }
     }
 }
 
 /// @brief Проверяет тестовый helper построения кадров crsf.
 SCENARIO(
-    "Helper построения кадров crsf", "[stv][communication][crsf]")
+    "crsf frame builder helper", "[stv][communication][crsf]")
 {
-    GIVEN("Каналы со средним значением")
+    GIVEN("Channels with mid value")
     {
         crsf_test_channels channels{};
         channels.fill(stv::crsf_channel_value_mid);
 
         std::array<std::byte, stv::crsf_frame_size_max> buffer{};
 
-        WHEN("Строится кадр rc channels packed")
+        WHEN("rc channels packed frame is built")
         {
             const std::size_t frame_size =
                 build_rc_channels_frame(buffer, channels);
 
-            THEN("Кадр имеет корректные заголовок, размер и crc")
+            THEN("Frame has correct header, size and crc")
             {
                 // sync + length + type + 22 байта payload + crc.
                 REQUIRE(frame_size == 26);
@@ -312,7 +312,7 @@ SCENARIO(
         }
     }
 
-    GIVEN("Каналы min, max, mid, min и далее средние")
+    GIVEN("Channels min, max, mid, min, then mid")
     {
         crsf_test_channels channels{};
         channels.fill(stv::crsf_channel_value_mid);
@@ -323,12 +323,12 @@ SCENARIO(
 
         std::array<std::byte, stv::crsf_frame_size_max> buffer{};
 
-        WHEN("Строится кадр rc channels packed")
+        WHEN("rc channels packed frame is built")
         {
             const std::size_t frame_size =
                 build_rc_channels_frame(buffer, channels);
 
-            THEN("Каналы упакованы по 11 бит lsb-first")
+            THEN("Channels packed 11-bit lsb-first")
             {
                 REQUIRE(frame_size == 26);
                 // Канал 0 (172 = 0b00010101100): младшие 8 бит.
@@ -348,7 +348,7 @@ SCENARIO(
         }
     }
 
-    GIVEN("Поля link statistics")
+    GIVEN("Link statistics fields")
     {
         const stv::crsf_link_statistics link_statistics{
             .up_rssi_ant1      = 100,
@@ -365,12 +365,12 @@ SCENARIO(
 
         std::array<std::byte, stv::crsf_frame_size_max> buffer{};
 
-        WHEN("Строится кадр link statistics")
+        WHEN("link statistics frame is built")
         {
             const std::size_t frame_size =
                 build_link_statistics_frame(buffer, link_statistics);
 
-            THEN("Кадр имеет корректные заголовок, payload и crc")
+            THEN("Frame has correct header, payload and crc")
             {
                 // sync + length + type + 10 байт payload + crc.
                 REQUIRE(frame_size == 14);
@@ -397,18 +397,18 @@ SCENARIO(
         }
     }
 
-    GIVEN("Буфер недостаточного размера, предзаполненный маркером 0xAA")
+    GIVEN("Undersized buffer pre-filled with 0xAA marker")
     {
         constexpr std::byte canary{0xAA};
 
-        WHEN("Строится кадр rc channels packed")
+        WHEN("rc channels packed frame is built")
         {
             std::array<std::byte, 25> buffer{};
             buffer.fill(canary);
 
             const std::size_t frame_size = build_rc_channels_frame(buffer, {});
 
-            THEN("Ничего не записано и возвращён ноль")
+            THEN("Nothing written and zero returned")
             {
                 REQUIRE(frame_size == 0);
                 REQUIRE(std::ranges::all_of(
@@ -416,7 +416,7 @@ SCENARIO(
             }
         }
 
-        WHEN("Строится кадр link statistics")
+        WHEN("link statistics frame is built")
         {
             std::array<std::byte, 13> buffer{};
             buffer.fill(canary);
@@ -424,7 +424,7 @@ SCENARIO(
             const std::size_t frame_size =
                 build_link_statistics_frame(buffer, {});
 
-            THEN("Ничего не записано и возвращён ноль")
+            THEN("Nothing written and zero returned")
             {
                 REQUIRE(frame_size == 0);
                 REQUIRE(std::ranges::all_of(
@@ -433,29 +433,29 @@ SCENARIO(
         }
     }
 
-    GIVEN("Буфер точно по размеру кадра")
+    GIVEN("Buffer exactly the frame size")
     {
-        WHEN("Строится кадр rc channels packed")
+        WHEN("rc channels packed frame is built")
         {
             std::array<std::byte, 26> buffer{};
 
             const std::size_t frame_size = build_rc_channels_frame(buffer, {});
 
-            THEN("Кадр построен и возвращён его полный размер")
+            THEN("Frame built and its full size returned")
             {
                 REQUIRE(frame_size == 26);
                 REQUIRE(buffer[0] == std::byte{0xC8});
             }
         }
 
-        WHEN("Строится кадр link statistics")
+        WHEN("link statistics frame is built")
         {
             std::array<std::byte, 14> buffer{};
 
             const std::size_t         frame_size =
                 build_link_statistics_frame(buffer, {});
 
-            THEN("Кадр построен и возвращён его полный размер")
+            THEN("Frame built and its full size returned")
             {
                 REQUIRE(frame_size == 14);
                 REQUIRE(buffer[0] == std::byte{0xC8});
@@ -463,18 +463,18 @@ SCENARIO(
         }
     }
 
-    GIVEN("Буфер с канарейкой 0xAA за границами кадра")
+    GIVEN("Buffer with 0xAA canary beyond the frame")
     {
         constexpr std::byte canary{0xAA};
 
-        WHEN("Строится кадр rc channels packed")
+        WHEN("rc channels packed frame is built")
         {
             std::array<std::byte, stv::crsf_frame_size_max> buffer{};
             buffer.fill(canary);
 
             const std::size_t frame_size = build_rc_channels_frame(buffer, {});
 
-            THEN("Байты за границей кадра не изменились")
+            THEN("Bytes beyond the frame are unchanged")
             {
                 REQUIRE(frame_size == 26);
                 REQUIRE(std::ranges::all_of(
@@ -483,7 +483,7 @@ SCENARIO(
             }
         }
 
-        WHEN("Строится кадр link statistics")
+        WHEN("link statistics frame is built")
         {
             std::array<std::byte, stv::crsf_frame_size_max> buffer{};
             buffer.fill(canary);
@@ -491,7 +491,7 @@ SCENARIO(
             const std::size_t frame_size =
                 build_link_statistics_frame(buffer, {});
 
-            THEN("Байты за границей кадра не изменились")
+            THEN("Bytes beyond the frame are unchanged")
             {
                 REQUIRE(frame_size == 14);
                 REQUIRE(std::ranges::all_of(
@@ -504,7 +504,7 @@ SCENARIO(
 
 /// @brief Пустой буфер: разбор не выполняется.
 SCENARIO(
-    "Ядро парсера: пустой буфер", "[stv][communication][crsf]")
+    "Parser core: empty buffer", "[stv][communication][crsf]")
 {
     crsf_parser_fixture fixture{};
 
@@ -515,7 +515,7 @@ SCENARIO(
 
 /// @brief Один валидный кадр rc channels packed изымается из буфера.
 SCENARIO(
-    "Ядро парсера: один валидный кадр 0x16", "[stv][communication][crsf]")
+    "Parser core: single valid 0x16 frame", "[stv][communication][crsf]")
 {
     crsf_parser_fixture                             fixture{};
 
@@ -529,7 +529,7 @@ SCENARIO(
 
 /// @brief Несколько кадров подряд разбираются за один вызов run().
 SCENARIO(
-    "Ядро парсера: несколько кадров подряд", "[stv][communication][crsf]")
+    "Parser core: several frames in a row", "[stv][communication][crsf]")
 {
     crsf_parser_fixture                             fixture{};
 
@@ -551,7 +551,7 @@ SCENARIO(
 
 /// @brief Неполный кадр не потребляется и разбирается после дозаписи остатка.
 SCENARIO(
-    "Ядро парсера: неполный кадр", "[stv][communication][crsf]")
+    "Parser core: incomplete frame", "[stv][communication][crsf]")
 {
     crsf_parser_fixture                             fixture{};
 
@@ -573,7 +573,7 @@ SCENARIO(
 
 /// @brief Мусор с невалидной длиной перед кадром пропускается посимвольно.
 SCENARIO(
-    "Ядро парсера: мусор перед кадром", "[stv][communication][crsf]")
+    "Parser core: garbage before frame", "[stv][communication][crsf]")
 {
     crsf_parser_fixture fixture{};
 
@@ -598,7 +598,7 @@ SCENARIO(
 /// @brief Кадр с испорченным crc пропускается посимвольным resync (пропуск
 /// одного байта sync), следующий валидный кадр разбирается.
 SCENARIO(
-    "Ядро парсера: кадр с испорченным crc", "[stv][communication][crsf]")
+    "Parser core: frame with corrupted crc", "[stv][communication][crsf]")
 {
     crsf_parser_fixture                             fixture{};
 
@@ -639,8 +639,7 @@ SCENARIO(
 /// @brief Невалидная длина 0 в позиции frame length пропускается посимвольным
 /// resync, следующий валидный кадр разбирается.
 SCENARIO(
-    "Ядро парсера: невалидная длина 0 перед кадром",
-    "[stv][communication][crsf]")
+    "Parser core: invalid length 0 before frame", "[stv][communication][crsf]")
 {
     crsf_parser_fixture fixture{};
 
@@ -660,7 +659,7 @@ SCENARIO(
 /// @brief Валидный кадр неизвестного типа пропускается и считается
 /// разобранным.
 SCENARIO(
-    "Ядро парсера: кадр неизвестного типа", "[stv][communication][crsf]")
+    "Parser core: unknown frame type", "[stv][communication][crsf]")
 {
     crsf_parser_fixture fixture{};
 
@@ -686,8 +685,7 @@ SCENARIO(
 /// @brief Кадр максимального размера (64 байта, frame length = 62) с
 /// валидным crc разбирается полностью.
 SCENARIO(
-    "Ядро парсера: кадр максимального размера 64 байта",
-    "[stv][communication][crsf]")
+    "Parser core: maximum-size 64-byte frame", "[stv][communication][crsf]")
 {
     crsf_parser_fixture fixture{};
 
@@ -718,7 +716,7 @@ SCENARIO(
 /// @brief Пользовательский обработчик вызывается с payload кадра; повторная
 /// регистрация типа отклоняется.
 SCENARIO(
-    "Ядро парсера: register_handler", "[stv][communication][crsf]")
+    "Parser core: register_handler", "[stv][communication][crsf]")
 {
     crsf_parser_fixture    fixture{};
 
@@ -780,8 +778,7 @@ SCENARIO(
 
 /// @brief Регистрация обработчика сверх ёмкости таблицы отклоняется.
 SCENARIO(
-    "Ядро парсера: переполнение таблицы обработчиков",
-    "[stv][communication][crsf]")
+    "Parser core: handler table overflow", "[stv][communication][crsf]")
 {
     crsf_parser_fixture fixture{};
 
@@ -808,8 +805,7 @@ SCENARIO(
 /// @brief Кадр, разорванный границей кольцевого буфера, разбирается
 /// корректно.
 SCENARIO(
-    "Ядро парсера: кадр на границе кольцевого буфера",
-    "[stv][communication][crsf]")
+    "Parser core: frame at ring buffer boundary", "[stv][communication][crsf]")
 {
     crsf_parser_fixture fixture{};
 
@@ -830,7 +826,7 @@ SCENARIO(
 
 /// @brief Невалидный объект (setup с nullptr) не падает и возвращает 0.
 SCENARIO(
-    "Ядро парсера: невалидный объект", "[stv][communication][crsf]")
+    "Parser core: invalid object", "[stv][communication][crsf]")
 {
     const crsf_parser_setup_type empty_setup{};
     crsf_parser_type             parser{empty_setup};
@@ -844,7 +840,7 @@ SCENARIO(
 /// в wait_head_state и начать чистую ресинхронизацию, а не ждать устаревший
 /// frame_size.
 SCENARIO(
-    "Ядро парсера: буфер опустошён извне в ожидании кадра",
+    "Parser core: buffer drained externally while waiting for a frame",
     "[stv][communication][crsf]")
 {
     crsf_parser_fixture fixture{};
@@ -878,7 +874,7 @@ SCENARIO(
 /// @brief Неблокирующий resync: за один run() пропускается не более
 /// max_bytes_per_run байт мусора, остаток добирается следующими вызовами.
 SCENARIO(
-    "Ядро парсера: лимит max_bytes_per_run", "[stv][communication][crsf]")
+    "Parser core: max_bytes_per_run limit", "[stv][communication][crsf]")
 {
     crsf_setup_fixture fixture{};
     fixture.setup.max_bytes_per_run = 8U;
@@ -910,7 +906,7 @@ SCENARIO(
 /// @brief Лимит по умолчанию (128 байт) позволяет за один run() обработать
 /// мусор размером почти в полный буфер.
 SCENARIO(
-    "Ядро парсера: лимит max_bytes_per_run по умолчанию",
+    "Parser core: default max_bytes_per_run limit",
     "[stv][communication][crsf]")
 {
     crsf_parser_fixture fixture{};
@@ -933,7 +929,7 @@ SCENARIO(
 /// @brief Лимит max_bytes_per_run касается только resync-потребления: разбор
 /// валидных кадров лимит не расходует и не ограничивается.
 SCENARIO(
-    "Ядро парсера: валидные кадры не расходуют лимит",
+    "Parser core: valid frames do not consume the limit",
     "[stv][communication][crsf]")
 {
     crsf_setup_fixture fixture{};
@@ -968,7 +964,7 @@ SCENARIO(
 /// валидным frame length, но несходящимся crc расходует бюджет наравне с
 /// байтами невалидной длины, run() неблокирующе возвращает управление.
 SCENARIO(
-    "Ядро парсера: лимит max_bytes_per_run при ошибке crc",
+    "Parser core: max_bytes_per_run limit on crc error",
     "[stv][communication][crsf]")
 {
     crsf_setup_fixture fixture{};
@@ -1029,8 +1025,7 @@ SCENARIO(
 /// байт и возвращает управление; неполный заголовок в хвосте ожидает
 /// дозаписи, не крутясь впустую.
 SCENARIO(
-    "Ядро парсера: «зависший» буфер из чистого мусора",
-    "[stv][communication][crsf]")
+    "Parser core: stuck buffer of pure garbage", "[stv][communication][crsf]")
 {
     crsf_setup_fixture fixture{};
     fixture.setup.max_bytes_per_run = 8U;
@@ -1063,7 +1058,7 @@ SCENARIO(
 
 /// @brief До первого принятого кадра 0x16 буфер каналов заполнен нулями.
 SCENARIO(
-    "Обработчик 0x16: каналы до первого кадра — нули",
+    "Handler 0x16: channels are zeros before the first frame",
     "[stv][communication][crsf]")
 {
     // Публичный буфер каналов значение-совместим с типом helper'а.
@@ -1078,7 +1073,7 @@ SCENARIO(
 
 /// @brief Кадр 0x16 распаковывается в буфер каналов с точными значениями.
 SCENARIO(
-    "Обработчик 0x16: распаковка различных значений каналов",
+    "Handler 0x16: unpacking of various channel values",
     "[stv][communication][crsf]")
 {
     crsf_parser_fixture fixture{};
@@ -1100,9 +1095,9 @@ SCENARIO(
 /// @brief Крайние значения каналов распаковываются точно (битовые границы
 /// упаковки).
 SCENARIO(
-    "Обработчик 0x16: крайние значения каналов", "[stv][communication][crsf]")
+    "Handler 0x16: extreme channel values", "[stv][communication][crsf]")
 {
-    GIVEN("Все каналы равны crsf_channel_value_min")
+    GIVEN("All channels equal crsf_channel_value_min")
     {
         crsf_parser_fixture fixture{};
 
@@ -1117,7 +1112,7 @@ SCENARIO(
         REQUIRE(fixture.parser.channels() == channels);
     }
 
-    GIVEN("Все каналы равны crsf_channel_value_max")
+    GIVEN("All channels equal crsf_channel_value_max")
     {
         crsf_parser_fixture fixture{};
 
@@ -1136,7 +1131,7 @@ SCENARIO(
 /// @brief Кадр 0x16 с расширенным payload: каналы разобраны, лишние байты
 /// проигнорированы.
 SCENARIO(
-    "Обработчик 0x16: расширенный payload", "[stv][communication][crsf]")
+    "Handler 0x16: extended payload", "[stv][communication][crsf]")
 {
     crsf_parser_fixture fixture{};
 
@@ -1187,10 +1182,9 @@ SCENARIO(
 /// изымается из буфера, но разбор не выполняется: буферы каналов и
 /// статистики не изменяются.
 SCENARIO(
-    "Ядро парсера: короткий payload с валидным crc",
-    "[stv][communication][crsf]")
+    "Parser core: short payload with valid crc", "[stv][communication][crsf]")
 {
-    GIVEN("Кадр 0x16 с 21 байтом payload (на 1 меньше номинала)")
+    GIVEN("0x16 frame with 21 payload bytes (1 less than nominal)")
     {
         crsf_parser_fixture fixture{};
 
@@ -1229,7 +1223,7 @@ SCENARIO(
             }));
     }
 
-    GIVEN("Кадр 0x14 с 9 байтами payload (на 1 меньше номинала)")
+    GIVEN("0x14 frame with 9 payload bytes (1 less than nominal)")
     {
         crsf_parser_fixture fixture{};
 
@@ -1292,7 +1286,7 @@ SCENARIO(
 
 /// @brief Повторный кадр 0x16 перезаписывает буфер новыми значениями.
 SCENARIO(
-    "Обработчик 0x16: повторный кадр перезаписывает буфер",
+    "Handler 0x16: repeated frame overwrites the buffer",
     "[stv][communication][crsf]")
 {
     crsf_parser_fixture fixture{};
@@ -1320,7 +1314,7 @@ SCENARIO(
 
 /// @brief До первого принятого кадра 0x14 статистика заполнена нулями.
 SCENARIO(
-    "Обработчик 0x14: статистика до первого кадра — нули",
+    "Handler 0x14: statistics are zeros before the first frame",
     "[stv][communication][crsf]")
 {
     const crsf_parser_fixture fixture{};
@@ -1341,7 +1335,7 @@ SCENARIO(
 /// @brief Кадр 0x14 разбирается в структуру статистики; отрицательные snr
 /// интерпретируются как знаковые.
 SCENARIO(
-    "Обработчик 0x14: разбор характерных значений",
+    "Handler 0x14: parsing of characteristic values",
     "[stv][communication][crsf]")
 {
     crsf_parser_fixture             fixture{};
@@ -1380,7 +1374,7 @@ SCENARIO(
 
 /// @brief Повторный кадр 0x14 перезаписывает статистику новыми значениями.
 SCENARIO(
-    "Обработчик 0x14: повторный кадр перезаписывает статистику",
+    "Handler 0x14: repeated frame overwrites the statistics",
     "[stv][communication][crsf]")
 {
     crsf_parser_fixture             fixture{};
@@ -1444,7 +1438,7 @@ SCENARIO(
 /// @brief Failsafe: свежий парсер без кадров переходит в failsafe после
 /// истечения failsafe_deadline.
 SCENARIO(
-    "Failsafe: истечение deadline без кадров", "[stv][communication][crsf]")
+    "Failsafe: deadline expires without frames", "[stv][communication][crsf]")
 {
     crsf_failsafe_fixture fixture{};
 
@@ -1464,7 +1458,7 @@ SCENARIO(
 /// @brief Failsafe: валидный кадр 0x16 сбрасывает failsafe и перезапускает
 /// deadline.
 SCENARIO(
-    "Failsafe: кадр 0x16 перезапускает deadline", "[stv][communication][crsf]")
+    "Failsafe: 0x16 frame restarts the deadline", "[stv][communication][crsf]")
 {
     crsf_failsafe_fixture fixture{};
 
@@ -1490,7 +1484,7 @@ SCENARIO(
 /// @brief Failsafe: истечение deadline после кадра 0x16 сбрасывает каналы в
 /// нулевые значения (управление сброшено).
 SCENARIO(
-    "Failsafe: истечение deadline обнуляет каналы",
+    "Failsafe: deadline expiry zeroes the channels",
     "[stv][communication][crsf]")
 {
     crsf_failsafe_fixture                           fixture{};
@@ -1518,7 +1512,7 @@ SCENARIO(
 /// @brief Failsafe: первый валидный кадр 0x16 после failsafe восстанавливает
 /// прием: failsafe снят, каналы соответствуют новому кадру.
 SCENARIO(
-    "Failsafe: восстановление приема кадром 0x16", "[stv][communication][crsf]")
+    "Failsafe: recovery by a 0x16 frame", "[stv][communication][crsf]")
 {
     crsf_failsafe_fixture fixture{};
 
@@ -1543,7 +1537,7 @@ SCENARIO(
 /// @brief Failsafe: кадр 0x14 (link statistics, не управляющий) не
 /// перезапускает failsafe deadline.
 SCENARIO(
-    "Failsafe: кадр 0x14 не перезапускает deadline",
+    "Failsafe: 0x14 frame does not restart the deadline",
     "[stv][communication][crsf]")
 {
     crsf_failsafe_fixture fixture{};

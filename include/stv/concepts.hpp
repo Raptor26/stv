@@ -9,6 +9,7 @@
 
 #include "stv/type_traits.hpp"
 #include <chrono>
+#include <concepts>
 #include <ranges>
 #include <type_traits>
 
@@ -69,6 +70,20 @@ concept serial_queue_concept =
         { queue.full() } -> std::convertible_to<bool>;
         { queue.push(std::move(value)) };
     };
+
+/// @brief Проверяет, что тип TQueue может использоваться в stvlink_base для
+/// извлечения готовых сообщений (сторона приёмника).
+/// @details value_type очереди должен удовлетворять контракту буфера
+/// сообщения stvlink_dispatcher: data(), size(), trim_head() и проверка
+/// валидности через явное приведение к bool.
+template<typename TQueue>
+concept stvlink_queue_concept = requires(TQueue &queue) {
+    typename TQueue::value_type;
+
+    { queue.empty() } -> std::convertible_to<bool>;
+    { queue.front() } -> std::convertible_to<typename TQueue::value_type &>;
+    queue.pop();
+};
 
 /// @brief Концепт проверяет, что тип Т является контейнером, который хранит
 /// тривиальные объекты в непрерывном фрагменте памяти.

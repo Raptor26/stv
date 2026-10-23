@@ -24,6 +24,12 @@
 ///     нагрузкой. Если обработчик для идентификатора не зарегистрирован,
 ///     сообщение отбрасывается. Формат кадра на проводе не меняется.
 ///
+///     Тип заголовка сообщения параметризован: шаблонный параметр
+///     Sender задаёт декоратор протокола (по умолчанию
+///     stvlink_sender), предоставляющий тип заголовка message_header_t
+///     и метод message_header_size(). Для кадров stvlinkv2 передайте
+///     stvlinkv2_sender или stvlinkv2_parser.
+///
 ///     Семантика полезной нагрузки протоколу не принадлежит:
 ///     payload-структуры (например, протокола Cambridge) хранятся в
 ///     интегрирующих библиотеках и проектах.
@@ -34,8 +40,8 @@
 #ifndef STVLINK_DISPATCHER_HPP
 #define STVLINK_DISPATCHER_HPP
 
-#include "etl/queue.h"
 #include "stv/communication/stvlink_sender.hpp"
+#include "stv/concepts.hpp"
 #include "stv/utils.hpp"
 #include <cstddef>
 #include <span>
@@ -66,6 +72,10 @@ using stvlink_message_handler_fnc_type = bool (*)(stvlink_message_span);
 /// обработчиками. Должен поддерживать метод find() и итерацию.
 /// @tparam SimBuffer Тип буфера, содержащего сообщения. Должен предоставлять
 /// методы data(), size(), trim_head().
+/// @tparam Sender Декоратор протокола, определяющий формат
+/// заголовка сообщения: тип message_header_t и метод
+/// message_header_size(). По умолчанию stvlink_sender (протокол stvlink);
+/// для протокола stvlinkv2 передайте stvlinkv2_sender или stvlinkv2_parser.
 ///
 /// @code
 /// // Определение обработчика
@@ -86,11 +96,17 @@ using stvlink_message_handler_fnc_type = bool (*)(stvlink_message_span);
 /// buffer_type msg = ...; // сообщение с заголовком сообщения stvlink
 /// dispatcher.dispatch_message(msg);
 /// @endcode
-template<typename HashTable, typename SimBuffer>
+template<typename HashTable, typename SimBuffer,
+         typename Sender = stvlink_sender>
 class stvlink_dispatcher
 {
     using hash_table_type = HashTable;
     using buffer_type     = SimBuffer;
+
+    /// @brief Тип заголовка сообщения выбранного протокола.
+    /// @details Раскладка полей заголовка (в первую очередь смещение и
+    /// размер поля msg_id) определяется передающим декоратором протокола.
+    using message_header_t = typename Sender::message_header_t;
 
     /// @brief Указатель на хэш-таблицу обработчиков.
     /// @details Не владеет памятью — время жизни таблицы должно превышать
@@ -123,8 +139,8 @@ class stvlink_dispatcher
     /// @brief Метод вызывает обработчик, который соответствует полю msg_id в
     /// заголовке сообщения msg.
     ///
-    /// @details Метод читает заголовок сообщения stvlink
-    /// (@see stv::stvlink_sender::message_header_t), извлекает
+    /// @details Метод читает заголовок сообщения
+    /// (@see message_header_t выбранного протокола), извлекает
     /// идентификатор сообщения и находит соответствующий обработчик в
     /// хэш-таблице. Если обработчик найден, он вызывается с полезной
     /// нагрузкой сообщения (без заголовка).
@@ -144,8 +160,7 @@ class stvlink_dispatcher
         buffer_type &msg)
     {
         const auto *msg_header =
-            reinterpret_cast<const stv::stvlink_sender::message_header_t *>(
-                msg.data());
+            reinterpret_cast<const message_header_t *>(msg.data());
 
         const auto msg_id = msg_header->msg_id;
 
@@ -158,7 +173,7 @@ class stvlink_dispatcher
         {
             // Заголовок сообщения уже считан, поэтому срежем его в
             // сообщении и передадим в обработчик только полезную нагрузку.
-            msg.trim_head(stv::stvlink_sender::message_header_size());
+            msg.trim_head(Sender::message_header_size());
 
             success = handler_it->second(stv::stvlink_message_span{
                 reinterpret_cast<std::byte *>(msg.data()),
@@ -177,27 +192,34 @@ class stvlink_dispatcher
 /// Является абстрактным базовым классом, который нельзя копировать или
 /// перемещать (наследуется от stv::non_movable_non_copyable).
 ///
-/// @tparam QueueBase Тип очереди, используемой для хранения сообщений.
-/// Должен поддерживать методы empty(), front(), pop().
+/// @tparam Queue Тип очереди, используемой для хранения сообщений.
+/// Должен удовлетворять @ref stvlink_queue_concept: value_type, empty(),
+/// front(), pop().
 /// @tparam ProcessingHash Тип хэш-таблицы обработчиков сообщений.
+/// @tparam Sender Декоратор протокола, определяющий формат
+/// заголовка сообщения (см. stvlink_dispatcher). По умолчанию
+/// stvlink_sender; для протокола stvlinkv2 передайте stvlinkv2_sender или
+/// stvlinkv2_parser.
 ///
 /// @par Архитектура:
 /// Класс реализует шаблонный метод process_one(), который извлекает
 /// сообщение из очереди и передаёт его диспетчеру. Производные классы
 /// могут переопределять поведение через виртуальные методы.
-template<typename QueueBase, typename ProcessingHash>
+template<typename Queue, typename ProcessingHash,
+         typename Sender = stvlink_sender>
+    requires(stvlink_queue_concept<Queue>)
 class stvlink_base: virtual public stv::non_movable_non_copyable
 {
-    using queue_base_type       = QueueBase;
-    using queue_base_value_type = typename queue_base_type::value_type;
-    using processing_hash_type  = ProcessingHash;
+    using queue_type           = Queue;
+    using queue_value_type     = typename queue_type::value_type;
+    using processing_hash_type = ProcessingHash;
     using dispatcher_type =
-        stv::stvlink_dispatcher<processing_hash_type, queue_base_value_type>;
+        stv::stvlink_dispatcher<processing_hash_type, queue_value_type, Sender>;
 
     /// @brief Очередь, в которой хранятся сообщения для обработки.
     /// @details Не владеет очередью — ссылка на внешний объект. Время жизни
     /// очереди должно превышать время жизни этого класса.
-    queue_base_type &queue_;
+    queue_type &queue_;
 
     /// @brief Диспетчер сообщений: читает идентификатор сообщения из
     /// заголовка и вызывает соответствующий обработчик из хэш-таблицы.
@@ -212,8 +234,7 @@ class stvlink_base: virtual public stv::non_movable_non_copyable
     /// @param[in] processing_hash_table Указатель на хэш-таблицу обработчиков.
     /// @pre processing_hash_table не должен быть nullptr.
     stvlink_base(
-        queue_base_type            &queue,
-        const processing_hash_type *processing_hash_table):
+        queue_type &queue, const processing_hash_type *processing_hash_table):
         queue_{queue},
         dispatcher_{processing_hash_table}
     {
@@ -254,12 +275,23 @@ class stvlink_base: virtual public stv::non_movable_non_copyable
         return is_success;
     }
 
+    /// @brief Обрабатывает все сообщения, накопленные в очереди.
+    ///
+    /// @details Метод последовательно вызывает process_one(), пока очередь не
+    /// будет опустошена или пока обработка очередного сообщения не завершится
+    /// ошибкой. Удобная точка входа для периодического опроса из потока
+    /// приёмника или из контекста таймера обратного вызова.
+    void process_all()
+    {
+        while(process_one()) {}
+    }
+
     /// @brief Получает ссылку на внутреннюю очередь сообщений.
     ///
     /// @return Ссылку на очередь сообщений.
     /// @note Позволяет внешнему коду добавлять сообщения в очередь или
     /// проверять её состояние.
-    queue_base_type &queue() { return queue_; }
+    queue_type &queue() { return queue_; }
 
     /// @brief Виртуальный деструктор.
     /// @details Обеспечивает корректное уничтожение производных классов.
@@ -307,16 +339,24 @@ struct stvlink_setup {
 ///
 /// @details Этот класс объединяет все компоненты приёмной стороны протокола
 /// stvlink: очередь сообщений парсера, диспетчер и хэш-таблицу обработчиков.
-/// Наследуется от базового класса и предоставляет конкретную реализацию
-/// очереди с фиксированным размером на основе ETL.
+/// Наследуется от базового класса и работает с любой очередью,
+/// удовлетворяющей @ref stvlink_queue_concept.
 ///
-/// @tparam TQueue Тип очереди сообщений.
+/// @tparam TQueue Тип очереди сообщений: любая очередь, удовлетворяющая
+/// @ref stvlink_queue_concept (etl::queue, etl::queue_spsc_atomic,
+/// пользовательские реализации).
 /// @tparam TSetup Тип структуры настроек (@see stvlink_setup).
+/// @tparam Sender Декоратор протокола, определяющий формат
+/// заголовка сообщения (см. stvlink_dispatcher). По умолчанию
+/// stvlink_sender; для протокола stvlinkv2 передайте stvlinkv2_sender или
+/// stvlinkv2_parser.
 ///
 /// @par Потокобезопасность:
 /// Класс не является потокобезопасным. Синхронизация доступа к экземплярам
 /// должна обеспечиваться на уровне вызывающего кода при использовании в
-/// многопоточной среде.
+/// многопоточной среде; потокобезопасность обмена «производитель —
+/// потребитель» между потоком парсера и потоком модуля определяется
+/// выбранной очередью (например, SPSC-очередью etl::queue_spsc_atomic).
 ///
 /// @code
 /// using setup_t = stvlink_setup<my_hash_table_type>;
@@ -334,19 +374,18 @@ struct stvlink_setup {
 ///     }
 /// }
 /// @endcode
-template<typename TQueue, typename TSetup>
+template<typename TQueue, typename TSetup, typename Sender = stvlink_sender>
+    requires(stvlink_queue_concept<TQueue>)
 class stvlink_module:
-    public stvlink_base<etl::iqueue<typename TQueue::value_type>,
-                        typename TSetup::processing_msg_hash_table_type>
+    public stvlink_base<TQueue, typename TSetup::processing_msg_hash_table_type,
+                        Sender>
 {
     using setup_type = TSetup;
     using queue_type = TQueue;
-    using queue_base_type =
-        typename etl::iqueue<typename queue_type::value_type>;
     using processing_msg_hash_table_type =
         typename setup_type::processing_msg_hash_table_type;
     using base_type =
-        stvlink_base<queue_base_type, processing_msg_hash_table_type>;
+        stvlink_base<queue_type, processing_msg_hash_table_type, Sender>;
 
   public:
     /// @brief Конструктор класса.
