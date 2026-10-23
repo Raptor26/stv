@@ -4,16 +4,24 @@ project(test_stv_communication)
 
 find_package(Catch2 REQUIRED)
 find_package(FakeIt REQUIRED)
+find_package(Threads REQUIRED)
 
 add_executable(${PROJECT_NAME} test_serial_sender.cpp test_serial_parser.cpp
                                test_serial_parser_demux.cpp test_crsf.cpp
                                test_stvlink_parser.cpp test_crc16.cpp
                                test_stvlink_dispatcher.cpp
+                               test_stvlinkv2_kit.cpp test_type_list.cpp
+                               test_message_traits.cpp test_payload_decoder.cpp
+                               test_message_catalog.cpp
+                               test_message_catalog_communication.cpp
+                               test_two_protocols_communication.cpp
                                test_mavlink_v2_parser.cpp
-                               test_mavlink_v2_sender.cpp)
+                               test_mavlink_v2_sender.cpp test_rmp_parser.cpp
+                               test_rmp_sender.cpp)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Catch2::Catch2WithMain
-                                              FakeIt::FakeIt-catch stv::stv)
+                                              FakeIt::FakeIt-catch stv::stv
+                                              Threads::Threads)
 catch_discover_tests(${PROJECT_NAME})
 
 stv_add_pedantic_compile_options_and_features(${PROJECT_NAME})

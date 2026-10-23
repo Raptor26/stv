@@ -14,7 +14,7 @@
 - **Системные примитивы**: таймеры (`deadline_timer`), runtime-счётчик (`runtime`), мьютексы (`mutex_guard`), `latch`, `critical`, `callback_timer`.
 - **Фильтры**: скользящее среднее (`filters/moving_average.hpp`).
 - **Контейнеры**: `sim_buff` (`containers/simbuff.hpp`), обёртка над `lwrb` (`containers/lwrb.hpp`).
-- **Коммуникации**: формирователь серийных сообщений с декораторами (`communication/serial_sender.hpp`, `serial_decorators.hpp`, `serial_parser.hpp`).
+- **Коммуникации**: формирователь серийных сообщений с декораторами (`communication/serial_sender.hpp`, `serial_decorators.hpp`, `serial_parser.hpp`); типовой реестр сообщений — typelist (`communication/type_list.hpp`), связка типа сообщения с идентификатором (`communication/message_traits.hpp`), декодер полезной нагрузки (`communication/payload_decoder.hpp`), каталог сообщений и сборщик таблицы обработчиков (`communication/message_catalog.hpp`); двухпоточный пример обмена — `communication/tests/test_message_catalog_communication.cpp`.
 - **Драйверы I2C-сенсоров**: магнитометры и акселерометры (`drivers/qmc5883.hpp`, `qma6100.hpp`, `mmc56xx.hpp`, `mmc3630kj.hpp`, `mc3479.hpp`), а также унаследованная шина (`drivers/legacy_bus.hpp`).
 - **Вспомогательные сущности**: концепты (`concepts.hpp`), type traits (`type_traits.hpp`), утилиты (`utils.hpp`), обёртки (`wrappers.hpp`), типы гироскопа/акселерометра/магнетометра (`gyraccmag_types.hpp`), индикатор состояния (`status_led.hpp`).
 

@@ -27,7 +27,7 @@ TEST_CASE(
     using runtime_setup_type = stv::runtime_setup<stv::runtime_counter_type>;
     using runtime_type       = stv::runtime<runtime_setup_type>;
 
-    SECTION("Условие выполнено сразу")
+    SECTION("Condition met immediately")
     {
         Mock<runtime_type> runtime_mock;
         Fake(Method(runtime_mock, get));
@@ -46,7 +46,7 @@ TEST_CASE(
         REQUIRE(polls == 1);
     }
 
-    SECTION("Условие выполняется после нескольких опросов")
+    SECTION("Condition met after several polls")
     {
         Mock<runtime_type> runtime_mock;
         // Время не продвигается: таймаут не наступает никогда.
@@ -65,7 +65,7 @@ TEST_CASE(
         REQUIRE(polls == 3);
     }
 
-    SECTION("Условие не выполняется, ожидание прервано по таймауту")
+    SECTION("Condition not met, wait aborted by timeout")
     {
         Mock<runtime_type> runtime_mock;
         // Первый вызов get() - запуск deadline (0 мкс), далее время
