@@ -1,13 +1,13 @@
-/// @file qmc5883_regs.hpp
+/// @file qmc5883l_regs.hpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
 ///
 /// SPDX-License-Identifier: MIT.
 /// See LICENSE file in the project root for full license information.
 
-#ifndef QMC5883_REGS_HPP
-#define QMC5883_REGS_HPP
+#ifndef QMC5883L_REGS_HPP
+#define QMC5883L_REGS_HPP
 
-#include "qmc5883_types.hpp"
+#include "qmc5883l_types.hpp"
 #include "stv/register_field.hpp"
 #include <cstdint>
 
@@ -15,11 +15,11 @@ namespace stv {
 
 // NOLINTBEGIN(*hicpp-signed-bitwise, *-member*)
 
-/// @brief Класс для работы с регистром управления 1 QMC5883.
+/// @brief Класс для работы с регистром управления 1 QMC5883L.
 ///
 /// @details Регистр 0x09 (CTRL1) управляет коэффициентом переподписки (OSR),
 /// диапазоном измерений (RNG), частотой дискретизации (ODR) и режимом работы.
-class qmc5883_ctrl1_reg
+class qmc5883l_ctrl1_reg
 {
     static constexpr int osr_offset{6U};
     static constexpr int rng_offset{4U};
@@ -28,23 +28,23 @@ class qmc5883_ctrl1_reg
 
   public:
     /// @brief Адрес регистра CTRL1 в памяти устройства.
-    static constexpr qmc5883_reg_type addr{0x09};
+    static constexpr qmc5883l_reg_type addr{0x09};
 
-    explicit qmc5883_ctrl1_reg(
-        qmc5883_reg_type value = qmc5883_reg_type{0})
+    explicit qmc5883l_ctrl1_reg(
+        qmc5883l_reg_type value = qmc5883l_reg_type{0})
     { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
-    explicit operator qmc5883_reg_type() const
+    explicit operator qmc5883l_reg_type() const
     {
-        return static_cast<qmc5883_reg_type>(
+        return static_cast<qmc5883l_reg_type>(
             field_to_raw(osr, osr_offset) | field_to_raw(rng, rng_offset)
             | field_to_raw(odr, odr_offset) | field_to_raw(mode, mode_offset));
     }
 
     /// @brief Оператор присваивания, обновляющий значение регистра.
     auto operator=(
-        qmc5883_reg_type value) -> qmc5883_ctrl1_reg &
+        qmc5883l_reg_type value) -> qmc5883l_ctrl1_reg &
     {
         parse(value);
         return *this;
@@ -52,10 +52,10 @@ class qmc5883_ctrl1_reg
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     bool operator==(
-        const qmc5883_ctrl1_reg &other) const
+        const qmc5883l_ctrl1_reg &other) const
     {
-        return static_cast<qmc5883_reg_type>(*this)
-               == static_cast<qmc5883_reg_type>(other);
+        return static_cast<qmc5883l_reg_type>(*this)
+               == static_cast<qmc5883l_reg_type>(other);
     }
 
     /// @brief Перечисление значений коэффициента переподписки (OSR).
@@ -102,7 +102,7 @@ class qmc5883_ctrl1_reg
 
   private:
     void parse(
-        qmc5883_reg_type reg)
+        qmc5883l_reg_type reg)
     {
         osr  = extract_field<osr_t>(reg, osr_offset, 0x03U);
         rng  = extract_field<rng_t>(reg, rng_offset, 0x03U);
@@ -111,11 +111,11 @@ class qmc5883_ctrl1_reg
     }
 };
 
-/// @brief Класс для работы с регистром управления 2 QMC5883.
+/// @brief Класс для работы с регистром управления 2 QMC5883L.
 ///
 /// @details Регистр 0x0A (CTRL2) управляет мягким сбросом, прокруткой
 /// указателя и прерываниями.
-class qmc5883_ctrl2_reg
+class qmc5883l_ctrl2_reg
 {
     static constexpr int soft_reset_offset{7U};
     static constexpr int rol_pnt_offset{6U};
@@ -123,16 +123,16 @@ class qmc5883_ctrl2_reg
 
   public:
     /// @brief Адрес регистра CTRL2 в памяти устройства.
-    static constexpr qmc5883_reg_type addr{0x0A};
+    static constexpr qmc5883l_reg_type addr{0x0A};
 
-    explicit qmc5883_ctrl2_reg(
-        qmc5883_reg_type value = qmc5883_reg_type{0})
+    explicit qmc5883l_ctrl2_reg(
+        qmc5883l_reg_type value = qmc5883l_reg_type{0})
     { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
-    explicit operator qmc5883_reg_type() const
+    explicit operator qmc5883l_reg_type() const
     {
-        return static_cast<qmc5883_reg_type>(
+        return static_cast<qmc5883l_reg_type>(
             field_to_raw(soft_reset, soft_reset_offset)
             | field_to_raw(rol_pnt, rol_pnt_offset)
             | field_to_raw(int_enb, int_enb_offset));
@@ -140,10 +140,10 @@ class qmc5883_ctrl2_reg
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     bool operator==(
-        const qmc5883_ctrl2_reg &other) const
+        const qmc5883l_ctrl2_reg &other) const
     {
-        return static_cast<qmc5883_reg_type>(*this)
-               == static_cast<qmc5883_reg_type>(other);
+        return static_cast<qmc5883l_reg_type>(*this)
+               == static_cast<qmc5883l_reg_type>(other);
     }
 
     /// @brief Перечисление значений для мягкого сброса.
@@ -175,7 +175,7 @@ class qmc5883_ctrl2_reg
 
   private:
     void parse(
-        qmc5883_reg_type reg)
+        qmc5883l_reg_type reg)
     {
         soft_reset = parse_flag(reg, soft_reset_offset, soft_reset_t::enable,
                                 soft_reset_t::normal);
@@ -186,48 +186,48 @@ class qmc5883_ctrl2_reg
     }
 };
 
-/// @brief Класс для работы с регистром периода сброса QMC5883.
+/// @brief Класс для работы с регистром периода сброса QMC5883L.
 ///
 /// @details Регистр 0x0B (SET/RESET Period) задаёт период сброса.
-class qmc5883_set_reset_period_reg
+class qmc5883l_set_reset_period_reg
 {
   public:
     /// @brief Адрес регистра SET/RESET Period в памяти устройства.
-    static constexpr qmc5883_reg_type addr{0x0B};
+    static constexpr qmc5883l_reg_type addr{0x0B};
 
     /// @brief Конструктор с параметром периода.
     /// @param[in] period Период сброса (по умолчанию 0x01).
-    explicit qmc5883_set_reset_period_reg(
-        qmc5883_reg_type period = qmc5883_reg_type{0x01}):
+    explicit qmc5883l_set_reset_period_reg(
+        qmc5883l_reg_type period = qmc5883l_reg_type{0x01}):
         fbr{period}
     {
     }
 
     /// @brief Оператор присваивания.
     auto operator=(
-        qmc5883_reg_type value) -> qmc5883_set_reset_period_reg &
+        qmc5883l_reg_type value) -> qmc5883l_set_reset_period_reg &
     {
         fbr = value;
         return *this;
     }
 
     /// @brief Оператор преобразования в сырое значение регистра.
-    explicit operator qmc5883_reg_type() const
-    { return static_cast<qmc5883_reg_type>(fbr); }
+    explicit operator qmc5883l_reg_type() const
+    { return static_cast<qmc5883l_reg_type>(fbr); }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     bool operator==(
-        const qmc5883_set_reset_period_reg &other) const
+        const qmc5883l_set_reset_period_reg &other) const
     { return fbr == other.fbr; }
 
     /// @brief Поле, содержащее значение периода сброса.
-    qmc5883_reg_type fbr;
+    qmc5883l_reg_type fbr;
 };
 
-/// @brief Класс для работы с регистром статуса QMC5883.
+/// @brief Класс для работы с регистром статуса QMC5883L.
 ///
 /// @details Регистр 0x06 (STATUS) содержит флаги состояния устройства.
-class qmc5883_status_reg
+class qmc5883l_status_reg
 {
     static constexpr int drdy_offset{0U};
     static constexpr int ovl_offset{1U};
@@ -235,31 +235,31 @@ class qmc5883_status_reg
 
   public:
     /// @brief Адрес регистра STATUS в памяти устройства.
-    static constexpr qmc5883_reg_type addr{0x06};
+    static constexpr qmc5883l_reg_type addr{0x06};
 
-    explicit qmc5883_status_reg(
-        qmc5883_reg_type value = qmc5883_reg_type{0})
+    explicit qmc5883l_status_reg(
+        qmc5883l_reg_type value = qmc5883l_reg_type{0})
     { parse(value); }
 
     /// @brief Оператор преобразования в сырое значение регистра.
-    explicit operator qmc5883_reg_type() const
+    explicit operator qmc5883l_reg_type() const
     {
-        return static_cast<qmc5883_reg_type>(field_to_raw(dor, dor_offset)
-                                             | field_to_raw(ovl, ovl_offset)
-                                             | field_to_raw(drdy, drdy_offset));
+        return static_cast<qmc5883l_reg_type>(
+            field_to_raw(dor, dor_offset) | field_to_raw(ovl, ovl_offset)
+            | field_to_raw(drdy, drdy_offset));
     }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     bool operator==(
-        const qmc5883_status_reg &other) const
+        const qmc5883l_status_reg &other) const
     {
-        return static_cast<qmc5883_reg_type>(*this)
-               == static_cast<qmc5883_reg_type>(other);
+        return static_cast<qmc5883l_reg_type>(*this)
+               == static_cast<qmc5883l_reg_type>(other);
     }
 
     /// @brief Оператор присваивания.
     auto operator=(
-        qmc5883_reg_type value) -> qmc5883_status_reg &
+        qmc5883l_reg_type value) -> qmc5883l_status_reg &
     {
         parse(value);
         return *this;
@@ -294,7 +294,7 @@ class qmc5883_status_reg
 
   private:
     void parse(
-        qmc5883_reg_type reg)
+        qmc5883l_reg_type reg)
     {
         drdy = parse_flag(reg, drdy_offset, drdy_t::new_data_is_ready,
                           drdy_t::no_new_data);
@@ -304,38 +304,38 @@ class qmc5883_status_reg
     }
 };
 
-/// @brief Класс для работы с регистром идентификатора продукта QMC5883.
+/// @brief Класс для работы с регистром идентификатора продукта QMC5883L.
 ///
 /// @details Регистр 0x0D (CHIP_ID) содержит идентификатор чипа.
-class qmc5883_chip_id_reg
+class qmc5883l_chip_id_reg
 {
   public:
     /// @brief Адрес регистра CHIP_ID в памяти устройства.
-    static constexpr qmc5883_reg_type addr{0x0D};
+    static constexpr qmc5883l_reg_type addr{0x0D};
 
     /// @brief Ожидаемое значение идентификатора продукта.
-    static constexpr qmc5883_reg_type expected_value{0xFF};
+    static constexpr qmc5883l_reg_type expected_value{0xFF};
 
-    explicit qmc5883_chip_id_reg(
-        qmc5883_reg_type value = qmc5883_reg_type{0}):
+    explicit qmc5883l_chip_id_reg(
+        qmc5883l_reg_type value = qmc5883l_reg_type{0}):
         chip_id{value}
     {
     }
 
     /// @brief Оператор преобразования в сырое значение регистра.
-    explicit operator qmc5883_reg_type() const { return chip_id; }
+    explicit operator qmc5883l_reg_type() const { return chip_id; }
 
     /// @brief Оператор сравнения двух экземпляров регистра на равенство.
     bool operator==(
-        const qmc5883_chip_id_reg &other) const
+        const qmc5883l_chip_id_reg &other) const
     { return chip_id == other.chip_id; }
 
     /// @brief Значение идентификатора продукта.
-    qmc5883_reg_type chip_id{0};
+    qmc5883l_reg_type chip_id{0};
 };
 
 // NOLINTEND(*hicpp-signed-bitwise, *-member*)
 
 } // namespace stv
 
-#endif /* QMC5883_REGS_HPP */
+#endif /* QMC5883L_REGS_HPP */

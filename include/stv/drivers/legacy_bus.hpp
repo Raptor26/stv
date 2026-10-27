@@ -27,7 +27,7 @@ enum class I2C_SlaveAddressType : std::uint8_t {
     kMaxNumber = 3
 };
 
-/// @brief Интерфейс для операций чтения/записи регистров датчика QMC5883.
+/// @brief Интерфейс для операций чтения/записи регистров датчика QMC5883L.
 class I2CBus7BitAddr
 {
   public:

@@ -1,4 +1,4 @@
-/// @file test_qmc5883.cpp
+/// @file test_qmc5883l.cpp
 /// @author Mickle Isaev (mrraptor26@gmail.com)
 ///
 /// SPDX-License-Identifier: MIT.
@@ -14,8 +14,8 @@
 #include <map>
 #include <string>
 
-#include "stv/drivers/qmc5883.hpp"
-#include "stv/drivers/qmc5883_regs.hpp"
+#include "stv/drivers/qmc5883l.hpp"
+#include "stv/drivers/qmc5883l_regs.hpp"
 #include "stv/gyraccmag_types.hpp"
 #include "stv/i2c.hpp"
 
@@ -24,47 +24,47 @@
 // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
 
 TEST_CASE(
-    "QMC5883 Regs")
+    "QMC5883L Regs")
 {
     using namespace stv;
     using reg_bitset = std::bitset<8>;
 
-    SECTION("qmc5883_ctrl1_reg")
+    SECTION("qmc5883l_ctrl1_reg")
     {
         // Установка регистра в нулевые значения. Далее, в каждом тестовом
         // случае будет модифицироваться только нужная часть регистра.
-        qmc5883_ctrl1_reg reg;
-        reg.osr  = qmc5883_ctrl1_reg::osr_t::oversampling_512;
-        reg.rng  = qmc5883_ctrl1_reg::rng_t::full_scale_2g;
-        reg.odr  = qmc5883_ctrl1_reg::odr_t::output_data_rate_10hz;
-        reg.mode = qmc5883_ctrl1_reg::mode_t::standby;
+        qmc5883l_ctrl1_reg reg;
+        reg.osr  = qmc5883l_ctrl1_reg::osr_t::oversampling_512;
+        reg.rng  = qmc5883l_ctrl1_reg::rng_t::full_scale_2g;
+        reg.odr  = qmc5883l_ctrl1_reg::odr_t::output_data_rate_10hz;
+        reg.mode = qmc5883l_ctrl1_reg::mode_t::standby;
 
         SECTION("OSR")
         {
             SECTION("If OSR == 64")
             {
-                reg.osr = qmc5883_ctrl1_reg::osr_t::oversampling_64;
+                reg.osr = qmc5883l_ctrl1_reg::osr_t::oversampling_64;
                 const reg_bitset expect_reg_val{std::string{"11000000"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
 
             SECTION("If OSR == 128")
             {
-                reg.osr = qmc5883_ctrl1_reg::osr_t::oversampling_128;
+                reg.osr = qmc5883l_ctrl1_reg::osr_t::oversampling_128;
                 const reg_bitset expect_reg_val{std::string{"10000000"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
 
             SECTION("If OSR == 256")
             {
-                reg.osr = qmc5883_ctrl1_reg::osr_t::oversampling_256;
+                reg.osr = qmc5883l_ctrl1_reg::osr_t::oversampling_256;
                 const reg_bitset expect_reg_val{std::string{"01000000"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
 
             SECTION("If OSR == 512")
             {
-                reg.osr = qmc5883_ctrl1_reg::osr_t::oversampling_512;
+                reg.osr = qmc5883l_ctrl1_reg::osr_t::oversampling_512;
                 const reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
@@ -74,14 +74,14 @@ TEST_CASE(
         {
             SECTION("If RNG == 2G")
             {
-                reg.rng = qmc5883_ctrl1_reg::rng_t::full_scale_2g;
+                reg.rng = qmc5883l_ctrl1_reg::rng_t::full_scale_2g;
                 const reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
 
             SECTION("If RNG == 8G")
             {
-                reg.rng = qmc5883_ctrl1_reg::rng_t::full_scale_8g;
+                reg.rng = qmc5883l_ctrl1_reg::rng_t::full_scale_8g;
                 const reg_bitset expect_reg_val{std::string{"00010000"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
@@ -93,7 +93,8 @@ TEST_CASE(
                     constexpr reg_bitset expect_reg_val{
                         std::string{"00000000"}};
                     reg = static_cast<std::uint8_t>(expect_reg_val.to_ullong());
-                    REQUIRE(reg.rng == qmc5883_ctrl1_reg::rng_t::full_scale_2g);
+                    REQUIRE(reg.rng
+                            == qmc5883l_ctrl1_reg::rng_t::full_scale_2g);
                 }
 
                 SECTION("Write with FULL_SCALE_8G")
@@ -101,7 +102,8 @@ TEST_CASE(
                     constexpr reg_bitset expect_reg_val{
                         std::string{"00010000"}};
                     reg = static_cast<std::uint8_t>(expect_reg_val.to_ullong());
-                    REQUIRE(reg.rng == qmc5883_ctrl1_reg::rng_t::full_scale_8g);
+                    REQUIRE(reg.rng
+                            == qmc5883l_ctrl1_reg::rng_t::full_scale_8g);
                 }
             }
         }
@@ -110,28 +112,28 @@ TEST_CASE(
         {
             SECTION("If ODR == 10Hz")
             {
-                reg.odr = qmc5883_ctrl1_reg::odr_t::output_data_rate_10hz;
+                reg.odr = qmc5883l_ctrl1_reg::odr_t::output_data_rate_10hz;
                 const reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
 
             SECTION("If ODR == 50Hz")
             {
-                reg.odr = qmc5883_ctrl1_reg::odr_t::output_data_rate_50hz;
+                reg.odr = qmc5883l_ctrl1_reg::odr_t::output_data_rate_50hz;
                 const reg_bitset expect_reg_val{std::string{"00000100"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
 
             SECTION("If ODR == 100Hz")
             {
-                reg.odr = qmc5883_ctrl1_reg::odr_t::output_data_rate_100hz;
+                reg.odr = qmc5883l_ctrl1_reg::odr_t::output_data_rate_100hz;
                 const reg_bitset expect_reg_val{std::string{"00001000"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
 
             SECTION("If ODR == 200Hz")
             {
-                reg.odr = qmc5883_ctrl1_reg::odr_t::output_data_rate_200hz;
+                reg.odr = qmc5883l_ctrl1_reg::odr_t::output_data_rate_200hz;
                 const reg_bitset expect_reg_val{std::string{"00001100"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
@@ -141,39 +143,39 @@ TEST_CASE(
         {
             SECTION("If MODE == Standby")
             {
-                reg.mode = qmc5883_ctrl1_reg::mode_t::standby;
+                reg.mode = qmc5883l_ctrl1_reg::mode_t::standby;
                 const reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
             SECTION("If MODE == Continuous")
             {
-                reg.mode = qmc5883_ctrl1_reg::mode_t::continuous;
+                reg.mode = qmc5883l_ctrl1_reg::mode_t::continuous;
                 const reg_bitset expect_reg_val{std::string{"00000001"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
         }
     }
 
-    SECTION("qmc5883_ctrl2_reg")
+    SECTION("qmc5883l_ctrl2_reg")
     {
         // Установка регистра в нулевые значения.
-        qmc5883_ctrl2_reg reg;
-        reg.soft_reset = qmc5883_ctrl2_reg::soft_reset_t::normal;
-        reg.rol_pnt    = qmc5883_ctrl2_reg::rol_pnt_t::normal;
-        reg.int_enb    = qmc5883_ctrl2_reg::int_enb_t::enable;
+        qmc5883l_ctrl2_reg reg;
+        reg.soft_reset = qmc5883l_ctrl2_reg::soft_reset_t::normal;
+        reg.rol_pnt    = qmc5883l_ctrl2_reg::rol_pnt_t::normal;
+        reg.int_enb    = qmc5883l_ctrl2_reg::int_enb_t::enable;
 
         SECTION("Soft Reset")
         {
             SECTION("Soft reset == NORMAL")
             {
-                reg.soft_reset = qmc5883_ctrl2_reg::soft_reset_t::normal;
+                reg.soft_reset = qmc5883l_ctrl2_reg::soft_reset_t::normal;
                 const reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
 
             SECTION("Soft reset == ENABLE")
             {
-                reg.soft_reset = qmc5883_ctrl2_reg::soft_reset_t::enable;
+                reg.soft_reset = qmc5883l_ctrl2_reg::soft_reset_t::enable;
                 const reg_bitset expect_reg_val{std::string{"10000000"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
@@ -183,14 +185,14 @@ TEST_CASE(
         {
             SECTION("ROL_PNT == NORMAL")
             {
-                reg.rol_pnt = qmc5883_ctrl2_reg::rol_pnt_t::normal;
+                reg.rol_pnt = qmc5883l_ctrl2_reg::rol_pnt_t::normal;
                 const reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
 
             SECTION("ROL_PNT == ENABLE")
             {
-                reg.rol_pnt = qmc5883_ctrl2_reg::rol_pnt_t::enable;
+                reg.rol_pnt = qmc5883l_ctrl2_reg::rol_pnt_t::enable;
                 const reg_bitset expect_reg_val{std::string{"01000000"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
@@ -200,23 +202,23 @@ TEST_CASE(
         {
             SECTION("INT_ENB == ENABLE")
             {
-                reg.int_enb = qmc5883_ctrl2_reg::int_enb_t::enable;
+                reg.int_enb = qmc5883l_ctrl2_reg::int_enb_t::enable;
                 const reg_bitset expect_reg_val{std::string{"00000000"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
 
             SECTION("INT_ENB == DISABLE")
             {
-                reg.int_enb = qmc5883_ctrl2_reg::int_enb_t::disable;
+                reg.int_enb = qmc5883l_ctrl2_reg::int_enb_t::disable;
                 const reg_bitset expect_reg_val{std::string{"00000001"}};
                 REQUIRE(static_cast<uint8_t>(reg) == expect_reg_val);
             }
         }
     }
 
-    SECTION("qmc5883_set_reset_period_reg")
+    SECTION("qmc5883l_set_reset_period_reg")
     {
-        qmc5883_set_reset_period_reg reg;
+        qmc5883l_set_reset_period_reg reg;
         SECTION("Check default value")
         {
             constexpr std::uint8_t expect_reg_val{0x01};
@@ -239,91 +241,96 @@ TEST_CASE(
 
         SECTION("Check non zero with Ctor")
         {
-            constexpr std::uint8_t             expect_reg_val{0xFF};
-            const qmc5883_set_reset_period_reg reg_with_ctor{expect_reg_val};
+            constexpr std::uint8_t              expect_reg_val{0xFF};
+            const qmc5883l_set_reset_period_reg reg_with_ctor{expect_reg_val};
             REQUIRE(static_cast<uint8_t>(reg_with_ctor) == expect_reg_val);
         }
     }
 
-    SECTION("qmc5883_status_reg")
+    SECTION("qmc5883l_status_reg")
     {
         SECTION("All bits is reset")
         {
-            const reg_bitset         expect_reg_val{std::string{"00000000"}};
+            const reg_bitset          expect_reg_val{std::string{"00000000"}};
 
-            const qmc5883_status_reg status_reg{
+            const qmc5883l_status_reg status_reg{
                 static_cast<std::uint8_t>(expect_reg_val.to_ulong())};
-            REQUIRE(status_reg.dor == qmc5883_status_reg::dor_t::normal);
-            REQUIRE(status_reg.ovl == qmc5883_status_reg::ovl_t::normal);
-            REQUIRE(status_reg.drdy == qmc5883_status_reg::drdy_t::no_new_data);
+            REQUIRE(status_reg.dor == qmc5883l_status_reg::dor_t::normal);
+            REQUIRE(status_reg.ovl == qmc5883l_status_reg::ovl_t::normal);
+            REQUIRE(status_reg.drdy
+                    == qmc5883l_status_reg::drdy_t::no_new_data);
         }
 
         SECTION("All bits is reset (check operator =)")
         {
-            const reg_bitset   expect_reg_val{std::string{"00000000"}};
+            const reg_bitset    expect_reg_val{std::string{"00000000"}};
 
-            qmc5883_status_reg status_reg{0xFF};
-            REQUIRE_FALSE(status_reg.dor == qmc5883_status_reg::dor_t::normal);
-            REQUIRE_FALSE(status_reg.ovl == qmc5883_status_reg::ovl_t::normal);
+            qmc5883l_status_reg status_reg{0xFF};
+            REQUIRE_FALSE(status_reg.dor == qmc5883l_status_reg::dor_t::normal);
+            REQUIRE_FALSE(status_reg.ovl == qmc5883l_status_reg::ovl_t::normal);
             REQUIRE_FALSE(status_reg.drdy
-                          == qmc5883_status_reg::drdy_t::no_new_data);
+                          == qmc5883l_status_reg::drdy_t::no_new_data);
 
             status_reg = static_cast<std::uint8_t>(expect_reg_val.to_ulong());
-            REQUIRE(status_reg.dor == qmc5883_status_reg::dor_t::normal);
-            REQUIRE(status_reg.ovl == qmc5883_status_reg::ovl_t::normal);
-            REQUIRE(status_reg.drdy == qmc5883_status_reg::drdy_t::no_new_data);
+            REQUIRE(status_reg.dor == qmc5883l_status_reg::dor_t::normal);
+            REQUIRE(status_reg.ovl == qmc5883l_status_reg::ovl_t::normal);
+            REQUIRE(status_reg.drdy
+                    == qmc5883l_status_reg::drdy_t::no_new_data);
         }
 
         SECTION("Set only DRDY bit")
         {
-            const reg_bitset         expect_reg_val{std::string{"00000001"}};
+            const reg_bitset          expect_reg_val{std::string{"00000001"}};
 
-            const qmc5883_status_reg status_reg{
+            const qmc5883l_status_reg status_reg{
                 static_cast<std::uint8_t>(expect_reg_val.to_ulong())};
-            REQUIRE(status_reg.dor == qmc5883_status_reg::dor_t::normal);
-            REQUIRE(status_reg.ovl == qmc5883_status_reg::ovl_t::normal);
+            REQUIRE(status_reg.dor == qmc5883l_status_reg::dor_t::normal);
+            REQUIRE(status_reg.ovl == qmc5883l_status_reg::ovl_t::normal);
             REQUIRE(status_reg.drdy
-                    == qmc5883_status_reg::drdy_t::new_data_is_ready);
+                    == qmc5883l_status_reg::drdy_t::new_data_is_ready);
         }
 
         SECTION("Set only OVL bit")
         {
-            const reg_bitset         expect_reg_val{std::string{"00000010"}};
+            const reg_bitset          expect_reg_val{std::string{"00000010"}};
 
-            const qmc5883_status_reg status_reg{
+            const qmc5883l_status_reg status_reg{
                 static_cast<std::uint8_t>(expect_reg_val.to_ulong())};
-            REQUIRE(status_reg.dor == qmc5883_status_reg::dor_t::normal);
-            REQUIRE(status_reg.ovl == qmc5883_status_reg::ovl_t::data_overflow);
-            REQUIRE(status_reg.drdy == qmc5883_status_reg::drdy_t::no_new_data);
+            REQUIRE(status_reg.dor == qmc5883l_status_reg::dor_t::normal);
+            REQUIRE(status_reg.ovl
+                    == qmc5883l_status_reg::ovl_t::data_overflow);
+            REQUIRE(status_reg.drdy
+                    == qmc5883l_status_reg::drdy_t::no_new_data);
         }
 
         SECTION("Set only DOR bit")
         {
-            const reg_bitset         expect_reg_val{std::string{"00000100"}};
+            const reg_bitset          expect_reg_val{std::string{"00000100"}};
 
-            const qmc5883_status_reg status_reg{
+            const qmc5883l_status_reg status_reg{
                 static_cast<std::uint8_t>(expect_reg_val.to_ulong())};
             REQUIRE(status_reg.dor
-                    == qmc5883_status_reg::dor_t::data_skipped_for_reading);
-            REQUIRE(status_reg.ovl == qmc5883_status_reg::ovl_t::normal);
-            REQUIRE(status_reg.drdy == qmc5883_status_reg::drdy_t::no_new_data);
+                    == qmc5883l_status_reg::dor_t::data_skipped_for_reading);
+            REQUIRE(status_reg.ovl == qmc5883l_status_reg::ovl_t::normal);
+            REQUIRE(status_reg.drdy
+                    == qmc5883l_status_reg::drdy_t::no_new_data);
         }
     }
 }
 
 SCENARIO(
-    "QMC5883 Driver")
+    "QMC5883L Driver")
 {
     using namespace fakeit;
     using namespace stv;
 
     GIVEN("Default initialize setup")
     {
-        const qmc5883_setup setup;
+        const qmc5883l_setup setup;
 
         WHEN("Initialize with default setup")
         {
-            qmc5883<stv::mag<float>> driver{setup};
+            qmc5883l<stv::mag<float>> driver{setup};
 
             THEN("Driver is not valid object") { REQUIRE_FALSE(driver); }
         }
@@ -332,7 +339,7 @@ SCENARIO(
     GIVEN("Initialize setup with valid i2c_interface")
     {
         Mock<stv::i2c_interface> i2c_mock;
-        qmc5883_setup            setup;
+        qmc5883l_setup           setup;
         setup.i2c        = &i2c_mock.get();
         using reg_bitset = std::bitset<8>;
 
@@ -367,8 +374,8 @@ SCENARIO(
                     return true;
                 });
 
-            qmc5883<stv::mag<float>> driver{setup};
-            const auto               init_result = driver.init(setup);
+            qmc5883l<stv::mag<float>> driver{setup};
+            const auto                init_result = driver.init(setup);
 
             THEN("Driver is valid object")
             {
@@ -454,7 +461,7 @@ SCENARIO(
 
             AND_WHEN("Invalid ctrl reg 2 only") { reg_vals.at(2) = 0xFF; }
 
-            qmc5883<stv::mag<float>> driver{setup};
+            qmc5883l<stv::mag<float>> driver{setup};
             REQUIRE_FALSE(driver.init(setup));
         }
     }
@@ -480,7 +487,10 @@ SCENARIO(
                 });
 
             THEN("is_detected returns true")
-            { REQUIRE(qmc5883<stv::mag<float>>::is_detected(&i2c_mock.get())); }
+            {
+                REQUIRE(
+                    qmc5883l<stv::mag<float>>::is_detected(&i2c_mock.get()));
+            }
         }
 
         WHEN("Chip ID does not match expected value")
@@ -501,7 +511,7 @@ SCENARIO(
             THEN("is_detected returns false")
             {
                 REQUIRE_FALSE(
-                    qmc5883<stv::mag<float>>::is_detected(&i2c_mock.get()));
+                    qmc5883l<stv::mag<float>>::is_detected(&i2c_mock.get()));
             }
         }
 
@@ -512,18 +522,18 @@ SCENARIO(
             THEN("is_detected returns false")
             {
                 REQUIRE_FALSE(
-                    qmc5883<stv::mag<float>>::is_detected(&i2c_mock.get()));
+                    qmc5883l<stv::mag<float>>::is_detected(&i2c_mock.get()));
             }
         }
     }
 }
 
 TEST_CASE(
-    "QMC5883 Raw meas bool operator")
+    "QMC5883L Raw meas bool operator")
 {
     using namespace stv;
     using reg_bitset = std::bitset<8>;
-    using raw_t      = qmc5883<stv::mag<float>>::raw_t;
+    using raw_t      = qmc5883l<stv::mag<float>>::raw_t;
 
     GIVEN("Default raw meas struct")
     {

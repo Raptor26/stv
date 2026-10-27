@@ -7,7 +7,7 @@ find_package(FakeIt REQUIRED)
 
 add_executable(${PROJECT_NAME} test_mc3479.cpp test_qma6100_regs.cpp
                                test_qma6100.cpp test_mmc3630kj.cpp
-                               test_mmc56xx.cpp test_qmc5883.cpp
+                               test_mmc56xx.cpp test_qmc5883l.cpp
                                test_rm3100.cpp test_qmc5883p.cpp
                                test_icm42688p_regs.cpp test_icm42688p.cpp)
 
