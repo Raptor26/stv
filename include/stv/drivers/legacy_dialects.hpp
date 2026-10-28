@@ -57,8 +57,6 @@ class i_magnetic: public i_magnetic_latest<NormalizeMeasType>
     auto         operator=(const i_magnetic &other) -> i_magnetic & = delete;
     auto         operator=(i_magnetic &&other) -> i_magnetic &      = delete;
 
-    virtual auto init() -> bool = 0;
-
     virtual auto read_meas() -> meas_type = 0;
 
     [[nodiscard]] virtual auto freq() const -> float
@@ -98,8 +96,6 @@ class magnetic_default: public TBase
     auto operator=(const magnetic_default &other)
         -> magnetic_default &                                      = delete;
     auto operator=(magnetic_default &&other) -> magnetic_default & = delete;
-
-    auto init() -> bool override { return false; }
 
     auto read_meas() -> meas_type override { return meas_type{}; }
 
