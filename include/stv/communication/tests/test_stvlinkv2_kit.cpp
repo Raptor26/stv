@@ -83,23 +83,24 @@ void require_valid_buffer_deserializes()
     REQUIRE(payload->value == serialized_buffer::expected_value);
 }
 
-/// @brief Проверяет отказ десериализации буфера меньше размера структуры.
-void require_small_buffer_rejected()
+/// @brief Проверяет десериализацию доступного префикса структуры.
+void require_small_buffer_accepted()
 {
     serialized_buffer buffer{};
     const auto        payload = stv::try_deserialize<payload_stub>(
         std::span{buffer.bytes}.first(buffer.bytes.size() - 1U));
 
-    REQUIRE_FALSE(payload.has_value());
+    REQUIRE(payload.has_value());
 }
 
-/// @brief Проверяет отказ десериализации пустого буфера.
-void require_zero_sized_buffer_rejected()
+/// @brief Проверяет десериализацию пустого буфера в default-значение.
+void require_zero_sized_buffer_accepted()
 {
     const auto payload =
         stv::try_deserialize<payload_stub>(std::span<std::byte>{});
 
-    REQUIRE_FALSE(payload.has_value());
+    REQUIRE(payload.has_value());
+    REQUIRE(payload->value == 0U);
 }
 
 /// @brief Проверяет, что лишние хвостовые байты игнорируются.
@@ -161,11 +162,11 @@ TEST_CASE(
     SECTION("Valid buffer deserializes")
     { require_valid_buffer_deserializes(); }
 
-    SECTION("Buffer smaller than struct size is rejected")
-    { require_small_buffer_rejected(); }
+    SECTION("Buffer smaller than struct size is accepted")
+    { require_small_buffer_accepted(); }
 
-    SECTION("Zero-sized buffer is rejected")
-    { require_zero_sized_buffer_rejected(); }
+    SECTION("Zero-sized buffer is accepted")
+    { require_zero_sized_buffer_accepted(); }
 
     SECTION("Extra trailing bytes are ignored")
     { require_trailing_bytes_ignored(); }

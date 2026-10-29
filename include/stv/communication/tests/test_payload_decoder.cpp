@@ -74,10 +74,11 @@ TEST_CASE(
     // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
     CHECK(value->code == 0x07U);
 
-    // Срез размера 0: собственная проверка размера отклоняет.
+    // Пустой префикс принимается: поле сохраняет default-значение.
     const auto empty =
         stv::payload_decoder<demo_command>::decode(std::span<std::byte>{});
-    CHECK(!empty.has_value());
+    REQUIRE(empty.has_value());
+    CHECK(empty->code == 0U);
 }
 
 TEST_CASE(

@@ -11,9 +11,8 @@
 ///     Шаблоны-утилиты, общие для всех интегрирующих проектов протокола
 ///     stvlinkv2 (bare-metal прошивки, PC-приложения): тип хэш-таблицы
 ///     обработчиков stvlink_handler_table, конструктор параметров
-///     заголовка сообщения make_msg_setup(), десериализатор полезной
-///     нагрузки try_deserialize() с обратной совместимостью по размеру и
-///     сборщик таблицы обработчиков make_handler_table().
+///     заголовка сообщения make_msg_setup(), префикс-десериализатор
+///     try_deserialize() и сборщик make_handler_table().
 ///
 ///     Заголовок ничего не знает о payload-структурах конкретных проектов
 ///     (tablet_params, перечислениях идентификаторов сообщений) -- они
@@ -30,11 +29,14 @@
 #define STVLINKV2_KIT_HPP
 
 #include "etl/unordered_map.h"
+#include "stv/communication/message_traits.hpp"
 #include "stv/communication/stvlink_dispatcher.hpp"
 #include "stv/communication/stvlinkv2_parser.hpp"
 #include "stv/communication/stvlinkv2_sender.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <optional>
 #include <span>
 #include <tuple>
@@ -115,52 +117,25 @@ constexpr auto make_msg_setup(
     };
 }
 
-/// @brief Десериализует полезную нагрузку сообщения в структуру T.
-///
-/// @details Поведение обратной совместимости по размеру: отсутствующие
-///     хвостовые поля остаются нулевыми (структура создаётся вида T{}),
-///     лишние байты полезной нагрузки игнорируются десериализатором.
-///
-/// @tparam T Тип payload-структуры. Должен предоставлять статический метод
-///     serialized_size_bytes() и метод deserialize_from(begin, end).
-///
-/// @param[in] pload Полезная нагрузка сообщения.
-///
-/// @return Десериализованное значение, если размер полезной нагрузки не
-///     меньше serialized_size_bytes(); std::nullopt в противном случае.
-///     Аллокаций не выполняется (std::optional хранит значение на стеке).
-///
-/// @par Пример
-/// Обработчик полезной нагрузки сообщения с битстрим-кодеком
-/// десериализует структуру из принятого кадра:
-/// @code{.cpp}
-/// bool handle_command(stv::stvlink_message_span pload)
-/// {
-///     if(const auto command = stv::try_deserialize<my_command>(pload))
-///     {
-///         apply_command(command->code);
-///         return true;
-///     }
-///     // Полезная нагрузка короче serialized_size_bytes(): кадр
-///     // повреждён или сформирован старой версией протокола.
-///     return false;
-/// }
-/// @endcode
+/// @brief Десериализует известный префикс полезной нагрузки.
+/// @details Короткий вход обрабатывается полностью, неизвестный хвост длинного
+///     входа игнорируется. Поля, отсутствующие или обрезанные внутри значения,
+///     сохраняют default-значения, назначаемые десериализатором типа.
 template<typename T>
     requires requires { T::serialized_size_bytes(); }
 auto try_deserialize(
     std::span<std::byte> pload) -> std::optional<T>
 {
-    if(pload.size_bytes() < T::serialized_size_bytes())
+    if(pload.empty())
     {
-        return std::nullopt;
+        return T{};
     }
 
-    T value{};
-    // Отсутствующие хвостовые поля остаются нулевыми, лишние байты
-    // игнорируются десериализатором.
-    std::ignore = value.deserialize_from(pload.begin(), pload.end());
-
+    T          value{};
+    const auto prefix = pload.first(
+        std::min(pload.size_bytes(),
+                 static_cast<std::size_t>(T::serialized_size_bytes())));
+    std::ignore = value.deserialize_from(prefix.begin(), prefix.end());
     return value;
 }
 
