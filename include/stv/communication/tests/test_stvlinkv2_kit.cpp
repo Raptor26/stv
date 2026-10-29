@@ -100,6 +100,9 @@ void require_zero_sized_buffer_accepted()
         stv::try_deserialize<payload_stub>(std::span<std::byte>{});
 
     REQUIRE(payload.has_value());
+    // Наличие значения гарантировано REQUIRE выше; анализатор это не
+    // отслеживает.
+    // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
     REQUIRE(payload->value == 0U);
 }
 

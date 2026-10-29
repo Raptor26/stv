@@ -78,6 +78,9 @@ TEST_CASE(
     const auto empty =
         stv::payload_decoder<demo_command>::decode(std::span<std::byte>{});
     REQUIRE(empty.has_value());
+    // Наличие значения гарантировано REQUIRE выше; анализатор это не
+    // отслеживает.
+    // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
     CHECK(empty->code == 0U);
 }
 
